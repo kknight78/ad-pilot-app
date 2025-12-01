@@ -22,7 +22,7 @@ export const tools: Tool[] = [
 
 export async function executeTool(
   toolName: string,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  // eslint-disable-next-line no-unused-vars
   _toolInput: Record<string, unknown>
 ): Promise<unknown> {
   switch (toolName) {
