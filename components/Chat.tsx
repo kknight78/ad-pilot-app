@@ -1,15 +1,69 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Message, { MessageProps } from "./Message";
+import Message from "./Message";
 import TypingIndicator from "./TypingIndicator";
+import { WidgetData } from "@/lib/tools";
+import {
+  VideoPreviewCard,
+  GuidanceRulesCard,
+  InventoryGrid,
+  ContentCalendar,
+  type GuidanceRule,
+  type Vehicle,
+  type ScheduledPost,
+} from "./widgets";
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  widget?: WidgetData;
+}
 
 interface ChatProps {
   welcomeMessage: string;
 }
 
+// Widget renderer component
+function WidgetRenderer({ widget }: { widget: WidgetData }) {
+  switch (widget.type) {
+    case "guidance_rules": {
+      const data = widget.data as { rules: GuidanceRule[]; clientName: string };
+      return <GuidanceRulesCard rules={data.rules} clientName={data.clientName} />;
+    }
+    case "video_preview": {
+      const data = widget.data as {
+        title: string;
+        hook: string;
+        script?: string;
+        duration: string;
+        status: "preview" | "generating" | "ready";
+      };
+      return (
+        <VideoPreviewCard
+          title={data.title}
+          hook={data.hook}
+          script={data.script}
+          duration={data.duration}
+          status={data.status}
+        />
+      );
+    }
+    case "inventory": {
+      const data = widget.data as { vehicles: Vehicle[] };
+      return <InventoryGrid vehicles={data.vehicles} />;
+    }
+    case "content_calendar": {
+      const data = widget.data as { posts: ScheduledPost[] };
+      return <ContentCalendar posts={data.posts} />;
+    }
+    default:
+      return null;
+  }
+}
+
 export default function Chat({ welcomeMessage }: ChatProps) {
-  const [messages, setMessages] = useState<MessageProps[]>([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     { role: "assistant", content: welcomeMessage },
   ]);
   const [input, setInput] = useState("");
@@ -50,6 +104,7 @@ export default function Chat({ welcomeMessage }: ChatProps) {
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
       let assistantMessage = "";
+      let currentWidget: WidgetData | undefined;
 
       if (reader) {
         setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
@@ -68,6 +123,22 @@ export default function Chat({ welcomeMessage }: ChatProps) {
 
               try {
                 const parsed = JSON.parse(data);
+
+                // Handle widget data
+                if (parsed.widget) {
+                  currentWidget = parsed.widget;
+                  setMessages((prev) => {
+                    const newMessages = [...prev];
+                    newMessages[newMessages.length - 1] = {
+                      role: "assistant",
+                      content: assistantMessage,
+                      widget: currentWidget,
+                    };
+                    return newMessages;
+                  });
+                }
+
+                // Handle text content
                 if (parsed.content) {
                   assistantMessage += parsed.content;
                   setMessages((prev) => {
@@ -75,6 +146,7 @@ export default function Chat({ welcomeMessage }: ChatProps) {
                     newMessages[newMessages.length - 1] = {
                       role: "assistant",
                       content: assistantMessage,
+                      widget: currentWidget,
                     };
                     return newMessages;
                   });
@@ -114,7 +186,14 @@ export default function Chat({ welcomeMessage }: ChatProps) {
       <div className="flex-1 overflow-y-auto p-6 chat-scrollbar bg-gray-50">
         <div className="max-w-3xl mx-auto">
           {messages.map((message, index) => (
-            <Message key={index} {...message} />
+            <div key={index}>
+              <Message role={message.role} content={message.content} />
+              {message.widget && (
+                <div className="flex justify-start mb-4 ml-0">
+                  <WidgetRenderer widget={message.widget} />
+                </div>
+              )}
+            </div>
           ))}
           {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
             <TypingIndicator />

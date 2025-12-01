@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { tools, executeTool } from "@/lib/tools";
+import { tools, executeTool, type ToolResult } from "@/lib/tools";
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -8,12 +8,18 @@ const anthropic = new Anthropic({
 const SYSTEM_PROMPT = `You are Ad Pilot, an AI assistant for Capitol Car Credit, a used car dealership. You help create video advertisements and manage advertising content.
 
 Your capabilities include:
-- Answering questions about client preferences and guidance rules
-- Helping plan and create video ad scripts
-- Providing suggestions for advertising content
-- Managing inventory-related advertising tasks
+- Showing guidance rules and preferences (use show_guidance_rules tool)
+- Creating video ad scripts with preview cards (use preview_video_script tool)
+- Displaying inventory with vehicle cards (use show_inventory tool)
+- Showing the content calendar (use show_content_calendar tool)
 
-When users ask about their preferences or how videos should be made, use the get_guidance_rules tool to fetch their current settings.
+IMPORTANT: When responding to user requests, use the appropriate tools to display rich UI widgets:
+- When asked about preferences, rules, or settings → use show_guidance_rules
+- When asked to create a video for a car → use preview_video_script
+- When asked about inventory or available cars → use show_inventory
+- When asked about scheduled content or calendar → use show_content_calendar
+
+After using a tool, provide a brief friendly response. The tool results will be displayed as rich UI cards automatically.
 
 Be friendly, professional, and helpful. Focus on making the advertising process simple and effective for small local businesses.`;
 
@@ -26,7 +32,7 @@ export async function POST(req: Request) {
   try {
     const { messages } = await req.json() as { messages: Message[] };
 
-    // Convert messages to Anthropic format
+    // Convert messages to Anthropic format (filter out widget data from history)
     const anthropicMessages = messages
       .filter((m: Message) => m.role === "user" || m.role === "assistant")
       .map((m: Message) => ({
@@ -67,10 +73,30 @@ export async function POST(req: Request) {
               } else if (block.type === "tool_use") {
                 hasToolUse = true;
                 // Execute the tool
-                const result = await executeTool(
+                const result: ToolResult = await executeTool(
                   block.name,
                   block.input as Record<string, unknown>
                 );
+
+                // Send widget data to client if present
+                if (result.widget) {
+                  const widgetData = JSON.stringify({ widget: result.widget });
+                  controller.enqueue(encoder.encode(`data: ${widgetData}\n\n`));
+                }
+
+                // Send any accompanying text
+                if (result.text) {
+                  const textData = JSON.stringify({ content: result.text + "\n\n" });
+                  controller.enqueue(encoder.encode(`data: ${textData}\n\n`));
+                }
+
+                // Send error if present
+                if (result.error) {
+                  const errorData = JSON.stringify({ content: result.error });
+                  controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+                }
+
+                // Add tool result for Claude to continue
                 toolResults.push({
                   type: "tool_result",
                   tool_use_id: block.id,
