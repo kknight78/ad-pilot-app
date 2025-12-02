@@ -128,6 +128,16 @@ export const tools: Tool[] = [
       required: [],
     },
   },
+  {
+    name: "show_vehicle_selector",
+    description:
+      "Display the vehicle selector for choosing which vehicles to feature in ads. Call this when the ad plan needs vehicles assigned, or when the user wants to change vehicle selections for their ads.",
+    input_schema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
 // Widget types for the response
@@ -141,7 +151,8 @@ export type WidgetType =
   | "suggestions"
   | "ad_plan"
   | "theme_selector"
-  | "topic_selector";
+  | "topic_selector"
+  | "vehicle_selector";
 
 export interface WidgetData {
   type: WidgetType;
@@ -820,6 +831,183 @@ export async function executeTool(
           data: { topics, numberOfTopics },
         },
         text: `Great! Now pick ${numberOfTopics} topic${numberOfTopics !== 1 ? "s" : ""} for your educational videos:`,
+      };
+    }
+
+    case "show_vehicle_selector": {
+      // Demo vehicle data for selection
+      const vehicles = [
+        {
+          id: "v1",
+          year: 2024,
+          make: "Chevrolet",
+          model: "Malibu",
+          trim: "LT",
+          price: 24995,
+          mileage: 12500,
+          daysOnLot: 5,
+          type: "sedan" as const,
+        },
+        {
+          id: "v2",
+          year: 2023,
+          make: "Honda",
+          model: "CR-V",
+          trim: "EX",
+          price: 29995,
+          mileage: 18200,
+          daysOnLot: 12,
+          type: "suv" as const,
+        },
+        {
+          id: "v3",
+          year: 2022,
+          make: "Toyota",
+          model: "Camry",
+          trim: "SE",
+          price: 22500,
+          mileage: 28000,
+          daysOnLot: 21,
+          type: "sedan" as const,
+        },
+        {
+          id: "v4",
+          year: 2023,
+          make: "Ford",
+          model: "Explorer",
+          trim: "XLT",
+          price: 38995,
+          mileage: 15800,
+          daysOnLot: 8,
+          type: "suv" as const,
+        },
+        {
+          id: "v5",
+          year: 2021,
+          make: "Nissan",
+          model: "Altima",
+          trim: "SV",
+          price: 19500,
+          mileage: 35000,
+          daysOnLot: 45,
+          type: "sedan" as const,
+        },
+        {
+          id: "v6",
+          year: 2024,
+          make: "Hyundai",
+          model: "Tucson",
+          trim: "SEL",
+          price: 31500,
+          mileage: 8500,
+          daysOnLot: 3,
+          type: "suv" as const,
+        },
+        {
+          id: "v7",
+          year: 2023,
+          make: "RAM",
+          model: "1500",
+          trim: "Big Horn",
+          price: 42500,
+          mileage: 11000,
+          daysOnLot: 15,
+          type: "truck" as const,
+        },
+        {
+          id: "v8",
+          year: 2022,
+          make: "Kia",
+          model: "Sorento",
+          trim: "LX",
+          price: 27500,
+          mileage: 22000,
+          daysOnLot: 18,
+          type: "suv" as const,
+        },
+        {
+          id: "v9",
+          year: 2023,
+          make: "Mazda",
+          model: "CX-5",
+          trim: "Touring",
+          price: 28995,
+          mileage: 14500,
+          daysOnLot: 10,
+          type: "suv" as const,
+        },
+        {
+          id: "v10",
+          year: 2021,
+          make: "Ford",
+          model: "F-150",
+          trim: "XLT",
+          price: 39500,
+          mileage: 32000,
+          daysOnLot: 30,
+          type: "truck" as const,
+        },
+      ];
+
+      // Ad slot assignments (pre-selected based on strategy)
+      const adSlots = [
+        {
+          id: "tt1",
+          label: "TikTok Ad #1 (Multi-car)",
+          platform: "tiktok" as const,
+          vehicleIds: ["v5", "v3"], // Oldest on lot first
+          maxVehicles: 2,
+        },
+        {
+          id: "tt2",
+          label: "TikTok Ad #2 (Multi-car)",
+          platform: "tiktok" as const,
+          vehicleIds: ["v10", "v8"],
+          maxVehicles: 2,
+        },
+        {
+          id: "tt3",
+          label: "TikTok Spotlight",
+          platform: "tiktok" as const,
+          vehicleIds: ["v1"],
+          maxVehicles: 1,
+        },
+        {
+          id: "fb1",
+          label: "Facebook Ad #1 (Multi-car)",
+          platform: "facebook" as const,
+          vehicleIds: ["v5", "v3", "v8"],
+          maxVehicles: 3,
+        },
+        {
+          id: "fb2",
+          label: "Facebook Spotlight",
+          platform: "facebook" as const,
+          vehicleIds: ["v6"],
+          maxVehicles: 1,
+        },
+        {
+          id: "ig1",
+          label: "Instagram Ad #1 (Multi-car)",
+          platform: "instagram" as const,
+          vehicleIds: ["v2", "v9"],
+          maxVehicles: 2,
+        },
+        {
+          id: "ig2",
+          label: "Instagram Spotlight",
+          platform: "instagram" as const,
+          vehicleIds: ["v4"],
+          maxVehicles: 1,
+        },
+      ];
+
+      return {
+        widget: {
+          type: "vehicle_selector",
+          data: { vehicles, adSlots },
+        },
+        text: "Here are the suggested vehicle assignments for your ads. You can swap any vehicle if you'd like:",
       };
     }
 

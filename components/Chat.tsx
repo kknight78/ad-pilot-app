@@ -15,6 +15,7 @@ import {
   AdPlanWidget,
   ThemeSelector,
   TopicSelector,
+  VehicleSelector,
   type GuidanceRule,
   type Vehicle,
   type ScheduledPost,
@@ -25,6 +26,8 @@ import {
   type AdPlanData,
   type Theme,
   type Topic,
+  type VehicleOption,
+  type AdSlot,
 } from "./widgets";
 
 interface ChatMessage {
@@ -159,6 +162,27 @@ function WidgetRenderer({
           }}
           onSubjectArea={(subject) => {
             onSendMessage(`Generate topics about: ${subject}`);
+          }}
+        />
+      );
+    }
+    case "vehicle_selector": {
+      const data = widget.data as { vehicles: VehicleOption[]; adSlots: AdSlot[] };
+      return (
+        <VehicleSelector
+          vehicles={data.vehicles}
+          adSlots={data.adSlots}
+          onConfirm={(assignments) => {
+            const vehicleCount = assignments.reduce(
+              (sum, slot) => sum + slot.vehicleIds.length,
+              0
+            );
+            onSendMessage(
+              `I've confirmed the vehicle selections (${vehicleCount} vehicles across ${assignments.length} ad slots)`
+            );
+          }}
+          onReset={() => {
+            onSendMessage("Reset vehicle selections to suggestions");
           }}
         />
       );

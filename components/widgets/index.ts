@@ -49,3 +49,9 @@ export {
   type TopicSelectorProps,
   type Topic,
 } from "./TopicSelector";
+export {
+  VehicleSelector,
+  type VehicleSelectorProps,
+  type VehicleOption,
+  type AdSlot,
+} from "./VehicleSelector";
