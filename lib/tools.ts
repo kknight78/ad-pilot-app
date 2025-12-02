@@ -148,6 +148,40 @@ export const tools: Tool[] = [
       required: [],
     },
   },
+  {
+    name: "show_action_buttons",
+    description:
+      "Display action buttons for the user to choose next steps. ALWAYS use this after showing a widget or completing an action. Never leave the user without clear next step options.",
+    input_schema: {
+      type: "object",
+      properties: {
+        buttons: {
+          type: "array",
+          description: "Array of button options to display",
+          items: {
+            type: "object",
+            properties: {
+              label: {
+                type: "string",
+                description: "Button label text",
+              },
+              message: {
+                type: "string",
+                description: "Message to send when clicked",
+              },
+              variant: {
+                type: "string",
+                enum: ["primary", "secondary"],
+                description: "Button style variant",
+              },
+            },
+            required: ["label", "message"],
+          },
+        },
+      },
+      required: ["buttons"],
+    },
+  },
 ];
 
 // Widget types for the response
@@ -163,7 +197,8 @@ export type WidgetType =
   | "theme_selector"
   | "topic_selector"
   | "vehicle_selector"
-  | "progress_indicator";
+  | "progress_indicator"
+  | "action_buttons";
 
 export interface WidgetData {
   type: WidgetType;
@@ -1049,6 +1084,21 @@ export async function executeTool(
           },
         },
         text: "Kicking off script generation now! Here's the progress:",
+      };
+    }
+
+    case "show_action_buttons": {
+      const buttons = toolInput.buttons as Array<{
+        label: string;
+        message: string;
+        variant?: "primary" | "secondary";
+      }>;
+
+      return {
+        widget: {
+          type: "action_buttons",
+          data: { buttons },
+        },
       };
     }
 

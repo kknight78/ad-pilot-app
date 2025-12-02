@@ -17,6 +17,7 @@ import {
   TopicSelector,
   VehicleSelector,
   ProgressIndicator,
+  ActionButtons,
   type GuidanceRule,
   type Vehicle,
   type ScheduledPost,
@@ -30,6 +31,7 @@ import {
   type VehicleOption,
   type AdSlot,
   type ProgressItem,
+  type ActionButton,
 } from "./widgets";
 
 interface ChatMessage {
@@ -49,59 +51,79 @@ function getGreeting(): string {
 // Welcome message with performance snapshot
 function getWelcomeMessage(): string {
   const greeting = getGreeting();
-  return `${greeting}, Shad!
-
-Last week: 45k views, 127 leads, $9.84 cost per lead
-Top performer: '2024 Malibu Spotlight' on Facebook
-
-What's on the agenda?`;
+  return `${greeting}, Shad! Here's how last week went:`;
 }
 
-// Quick action buttons for welcome
-interface QuickAction {
-  emoji: string;
-  label: string;
-  message: string;
-}
+// Initial performance data for welcome screen
+const initialPerformanceData = {
+  dateRange: "Nov 25 - Dec 1, 2024",
+  totalViews: 45200,
+  totalLeads: 127,
+  totalSpend: 1250,
+  viewsTrend: 12,
+  leadsTrend: 8,
+  platforms: [
+    {
+      platform: "Facebook",
+      views: 22500,
+      leads: 68,
+      spend: 550,
+      cpl: 8.09,
+      trend: 15,
+    },
+    {
+      platform: "TikTok",
+      views: 18200,
+      leads: 42,
+      spend: 400,
+      cpl: 9.52,
+      trend: 22,
+    },
+    {
+      platform: "Instagram",
+      views: 4500,
+      leads: 17,
+      spend: 300,
+      cpl: 17.65,
+      trend: -5,
+    },
+  ],
+  topContent: [
+    {
+      title: "2024 Malibu Spotlight",
+      platform: "Facebook",
+      views: 8500,
+      leads: 24,
+      featured: true,
+    },
+    {
+      title: "Weekend Flash Sale",
+      platform: "TikTok",
+      views: 6200,
+      leads: 18,
+    },
+    {
+      title: "Customer Testimonial - Johnson Family",
+      platform: "Facebook",
+      views: 4100,
+      leads: 12,
+    },
+  ],
+};
 
-const quickActions: QuickAction[] = [
-  { emoji: "📊", label: "See Full Report", message: "Show me the performance report" },
-  { emoji: "📋", label: "Plan This Week", message: "Let's plan this week" },
-  { emoji: "🎬", label: "Create a Video", message: "I want to create a video" },
-  { emoji: "💬", label: "Something Else", message: "" },
+// Initial welcome widget
+const welcomeWidget: WidgetData = {
+  type: "performance_dashboard",
+  data: initialPerformanceData,
+};
+
+// Welcome action buttons
+const welcomeActionButtons: ActionButton[] = [
+  { label: "📧 Email me this report", message: "Email me the performance report", variant: "secondary" },
+  { label: "💡 Show recommendations", message: "Show me recommendations based on this data", variant: "primary" },
+  { label: "📋 Plan this week", message: "Let's plan this week's content", variant: "secondary" },
 ];
 
-function QuickActionButtons({
-  onAction,
-  onFocusInput,
-  disabled,
-}: {
-  onAction: (message: string) => void;
-  onFocusInput: () => void;
-  disabled: boolean;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2 mt-3 ml-0">
-      {quickActions.map((action) => (
-        <button
-          key={action.label}
-          onClick={() => {
-            if (action.message) {
-              onAction(action.message);
-            } else {
-              onFocusInput();
-            }
-          }}
-          disabled={disabled}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-full hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <span>{action.emoji}</span>
-          <span>{action.label}</span>
-        </button>
-      ))}
-    </div>
-  );
-}
 
 // Widget renderer component with callbacks
 function WidgetRenderer({
@@ -258,6 +280,15 @@ function WidgetRenderer({
         />
       );
     }
+    case "action_buttons": {
+      const data = widget.data as { buttons: ActionButton[] };
+      return (
+        <ActionButtons
+          buttons={data.buttons}
+          onAction={onSendMessage}
+        />
+      );
+    }
     default:
       return null;
   }
@@ -265,7 +296,7 @@ function WidgetRenderer({
 
 export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", content: getWelcomeMessage() },
+    { role: "assistant", content: getWelcomeMessage(), widget: welcomeWidget },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -398,16 +429,6 @@ export default function Chat() {
           {messages.map((message, index) => (
             <div key={index}>
               <Message role={message.role} content={message.content} />
-              {/* Show quick actions after welcome message (first message, no user messages yet) */}
-              {index === 0 &&
-                message.role === "assistant" &&
-                messages.length === 1 && (
-                  <QuickActionButtons
-                    onAction={sendMessage}
-                    onFocusInput={() => inputRef.current?.focus()}
-                    disabled={isLoading}
-                  />
-                )}
               {message.widget && (
                 <div className="flex justify-start mb-4 ml-0">
                   <WidgetRenderer
@@ -416,6 +437,19 @@ export default function Chat() {
                   />
                 </div>
               )}
+              {/* Show welcome action buttons after performance dashboard on initial load */}
+              {index === 0 &&
+                message.role === "assistant" &&
+                messages.length === 1 &&
+                message.widget?.type === "performance_dashboard" && (
+                  <div className="mb-4">
+                    <ActionButtons
+                      buttons={welcomeActionButtons}
+                      onAction={sendMessage}
+                      disabled={isLoading}
+                    />
+                  </div>
+                )}
             </div>
           ))}
           {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
