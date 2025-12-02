@@ -73,6 +73,26 @@ export const tools: Tool[] = [
       required: [],
     },
   },
+  {
+    name: "show_performance_report",
+    description:
+      "Display the performance dashboard showing last week's ad metrics across platforms. Call this when the user asks about performance, analytics, metrics, how ads are doing, results, or stats.",
+    input_schema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: "show_recommendations",
+    description:
+      "Display AI-generated recommendations and suggestions based on performance. Call this when the user asks for recommendations, suggestions, what to improve, ideas, or what to do next.",
+    input_schema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
 // Widget types for the response
@@ -80,7 +100,10 @@ export type WidgetType =
   | "guidance_rules"
   | "video_preview"
   | "inventory"
-  | "content_calendar";
+  | "content_calendar"
+  | "performance_dashboard"
+  | "recommendations"
+  | "suggestions";
 
 export interface WidgetData {
   type: WidgetType;
@@ -391,6 +414,138 @@ export async function executeTool(
           data: { posts },
         },
         text: "Here's your content calendar for this week:",
+      };
+    }
+
+    case "show_performance_report": {
+      // Demo performance data
+      const performanceData = {
+        dateRange: "Nov 25 - Dec 1, 2024",
+        totalViews: 45200,
+        totalLeads: 127,
+        totalSpend: 1250,
+        viewsTrend: 12,
+        leadsTrend: 8,
+        platforms: [
+          {
+            platform: "Facebook",
+            views: 22500,
+            leads: 68,
+            spend: 550,
+            cpl: 8.09,
+            trend: 15,
+          },
+          {
+            platform: "TikTok",
+            views: 18200,
+            leads: 42,
+            spend: 400,
+            cpl: 9.52,
+            trend: 22,
+          },
+          {
+            platform: "Instagram",
+            views: 4500,
+            leads: 17,
+            spend: 300,
+            cpl: 17.65,
+            trend: -5,
+          },
+        ],
+        topContent: [
+          {
+            title: "2024 Malibu Spotlight",
+            platform: "Facebook",
+            views: 8500,
+            leads: 24,
+            featured: true,
+          },
+          {
+            title: "Weekend Flash Sale",
+            platform: "TikTok",
+            views: 6200,
+            leads: 18,
+          },
+          {
+            title: "Customer Testimonial - Johnson Family",
+            platform: "Facebook",
+            views: 4100,
+            leads: 12,
+          },
+        ],
+      };
+
+      return {
+        widget: {
+          type: "performance_dashboard",
+          data: performanceData,
+        },
+        text: "Here's your performance report for last week:",
+      };
+    }
+
+    case "show_recommendations": {
+      // Demo recommendations data
+      const recommendations = [
+        {
+          id: "1",
+          type: "success" as const,
+          message:
+            "Your TikTok content is outperforming other platforms by 22%. Consider increasing TikTok ad spend.",
+        },
+        {
+          id: "2",
+          type: "warning" as const,
+          message:
+            "Instagram engagement is down 5% this week. Try posting Reels instead of static images.",
+        },
+        {
+          id: "3",
+          type: "action" as const,
+          message:
+            "The 2021 Nissan Altima has been on lot for 45 days. Create a special promotion video to move it faster.",
+        },
+        {
+          id: "4",
+          type: "neutral" as const,
+          message:
+            "Your best posting times are 10am and 2pm. Stick to this schedule for optimal reach.",
+        },
+      ];
+
+      const suggestions = [
+        {
+          id: "1",
+          icon: "music" as const,
+          title: "Trending Audio",
+          description: "Add viral sounds to boost reach",
+        },
+        {
+          id: "2",
+          icon: "avatar" as const,
+          title: "New Avatar Style",
+          description: "Try our casual presenter look",
+        },
+        {
+          id: "3",
+          icon: "template" as const,
+          title: "Holiday Template",
+          description: "Seasonal designs available",
+        },
+        {
+          id: "4",
+          icon: "holiday" as const,
+          title: "Year-End Sale",
+          description: "Promote end-of-year deals",
+        },
+      ];
+
+      return {
+        widget: {
+          type: "recommendations",
+          data: { recommendations, suggestions },
+        },
+        text: "Based on your performance data, here are my recommendations:",
       };
     }
 

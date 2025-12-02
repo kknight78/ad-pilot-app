@@ -9,9 +9,16 @@ import {
   GuidanceRulesCard,
   InventoryGrid,
   ContentCalendar,
+  PerformanceDashboard,
+  RecommendationsList,
+  SuggestionCards,
   type GuidanceRule,
   type Vehicle,
   type ScheduledPost,
+  type PlatformData,
+  type TopContent,
+  type Recommendation,
+  type Suggestion,
 } from "./widgets";
 
 interface ChatMessage {
@@ -62,6 +69,42 @@ function WidgetRenderer({ widget }: { widget: WidgetData }) {
     case "content_calendar": {
       const data = widget.data as { posts: ScheduledPost[] };
       return <ContentCalendar posts={data.posts} />;
+    }
+    case "performance_dashboard": {
+      const data = widget.data as {
+        dateRange: string;
+        totalViews: number;
+        totalLeads: number;
+        totalSpend: number;
+        viewsTrend: number;
+        leadsTrend: number;
+        platforms: PlatformData[];
+        topContent: TopContent[];
+      };
+      return (
+        <PerformanceDashboard
+          dateRange={data.dateRange}
+          totalViews={data.totalViews}
+          totalLeads={data.totalLeads}
+          totalSpend={data.totalSpend}
+          viewsTrend={data.viewsTrend}
+          leadsTrend={data.leadsTrend}
+          platforms={data.platforms}
+          topContent={data.topContent}
+        />
+      );
+    }
+    case "recommendations": {
+      const data = widget.data as {
+        recommendations: Recommendation[];
+        suggestions: Suggestion[];
+      };
+      return (
+        <div className="space-y-4">
+          <RecommendationsList recommendations={data.recommendations} />
+          <SuggestionCards suggestions={data.suggestions} />
+        </div>
+      );
     }
     default:
       return null;

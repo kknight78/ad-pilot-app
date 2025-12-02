@@ -16,3 +16,19 @@ export {
   type ContentCalendarProps,
   type ScheduledPost,
 } from "./ContentCalendar";
+export {
+  PerformanceDashboard,
+  type PerformanceDashboardProps,
+  type PlatformData,
+  type TopContent,
+} from "./PerformanceDashboard";
+export {
+  RecommendationsList,
+  type RecommendationsListProps,
+  type Recommendation,
+} from "./RecommendationsList";
+export {
+  SuggestionCards,
+  type SuggestionCardsProps,
+  type Suggestion,
+} from "./SuggestionCards";
