@@ -12,6 +12,7 @@ import {
   PerformanceDashboard,
   RecommendationsList,
   SuggestionCards,
+  AdPlanWidget,
   type GuidanceRule,
   type Vehicle,
   type ScheduledPost,
@@ -19,6 +20,7 @@ import {
   type TopContent,
   type Recommendation,
   type Suggestion,
+  type AdPlanData,
 } from "./widgets";
 
 interface ChatMessage {
@@ -105,6 +107,10 @@ function WidgetRenderer({ widget }: { widget: WidgetData }) {
           <SuggestionCards suggestions={data.suggestions} />
         </div>
       );
+    }
+    case "ad_plan": {
+      const data = widget.data as AdPlanData;
+      return <AdPlanWidget data={data} />;
     }
     default:
       return null;

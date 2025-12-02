@@ -93,6 +93,16 @@ export const tools: Tool[] = [
       required: [],
     },
   },
+  {
+    name: "show_ad_plan",
+    description:
+      "Display the weekly content/ad plan showing scheduled ads across all platforms. Call this when the user asks about the ad plan, content plan, what's scheduled this week, weekly plan, or upcoming ads.",
+    input_schema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
 // Widget types for the response
@@ -103,7 +113,8 @@ export type WidgetType =
   | "content_calendar"
   | "performance_dashboard"
   | "recommendations"
-  | "suggestions";
+  | "suggestions"
+  | "ad_plan";
 
 export interface WidgetData {
   type: WidgetType;
@@ -546,6 +557,159 @@ export async function executeTool(
           data: { recommendations, suggestions },
         },
         text: "Based on your performance data, here are my recommendations:",
+      };
+    }
+
+    case "show_ad_plan": {
+      // Demo ad plan data
+      const adPlanData = {
+        dateRange: "Dec 2-8",
+        strategyBadges: [
+          "Avatar variety",
+          "Template mix",
+          "Platform-optimized",
+          "Theme: Winter",
+        ],
+        platforms: [
+          {
+            platform: "tiktok" as const,
+            items: [
+              {
+                id: "tt1",
+                content: "Winter Deals #1",
+                template: "Multi-car",
+                vehicles: 3,
+                avatar: "Hannah",
+                length: "15-30s",
+                adSpend: 15,
+              },
+              {
+                id: "tt2",
+                content: "Winter Deals #2",
+                template: "Multi-car",
+                vehicles: 3,
+                avatar: "Shad",
+                length: "15-30s",
+                adSpend: 15,
+              },
+              {
+                id: "tt3",
+                content: "Spotlight: Malibu",
+                template: "Single-car",
+                vehicles: 1,
+                avatar: "Hannah",
+                length: "15-30s",
+                adSpend: 15,
+              },
+              {
+                id: "tt4",
+                content: "Quick Tips: Winter",
+                template: "Educational",
+                avatar: "Shad",
+                length: "15-30s",
+                adSpend: 10,
+              },
+              {
+                id: "tt5",
+                content: "Weekend Flash",
+                template: "Multi-car",
+                vehicles: 2,
+                avatar: "Gary",
+                length: "15-30s",
+                adSpend: 15,
+              },
+            ],
+            subtotal: 70,
+          },
+          {
+            platform: "facebook" as const,
+            items: [
+              {
+                id: "fb1",
+                content: "Family SUV Deals",
+                template: "Multi-car",
+                vehicles: 3,
+                avatar: "Gary",
+                length: "30-45s",
+                adSpend: 25,
+              },
+              {
+                id: "fb2",
+                content: "Spotlight: CR-V",
+                template: "Single-car",
+                vehicles: 1,
+                avatar: "Shad",
+                length: "30-45s",
+                adSpend: 20,
+              },
+              {
+                id: "fb3",
+                content: "Customer Story",
+                template: "Testimonial",
+                avatar: "Gary",
+                length: "30-45s",
+                adSpend: 15,
+              },
+            ],
+            subtotal: 60,
+          },
+          {
+            platform: "youtube" as const,
+            items: [
+              {
+                id: "yt1",
+                content: "Winterizing Your Car",
+                template: "Educational",
+                avatar: "Shad",
+                length: "45-60s",
+                adSpend: "free" as const,
+              },
+              {
+                id: "yt2",
+                content: "How Financing Works",
+                template: "Educational",
+                avatar: "Gary",
+                length: "45-60s",
+                adSpend: "free" as const,
+              },
+            ],
+            subtotal: 0,
+          },
+          {
+            platform: "instagram" as const,
+            items: [
+              {
+                id: "ig1",
+                content: "Winter Deals #1",
+                template: "Multi-car",
+                vehicles: 3,
+                avatar: "Hannah",
+                length: "15-30s",
+                adSpend: 15,
+              },
+              {
+                id: "ig2",
+                content: "Spotlight: Altima",
+                template: "Single-car",
+                vehicles: 1,
+                avatar: "Hannah",
+                length: "15-30s",
+                adSpend: 15,
+              },
+            ],
+            subtotal: 30,
+          },
+        ],
+        totalContent: 12,
+        totalAdSpend: 160,
+      };
+
+      return {
+        widget: {
+          type: "ad_plan",
+          data: adPlanData,
+        },
+        text: "Here's your content plan for this week:",
       };
     }
 
