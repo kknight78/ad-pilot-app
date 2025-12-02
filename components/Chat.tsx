@@ -20,8 +20,14 @@ interface ChatMessage {
   widget?: WidgetData;
 }
 
-interface ChatProps {
-  welcomeMessage: string;
+// Time-based greeting for welcome message
+function getWelcomeMessage(): string {
+  const hour = new Date().getHours();
+  let greeting: string;
+  if (hour < 12) greeting = "Good morning";
+  else if (hour < 17) greeting = "Good afternoon";
+  else greeting = "Good evening";
+  return `${greeting}! Ready when you are — what are we working on today?`;
 }
 
 // Widget renderer component
@@ -62,9 +68,9 @@ function WidgetRenderer({ widget }: { widget: WidgetData }) {
   }
 }
 
-export default function Chat({ welcomeMessage }: ChatProps) {
+export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", content: welcomeMessage },
+    { role: "assistant", content: getWelcomeMessage() },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
