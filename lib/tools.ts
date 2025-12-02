@@ -546,6 +546,14 @@ export async function executeTool(
             cpl: 17.65,
             trend: -5,
           },
+          {
+            platform: "YouTube",
+            views: 3200,
+            leads: 2,
+            spend: 0,
+            cpl: 0,
+            trend: 45,
+          },
         ],
         topContent: [
           {
