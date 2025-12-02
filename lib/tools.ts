@@ -576,25 +576,25 @@ export async function executeTool(
             items: [
               {
                 id: "tt1",
-                content: "Winter Deals #1",
+                description: "Ad #1",
                 template: "Multi-car",
-                vehicles: 3,
+                vehicles: 2,
                 avatar: "Hannah",
                 length: "15-30s",
                 adSpend: 15,
               },
               {
                 id: "tt2",
-                content: "Winter Deals #2",
+                description: "Ad #2",
                 template: "Multi-car",
-                vehicles: 3,
+                vehicles: 2,
                 avatar: "Shad",
                 length: "15-30s",
                 adSpend: 15,
               },
               {
                 id: "tt3",
-                content: "Spotlight: Malibu",
+                description: "Spotlight",
                 template: "Single-car",
                 vehicles: 1,
                 avatar: "Hannah",
@@ -603,15 +603,16 @@ export async function executeTool(
               },
               {
                 id: "tt4",
-                content: "Quick Tips: Winter",
+                description: "Educational",
                 template: "Educational",
+                topic: "Winter Tires",
                 avatar: "Shad",
                 length: "15-30s",
                 adSpend: 10,
               },
               {
                 id: "tt5",
-                content: "Weekend Flash",
+                description: "Ad #3",
                 template: "Multi-car",
                 vehicles: 2,
                 avatar: "Gary",
@@ -626,7 +627,7 @@ export async function executeTool(
             items: [
               {
                 id: "fb1",
-                content: "Family SUV Deals",
+                description: "Ad #1",
                 template: "Multi-car",
                 vehicles: 3,
                 avatar: "Gary",
@@ -635,7 +636,7 @@ export async function executeTool(
               },
               {
                 id: "fb2",
-                content: "Spotlight: CR-V",
+                description: "Spotlight",
                 template: "Single-car",
                 vehicles: 1,
                 avatar: "Shad",
@@ -644,7 +645,7 @@ export async function executeTool(
               },
               {
                 id: "fb3",
-                content: "Customer Story",
+                description: "Testimonial",
                 template: "Testimonial",
                 avatar: "Gary",
                 length: "30-45s",
@@ -658,16 +659,18 @@ export async function executeTool(
             items: [
               {
                 id: "yt1",
-                content: "Winterizing Your Car",
+                description: "Educational",
                 template: "Educational",
+                topic: "Winterizing Your Car",
                 avatar: "Shad",
                 length: "45-60s",
                 adSpend: "free" as const,
               },
               {
                 id: "yt2",
-                content: "How Financing Works",
+                description: "Educational",
                 template: "Educational",
+                topic: "How Financing Works",
                 avatar: "Gary",
                 length: "45-60s",
                 adSpend: "free" as const,
@@ -680,16 +683,16 @@ export async function executeTool(
             items: [
               {
                 id: "ig1",
-                content: "Winter Deals #1",
+                description: "Ad #1",
                 template: "Multi-car",
-                vehicles: 3,
+                vehicles: 2,
                 avatar: "Hannah",
                 length: "15-30s",
                 adSpend: 15,
               },
               {
                 id: "ig2",
-                content: "Spotlight: Altima",
+                description: "Spotlight",
                 template: "Single-car",
                 vehicles: 1,
                 avatar: "Hannah",

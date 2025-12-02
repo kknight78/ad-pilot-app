@@ -16,9 +16,10 @@ import {
 
 export interface AdPlanItem {
   id: string;
-  content: string;
+  description: string;
   template: string;
   vehicles?: number;
+  topic?: string; // For educational content
   avatar: string;
   length: string;
   adSpend: number | "free";
@@ -144,16 +145,14 @@ function PlatformSection({
             <thead>
               <tr className="bg-gray-50 border-b">
                 <th className="text-left py-2 px-3 font-medium text-gray-500">
-                  Content
+                  Description
                 </th>
                 <th className="text-left py-2 px-3 font-medium text-gray-500">
                   Template
                 </th>
-                {plan.platform !== "youtube" && (
-                  <th className="text-center py-2 px-3 font-medium text-gray-500">
-                    Vehicles
-                  </th>
-                )}
+                <th className="text-center py-2 px-3 font-medium text-gray-500">
+                  {plan.platform === "youtube" ? "Topic" : "Vehicles"}
+                </th>
                 <th className="text-left py-2 px-3 font-medium text-gray-500">
                   Avatar
                 </th>
@@ -175,14 +174,18 @@ function PlatformSection({
                   className="border-b last:border-0 hover:bg-gray-50"
                 >
                   <td className="py-2 px-3 font-medium text-gray-800">
-                    {item.content}
+                    {item.description}
                   </td>
                   <td className="py-2 px-3 text-gray-600">{item.template}</td>
-                  {plan.platform !== "youtube" && (
-                    <td className="py-2 px-3 text-center text-gray-600">
-                      {item.vehicles ?? "—"}
-                    </td>
-                  )}
+                  <td className="py-2 px-3 text-center text-gray-600">
+                    {item.topic ? (
+                      <span className="text-xs italic">{item.topic}</span>
+                    ) : item.vehicles ? (
+                      item.vehicles
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td className="py-2 px-3 text-gray-600">{item.avatar}</td>
                   <td className="py-2 px-3 text-gray-600">{item.length}</td>
                   <td className="py-2 px-3 text-right text-gray-600">
