@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Message from "./Message";
 import TypingIndicator from "./TypingIndicator";
 import { WidgetData } from "@/lib/tools";
@@ -43,8 +43,14 @@ function getWelcomeMessage(): string {
   return `${greeting}! Ready when you are — what are we working on today?`;
 }
 
-// Widget renderer component
-function WidgetRenderer({ widget }: { widget: WidgetData }) {
+// Widget renderer component with callbacks
+function WidgetRenderer({
+  widget,
+  onSendMessage,
+}: {
+  widget: WidgetData;
+  onSendMessage: (message: string) => void;
+}) {
   switch (widget.type) {
     case "guidance_rules": {
       const data = widget.data as { rules: GuidanceRule[]; clientName: string };
@@ -118,12 +124,43 @@ function WidgetRenderer({ widget }: { widget: WidgetData }) {
     }
     case "theme_selector": {
       const data = widget.data as { themes: Theme[] };
-      return <ThemeSelector themes={data.themes} />;
+      return (
+        <ThemeSelector
+          themes={data.themes}
+          onContinue={(selectedThemes) => {
+            if (selectedThemes.length > 0) {
+              onSendMessage(`I chose the "${selectedThemes[0].name}" theme`);
+            }
+          }}
+          onSkip={() => {
+            onSendMessage("No theme - keep it general");
+          }}
+          onRequestMore={() => {
+            onSendMessage("Show me more theme options");
+          }}
+        />
+      );
     }
     case "topic_selector": {
       const data = widget.data as { topics: Topic[]; numberOfTopics: number };
       return (
-        <TopicSelector topics={data.topics} numberOfTopics={data.numberOfTopics} />
+        <TopicSelector
+          topics={data.topics}
+          numberOfTopics={data.numberOfTopics}
+          onContinue={(selectedTopics) => {
+            const topicNames = selectedTopics.map((t) => t.title).join(" and ");
+            onSendMessage(`I chose these topics: ${topicNames}`);
+          }}
+          onRequestMore={() => {
+            onSendMessage("Show me more topic options");
+          }}
+          onCustomInput={(customTopic) => {
+            onSendMessage(`I want to do a topic about: ${customTopic}`);
+          }}
+          onSubjectArea={(subject) => {
+            onSendMessage(`Generate topics about: ${subject}`);
+          }}
+        />
       );
     }
     default:
@@ -148,98 +185,107 @@ export default function Chat() {
     scrollToBottom();
   }, [messages, isLoading]);
 
+  const sendMessage = useCallback(
+    async (userMessage: string) => {
+      if (!userMessage.trim() || isLoading) return;
+
+      setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+      setIsLoading(true);
+
+      try {
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [...messages, { role: "user", content: userMessage }],
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reader = response.body?.getReader();
+        const decoder = new TextDecoder();
+        let assistantMessage = "";
+        let currentWidget: WidgetData | undefined;
+
+        if (reader) {
+          setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split("\n");
+
+            for (const line of lines) {
+              if (line.startsWith("data: ")) {
+                const data = line.slice(6);
+                if (data === "[DONE]") continue;
+
+                try {
+                  const parsed = JSON.parse(data);
+
+                  // Handle widget data
+                  if (parsed.widget) {
+                    currentWidget = parsed.widget;
+                    setMessages((prev) => {
+                      const newMessages = [...prev];
+                      newMessages[newMessages.length - 1] = {
+                        role: "assistant",
+                        content: assistantMessage,
+                        widget: currentWidget,
+                      };
+                      return newMessages;
+                    });
+                  }
+
+                  // Handle text content
+                  if (parsed.content) {
+                    assistantMessage += parsed.content;
+                    setMessages((prev) => {
+                      const newMessages = [...prev];
+                      newMessages[newMessages.length - 1] = {
+                        role: "assistant",
+                        content: assistantMessage,
+                        widget: currentWidget,
+                      };
+                      return newMessages;
+                    });
+                  }
+                } catch {
+                  // Skip non-JSON lines
+                }
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "assistant",
+            content: "Sorry, I encountered an error. Please try again.",
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+        inputRef.current?.focus();
+      }
+    },
+    [messages, isLoading]
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
     const userMessage = input.trim();
     setInput("");
-    setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [...messages, { role: "user", content: userMessage }],
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let assistantMessage = "";
-      let currentWidget: WidgetData | undefined;
-
-      if (reader) {
-        setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n");
-
-          for (const line of lines) {
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6);
-              if (data === "[DONE]") continue;
-
-              try {
-                const parsed = JSON.parse(data);
-
-                // Handle widget data
-                if (parsed.widget) {
-                  currentWidget = parsed.widget;
-                  setMessages((prev) => {
-                    const newMessages = [...prev];
-                    newMessages[newMessages.length - 1] = {
-                      role: "assistant",
-                      content: assistantMessage,
-                      widget: currentWidget,
-                    };
-                    return newMessages;
-                  });
-                }
-
-                // Handle text content
-                if (parsed.content) {
-                  assistantMessage += parsed.content;
-                  setMessages((prev) => {
-                    const newMessages = [...prev];
-                    newMessages[newMessages.length - 1] = {
-                      role: "assistant",
-                      content: assistantMessage,
-                      widget: currentWidget,
-                    };
-                    return newMessages;
-                  });
-                }
-              } catch {
-                // Skip non-JSON lines
-              }
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content: "Sorry, I encountered an error. Please try again.",
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
-      inputRef.current?.focus();
-    }
+    await sendMessage(userMessage);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -259,7 +305,10 @@ export default function Chat() {
               <Message role={message.role} content={message.content} />
               {message.widget && (
                 <div className="flex justify-start mb-4 ml-0">
-                  <WidgetRenderer widget={message.widget} />
+                  <WidgetRenderer
+                    widget={message.widget}
+                    onSendMessage={sendMessage}
+                  />
                 </div>
               )}
             </div>
