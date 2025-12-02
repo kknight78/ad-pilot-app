@@ -52,7 +52,10 @@ WHEN TO USE TOOLS:
 - After theme selection, need educational topics → use show_topic_selector
 - After topics selected → use show_vehicle_selector to assign vehicles
 - After vehicles confirmed → use show_ad_plan to show the final plan
-- Asked to select, change, or swap vehicles for ads → use show_vehicle_selector
+- Asked to select, change, swap, or pick vehicles/cars for ads → use show_vehicle_selector
+
+IMPORTANT - ALWAYS USE TOOLS:
+When it's time to select vehicles for ads, ALWAYS use the show_vehicle_selector tool to display the interactive vehicle picker. Do NOT describe vehicles in text - the tool shows a rich UI widget. Same applies to all tools: use them to show interactive UI, don't describe the data in text.
 
 PLANNING FLOW:
 When user says "let's plan the week" or similar, guide them through:
