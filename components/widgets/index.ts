@@ -55,3 +55,8 @@ export {
   type VehicleOption,
   type AdSlot,
 } from "./VehicleSelector";
+export {
+  ProgressIndicator,
+  type ProgressIndicatorProps,
+  type ProgressItem,
+} from "./ProgressIndicator";

@@ -16,6 +16,7 @@ import {
   ThemeSelector,
   TopicSelector,
   VehicleSelector,
+  ProgressIndicator,
   type GuidanceRule,
   type Vehicle,
   type ScheduledPost,
@@ -28,6 +29,7 @@ import {
   type Topic,
   type VehicleOption,
   type AdSlot,
+  type ProgressItem,
 } from "./widgets";
 
 interface ChatMessage {
@@ -184,6 +186,20 @@ function WidgetRenderer({
           onReset={() => {
             onSendMessage("Reset vehicle selections to suggestions");
           }}
+        />
+      );
+    }
+    case "progress_indicator": {
+      const data = widget.data as {
+        items: ProgressItem[];
+        percentComplete: number;
+        estimatedMinutesLeft: number;
+      };
+      return (
+        <ProgressIndicator
+          items={data.items}
+          percentComplete={data.percentComplete}
+          estimatedMinutesLeft={data.estimatedMinutesLeft}
         />
       );
     }

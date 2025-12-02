@@ -138,6 +138,16 @@ export const tools: Tool[] = [
       required: [],
     },
   },
+  {
+    name: "show_progress",
+    description:
+      "Display the script generation progress indicator showing status of each ad being created. Call this when the user wants to generate scripts, start generating, create the scripts, or kick off content creation.",
+    input_schema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
 // Widget types for the response
@@ -152,7 +162,8 @@ export type WidgetType =
   | "ad_plan"
   | "theme_selector"
   | "topic_selector"
-  | "vehicle_selector";
+  | "vehicle_selector"
+  | "progress_indicator";
 
 export interface WidgetData {
   type: WidgetType;
@@ -1008,6 +1019,36 @@ export async function executeTool(
           data: { vehicles, adSlots },
         },
         text: "Here are the suggested vehicle assignments for your ads. You can swap any vehicle if you'd like:",
+      };
+    }
+
+    case "show_progress": {
+      // Demo progress data at ~55% complete
+      const progressItems = [
+        { id: "tt1", label: "TikTok Ad #1 - Multi-car", status: "complete" as const },
+        { id: "tt2", label: "TikTok Ad #2 - Multi-car", status: "complete" as const },
+        { id: "tt3", label: "TikTok Spotlight", status: "complete" as const },
+        { id: "tt4", label: "TikTok Educational", status: "in_progress" as const },
+        { id: "tt5", label: "TikTok Ad #3", status: "pending" as const },
+        { id: "fb1", label: "Facebook Ad #1", status: "pending" as const },
+        { id: "fb2", label: "Facebook Spotlight", status: "pending" as const },
+        { id: "fb3", label: "Facebook Testimonial", status: "pending" as const },
+        { id: "yt1", label: "YouTube Educational #1", status: "pending" as const },
+        { id: "yt2", label: "YouTube Educational #2", status: "pending" as const },
+        { id: "ig1", label: "Instagram Ad #1", status: "pending" as const },
+        { id: "ig2", label: "Instagram Spotlight", status: "pending" as const },
+      ];
+
+      return {
+        widget: {
+          type: "progress_indicator",
+          data: {
+            items: progressItems,
+            percentComplete: 55,
+            estimatedMinutesLeft: 5,
+          },
+        },
+        text: "Kicking off script generation now! Here's the progress:",
       };
     }
 
