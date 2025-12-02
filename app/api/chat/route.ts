@@ -36,6 +36,8 @@ YOUR CAPABILITIES:
 - Showing performance analytics and metrics (use show_performance_report tool)
 - Providing AI recommendations and suggestions (use show_recommendations tool)
 - Showing the weekly ad/content plan (use show_ad_plan tool)
+- Helping choose a weekly content theme (use show_theme_selector tool)
+- Helping choose educational video topics (use show_topic_selector tool)
 
 WHEN TO USE TOOLS:
 - Asked about preferences, rules, or settings → use show_guidance_rules
@@ -45,6 +47,15 @@ WHEN TO USE TOOLS:
 - Asked about performance, analytics, metrics, how ads are doing → use show_performance_report
 - Asked for recommendations, suggestions, what to improve → use show_recommendations
 - Asked about the ad plan, content plan, what's scheduled this week → use show_ad_plan
+- Asked to plan the week or start planning → use show_theme_selector FIRST
+- After theme selection, need educational topics → use show_topic_selector
+- After topics selected → use show_ad_plan to show the final plan
+
+PLANNING FLOW:
+When user says "let's plan the week" or similar, guide them through:
+1. First: show_theme_selector (pick a theme)
+2. Then: show_topic_selector (pick educational topics)
+3. Finally: show_ad_plan (show the complete plan)
 
 After using a tool, add a brief friendly note. The tool results display as rich UI cards automatically.`;
 

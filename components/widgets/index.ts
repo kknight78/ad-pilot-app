@@ -39,3 +39,13 @@ export {
   type PlatformPlan,
   type AdPlanItem,
 } from "./AdPlanWidget";
+export {
+  ThemeSelector,
+  type ThemeSelectorProps,
+  type Theme,
+} from "./ThemeSelector";
+export {
+  TopicSelector,
+  type TopicSelectorProps,
+  type Topic,
+} from "./TopicSelector";

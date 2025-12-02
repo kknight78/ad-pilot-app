@@ -13,6 +13,8 @@ import {
   RecommendationsList,
   SuggestionCards,
   AdPlanWidget,
+  ThemeSelector,
+  TopicSelector,
   type GuidanceRule,
   type Vehicle,
   type ScheduledPost,
@@ -21,6 +23,8 @@ import {
   type Recommendation,
   type Suggestion,
   type AdPlanData,
+  type Theme,
+  type Topic,
 } from "./widgets";
 
 interface ChatMessage {
@@ -111,6 +115,16 @@ function WidgetRenderer({ widget }: { widget: WidgetData }) {
     case "ad_plan": {
       const data = widget.data as AdPlanData;
       return <AdPlanWidget data={data} />;
+    }
+    case "theme_selector": {
+      const data = widget.data as { themes: Theme[] };
+      return <ThemeSelector themes={data.themes} />;
+    }
+    case "topic_selector": {
+      const data = widget.data as { topics: Topic[]; numberOfTopics: number };
+      return (
+        <TopicSelector topics={data.topics} numberOfTopics={data.numberOfTopics} />
+      );
     }
     default:
       return null;

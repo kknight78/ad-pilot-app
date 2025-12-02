@@ -103,6 +103,31 @@ export const tools: Tool[] = [
       required: [],
     },
   },
+  {
+    name: "show_theme_selector",
+    description:
+      "Display the theme selector for choosing a weekly content theme. Call this when starting to plan the week, or when the user wants to choose or change the theme for their ads.",
+    input_schema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: "show_topic_selector",
+    description:
+      "Display the topic selector for choosing educational video topics. Call this after a theme is selected, or when the user needs to pick topics for their educational content.",
+    input_schema: {
+      type: "object",
+      properties: {
+        numberOfTopics: {
+          type: "number",
+          description: "Number of topics the user needs to select (default: 2)",
+        },
+      },
+      required: [],
+    },
+  },
 ];
 
 // Widget types for the response
@@ -114,7 +139,9 @@ export type WidgetType =
   | "performance_dashboard"
   | "recommendations"
   | "suggestions"
-  | "ad_plan";
+  | "ad_plan"
+  | "theme_selector"
+  | "topic_selector";
 
 export interface WidgetData {
   type: WidgetType;
@@ -713,6 +740,86 @@ export async function executeTool(
           data: adPlanData,
         },
         text: "Here's your content plan for this week:",
+      };
+    }
+
+    case "show_theme_selector": {
+      // Theme options
+      const themes = [
+        {
+          id: "winter",
+          emoji: "❄️",
+          name: "Winter Weather",
+          tagline: "Ready for winter? We've got you covered!",
+        },
+        {
+          id: "holiday",
+          emoji: "🎄",
+          name: "Holiday Season",
+          tagline: "Give the gift of a great deal!",
+        },
+        {
+          id: "yearend",
+          emoji: "💰",
+          name: "Year-End Savings",
+          tagline: "End the year in a new ride!",
+        },
+        {
+          id: "bowl",
+          emoji: "🏈",
+          name: "Bowl Season",
+          tagline: "Score big with these deals!",
+        },
+      ];
+
+      return {
+        widget: {
+          type: "theme_selector",
+          data: { themes },
+        },
+        text: "Let's start by picking a theme for this week's content:",
+      };
+    }
+
+    case "show_topic_selector": {
+      const numberOfTopics =
+        (toolInput.numberOfTopics as number) || 2;
+
+      // Topic options
+      const topics = [
+        {
+          id: "buying-tips",
+          emoji: "🚗",
+          title: "5 Things to Check Before Buying Used",
+        },
+        {
+          id: "financing",
+          emoji: "💵",
+          title: "How Financing Actually Works",
+        },
+        {
+          id: "winterizing",
+          emoji: "❄️",
+          title: "Winterizing Your Vehicle",
+        },
+        {
+          id: "trade-in",
+          emoji: "🔧",
+          title: "When to Trade In",
+        },
+        {
+          id: "first-car",
+          emoji: "🎓",
+          title: "First Car Buyer's Guide",
+        },
+      ];
+
+      return {
+        widget: {
+          type: "topic_selector",
+          data: { topics, numberOfTopics },
+        },
+        text: `Great! Now pick ${numberOfTopics} topic${numberOfTopics !== 1 ? "s" : ""} for your educational videos:`,
       };
     }
 
