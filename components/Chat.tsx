@@ -39,13 +39,68 @@ interface ChatMessage {
 }
 
 // Time-based greeting for welcome message
-function getWelcomeMessage(): string {
+function getGreeting(): string {
   const hour = new Date().getHours();
-  let greeting: string;
-  if (hour < 12) greeting = "Good morning";
-  else if (hour < 17) greeting = "Good afternoon";
-  else greeting = "Good evening";
-  return `${greeting}! Ready when you are — what are we working on today?`;
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+// Welcome message with performance snapshot
+function getWelcomeMessage(): string {
+  const greeting = getGreeting();
+  return `${greeting}, Shad!
+
+Last week: 45k views, 127 leads, $9.84 cost per lead
+Top performer: '2024 Malibu Spotlight' on Facebook
+
+What's on the agenda?`;
+}
+
+// Quick action buttons for welcome
+interface QuickAction {
+  emoji: string;
+  label: string;
+  message: string;
+}
+
+const quickActions: QuickAction[] = [
+  { emoji: "📊", label: "See Full Report", message: "Show me the performance report" },
+  { emoji: "📋", label: "Plan This Week", message: "Let's plan this week" },
+  { emoji: "🎬", label: "Create a Video", message: "I want to create a video" },
+  { emoji: "💬", label: "Something Else", message: "" },
+];
+
+function QuickActionButtons({
+  onAction,
+  onFocusInput,
+  disabled,
+}: {
+  onAction: (message: string) => void;
+  onFocusInput: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <div className="flex flex-wrap gap-2 mt-3 ml-0">
+      {quickActions.map((action) => (
+        <button
+          key={action.label}
+          onClick={() => {
+            if (action.message) {
+              onAction(action.message);
+            } else {
+              onFocusInput();
+            }
+          }}
+          disabled={disabled}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-full hover:bg-gray-50 hover:border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <span>{action.emoji}</span>
+          <span>{action.label}</span>
+        </button>
+      ))}
+    </div>
+  );
 }
 
 // Widget renderer component with callbacks
@@ -343,6 +398,16 @@ export default function Chat() {
           {messages.map((message, index) => (
             <div key={index}>
               <Message role={message.role} content={message.content} />
+              {/* Show quick actions after welcome message (first message, no user messages yet) */}
+              {index === 0 &&
+                message.role === "assistant" &&
+                messages.length === 1 && (
+                  <QuickActionButtons
+                    onAction={sendMessage}
+                    onFocusInput={() => inputRef.current?.focus()}
+                    disabled={isLoading}
+                  />
+                )}
               {message.widget && (
                 <div className="flex justify-start mb-4 ml-0">
                   <WidgetRenderer
