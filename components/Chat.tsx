@@ -37,7 +37,7 @@ import {
 interface ChatMessage {
   role: "user" | "assistant";
   content: string;
-  widget?: WidgetData;
+  widgets?: WidgetData[];
 }
 
 // Time-based greeting for welcome message
@@ -304,7 +304,7 @@ function WidgetRenderer({
 
 export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", content: getWelcomeMessage(), widget: welcomeWidget },
+    { role: "assistant", content: getWelcomeMessage(), widgets: [welcomeWidget] },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -342,7 +342,7 @@ export default function Chat() {
         const reader = response.body?.getReader();
         const decoder = new TextDecoder();
         let assistantMessage = "";
-        let currentWidget: WidgetData | undefined;
+        let currentWidgets: WidgetData[] = [];
 
         if (reader) {
           setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
@@ -362,15 +362,15 @@ export default function Chat() {
                 try {
                   const parsed = JSON.parse(data);
 
-                  // Handle widget data
+                  // Handle widget data - accumulate widgets, don't replace
                   if (parsed.widget) {
-                    currentWidget = parsed.widget;
+                    currentWidgets = [...currentWidgets, parsed.widget];
                     setMessages((prev) => {
                       const newMessages = [...prev];
                       newMessages[newMessages.length - 1] = {
                         role: "assistant",
                         content: assistantMessage,
-                        widget: currentWidget,
+                        widgets: currentWidgets,
                       };
                       return newMessages;
                     });
@@ -384,7 +384,7 @@ export default function Chat() {
                       newMessages[newMessages.length - 1] = {
                         role: "assistant",
                         content: assistantMessage,
-                        widget: currentWidget,
+                        widgets: currentWidgets.length > 0 ? currentWidgets : undefined,
                       };
                       return newMessages;
                     });
@@ -437,19 +437,20 @@ export default function Chat() {
           {messages.map((message, index) => (
             <div key={index}>
               <Message role={message.role} content={message.content} />
-              {message.widget && (
-                <div className="flex justify-start mb-4 ml-0">
+              {/* Render all widgets for this message */}
+              {message.widgets && message.widgets.map((widget, widgetIndex) => (
+                <div key={widgetIndex} className="flex justify-start mb-4 ml-0">
                   <WidgetRenderer
-                    widget={message.widget}
+                    widget={widget}
                     onSendMessage={sendMessage}
                   />
                 </div>
-              )}
+              ))}
               {/* Show welcome action buttons after performance dashboard on initial load */}
               {index === 0 &&
                 message.role === "assistant" &&
                 messages.length === 1 &&
-                message.widget?.type === "performance_dashboard" && (
+                message.widgets?.some(w => w.type === "performance_dashboard") && (
                   <div className="mb-4">
                     <ActionButtons
                       buttons={welcomeActionButtons}
