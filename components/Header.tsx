@@ -42,7 +42,7 @@ export default function Header({ clientName }: HeaderProps) {
           Ad Pilot
           <span className="text-primary-400 font-normal"> for {clientName}</span>
         </h1>
-        <p className="text-xs text-gray-400">AI-Powered Video Advertising</p>
+        <p className="text-xs text-gray-400">Reach your community — where they are.</p>
       </div>
     </header>
   );
