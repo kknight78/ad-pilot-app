@@ -65,3 +65,14 @@ export {
   type ActionButtonsProps,
   type ActionButton,
 } from "./ActionButtons";
+
+// V2 widgets with real backend integration
+export { ThemeSelectorV2 } from "./ThemeSelectorV2";
+export { TopicSelectorV2 } from "./TopicSelectorV2";
+export { VehicleSelectorV2 } from "./VehicleSelectorV2";
+
+// New widgets
+export { ScriptApprovalCards } from "./ScriptApprovalCards";
+export { GenerationProgress } from "./GenerationProgress";
+export { AvatarPhotoCapture } from "./AvatarPhotoCapture";
+export { InvoiceWidget } from "./InvoiceWidget";
