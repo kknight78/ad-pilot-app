@@ -6,115 +6,230 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Check,
-  X,
   RefreshCw,
-  Pencil,
   FileText,
-  Car,
-  User,
-  Clock,
-  ChevronDown,
-  ChevronUp,
+  ChevronRight,
+  CheckCheck,
 } from "lucide-react";
+
+interface ScriptSegment {
+  label: string;
+  content: string;
+}
 
 export interface Script {
   id: string;
-  vehicleInfo?: string;
-  topic?: string;
   template: string;
-  platform: "tiktok" | "facebook" | "youtube" | "instagram";
-  avatar: string;
-  duration: string;
-  hook: string;
-  body: string;
-  cta: string;
-  status: "pending" | "approved" | "rejected";
+  theme: string;
+  segments: ScriptSegment[];
+  status: "pending" | "approved";
 }
 
 interface ScriptApprovalCardsProps {
   scripts?: Script[];
   onApprove?: (id: string) => void;
-  onReject?: (id: string) => void;
+  onApproveAll?: () => void;
   onRegenerate?: (id: string) => void;
-  onEdit?: (id: string) => void;
+  onComplete?: () => void;
 }
 
-// Demo scripts
+// Demo scripts with segment structure
 const demoScripts: Script[] = [
   {
     id: "1",
-    vehicleInfo: "2019 Honda CR-V",
-    template: "Quick Feature",
-    platform: "tiktok",
-    avatar: "Shad",
-    duration: "30s",
-    hook: "Looking for a reliable family SUV that won't break the bank?",
-    body: "This 2019 Honda CR-V has everything you need. Low miles at just 45,000, clean history, and that legendary Honda reliability. It's got heated seats, Apple CarPlay, and enough room for the whole crew.",
-    cta: "Come see it today at Capitol Car Credit. We've got financing for every credit situation. Call or text us at 217-555-1234!",
+    template: "Multi-Car",
+    theme: "Turkey Day Specials",
+    segments: [
+      {
+        label: "HOOK",
+        content: "Black Friday came early at Capitol Car Credit!",
+      },
+      {
+        label: "SEGMENT 1: 2019 Honda CR-V",
+        content: "Check out this 2019 Honda CR-V with only 45K miles. Heated seats, Apple CarPlay, and legendary reliability. Priced at just $18,995.",
+      },
+      {
+        label: "SEGMENT 2: 2020 Toyota Camry",
+        content: "Or this 2020 Toyota Camry - one owner, 38K miles, amazing gas mileage. A steal at $19,500.",
+      },
+      {
+        label: "CTA",
+        content: "Both available this week only. Stop by Capitol Car Credit or call 217-555-1234. We finance everyone!",
+      },
+    ],
     status: "pending",
   },
   {
     id: "2",
-    topic: "Winter Tire Safety",
-    template: "Educational",
-    platform: "youtube",
-    avatar: "Shad",
-    duration: "60s",
-    hook: "Winter's coming - is your car ready?",
-    body: "Hey, it's Shad from Capitol Car Credit. Let me share something that could save your life this winter. Your tires are the only thing between your car and the road, and when it's icy out there, you need every advantage you can get. Here's the penny test - stick a penny in your tread. If you can see Lincoln's whole head, it's time for new tires.",
-    cta: "Got questions about getting your car winter-ready? Stop by Capitol Car Credit - we're always happy to help, whether you're buying or not!",
+    template: "Spotlight",
+    theme: "Turkey Day Specials",
+    segments: [
+      {
+        label: "HOOK",
+        content: "Want a reliable SUV without the sticker shock?",
+      },
+      {
+        label: "SEGMENT 1: The Deal",
+        content: "This 2019 Honda CR-V is the real deal. Low miles, clean history, and priced $2,000 under market value for our Turkey Day event.",
+      },
+      {
+        label: "SEGMENT 2: The Features",
+        content: "You get heated seats, backup camera, Apple CarPlay, and that famous Honda reliability that lasts for years.",
+      },
+      {
+        label: "CTA",
+        content: "Thanksgiving special ends Sunday. Come see Shad at Capitol Car Credit - we're here to help, not hassle!",
+      },
+    ],
     status: "pending",
   },
   {
     id: "3",
-    vehicleInfo: "2020 Toyota Camry",
-    template: "Story Format",
-    platform: "facebook",
-    avatar: "Lisa",
-    duration: "45s",
-    hook: "Some cars just get it right. The Camry is one of them.",
-    body: "Hi, I'm Lisa from Capitol Car Credit. This 2020 Toyota Camry is the kind of car that makes my job easy. 38,000 miles, one owner, and it runs like new. Great gas mileage, super comfortable, and Toyota reliability means you're set for years to come.",
-    cta: "Ready to see it in person? We're here 6 days a week. Call us at 217-555-1234 or just stop by - we love visitors!",
+    template: "Capitol Smarts",
+    theme: "Winter Tires",
+    segments: [
+      {
+        label: "HOOK",
+        content: "Your tires might not be ready for winter. Here's how to check.",
+      },
+      {
+        label: "SEGMENT 1: The Penny Test",
+        content: "Grab a penny and stick it in your tire tread with Lincoln's head down. If you can see his whole head, your tread is too worn for winter driving.",
+      },
+      {
+        label: "SEGMENT 2: Why It Matters",
+        content: "Bald tires on ice are like walking on a frozen pond in socks. Good tread can be the difference between stopping in time and not.",
+      },
+      {
+        label: "CTA",
+        content: "Got questions about winter prep? Stop by Capitol Car Credit. We'll check your tires for free - buying or not!",
+      },
+    ],
+    status: "pending",
+  },
+  {
+    id: "4",
+    template: "Multi-Car",
+    theme: "Credit Scores",
+    segments: [
+      {
+        label: "HOOK",
+        content: "Think your credit score means you can't get a car? Think again.",
+      },
+      {
+        label: "SEGMENT 1: Sarah's Story",
+        content: "Sarah came to us with a 520 credit score. Other dealers turned her away. We got her approved for a 2018 Chevy Malibu with payments she could afford.",
+      },
+      {
+        label: "SEGMENT 2: Mike's Story",
+        content: "Mike filed bankruptcy two years ago. Last week he drove off in a 2019 Ford Escape. Everyone deserves a second chance.",
+      },
+      {
+        label: "CTA",
+        content: "Bad credit? No credit? Fresh start? Capitol Car Credit works with 20+ lenders. Apply online or stop by today!",
+      },
+    ],
+    status: "pending",
+  },
+  {
+    id: "5",
+    template: "Spotlight",
+    theme: "Credit Scores",
+    segments: [
+      {
+        label: "HOOK",
+        content: "Here's what nobody tells you about buying a car with bad credit.",
+      },
+      {
+        label: "SEGMENT 1: The Truth",
+        content: "Most dealers won't work with you because it takes effort. At Capitol Car Credit, we specialize in it. That's all we do.",
+      },
+      {
+        label: "SEGMENT 2: How We Help",
+        content: "We have relationships with over 20 lenders who focus on second-chance financing. Many of our customers leave with a lower rate than they expected.",
+      },
+      {
+        label: "CTA",
+        content: "Stop stressing about your score. Call us at 217-555-1234 or apply online. No judgment, just help!",
+      },
+    ],
     status: "pending",
   },
 ];
 
-const platformConfig = {
-  tiktok: { name: "TikTok", color: "bg-black text-white" },
-  facebook: { name: "Facebook", color: "bg-blue-600 text-white" },
-  youtube: { name: "YouTube", color: "bg-red-600 text-white" },
-  instagram: { name: "Instagram", color: "bg-gradient-to-r from-purple-500 to-pink-500 text-white" },
-};
+function SegmentBlock({ segment }: { segment: ScriptSegment }) {
+  const isHook = segment.label === "HOOK";
+  const isCTA = segment.label === "CTA";
+
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+        {segment.label}
+      </p>
+      <div
+        className={`p-3 rounded-lg text-sm ${
+          isHook
+            ? "bg-amber-50 text-amber-900 italic"
+            : isCTA
+            ? "bg-green-50 text-green-900 font-medium"
+            : "bg-gray-50 text-gray-700"
+        }`}
+      >
+        {isHook ? `"${segment.content}"` : segment.content}
+      </div>
+    </div>
+  );
+}
 
 export function ScriptApprovalCards({
   scripts = demoScripts,
   onApprove,
-  onReject,
+  onApproveAll,
   onRegenerate,
-  onEdit,
+  onComplete,
 }: ScriptApprovalCardsProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(scripts[0]?.id || null);
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [localScripts, setLocalScripts] = useState(scripts);
-
-  const handleApprove = (id: string) => {
-    setLocalScripts((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status: "approved" as const } : s))
-    );
-    onApprove?.(id);
-  };
-
-  const handleReject = (id: string) => {
-    setLocalScripts((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status: "rejected" as const } : s))
-    );
-    onReject?.(id);
-  };
 
   const pendingCount = localScripts.filter((s) => s.status === "pending").length;
   const approvedCount = localScripts.filter((s) => s.status === "approved").length;
+  const totalCount = localScripts.length;
+  const allApproved = approvedCount === totalCount;
+
+  const currentScript = localScripts[currentIndex];
+
+  const handleApprove = () => {
+    setLocalScripts((prev) =>
+      prev.map((s, idx) =>
+        idx === currentIndex ? { ...s, status: "approved" as const } : s
+      )
+    );
+    onApprove?.(currentScript.id);
+  };
+
+  const handleNext = () => {
+    if (currentIndex < totalCount - 1) {
+      setCurrentIndex(currentIndex + 1);
+    }
+  };
+
+  const handleApproveAll = () => {
+    setLocalScripts((prev) =>
+      prev.map((s) => ({ ...s, status: "approved" as const }))
+    );
+    onApproveAll?.();
+  };
+
+  const handleRegenerate = () => {
+    onRegenerate?.(currentScript.id);
+  };
+
+  // Check if we're at the last script and it's approved
+  const isLastScript = currentIndex === totalCount - 1;
+  const currentApproved = currentScript?.status === "approved";
 
   return (
-    <Card className="w-full max-w-2xl">
+    <Card className="w-full max-w-lg">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -124,167 +239,135 @@ export function ScriptApprovalCards({
             <div>
               <CardTitle className="text-lg">Script Approval</CardTitle>
               <p className="text-sm text-gray-500">
-                Review and approve generated scripts
+                {totalCount} scripts to review
               </p>
             </div>
           </div>
-          <div className="flex gap-2">
-            <Badge variant="secondary">{pendingCount} pending</Badge>
-            <Badge variant="default" className="bg-green-500">{approvedCount} approved</Badge>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">
+              {pendingCount} pending, {approvedCount} approved
+            </span>
+            {!allApproved && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleApproveAll}
+                className="text-xs"
+              >
+                <CheckCheck className="w-3 h-3 mr-1" />
+                Approve All
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3">
-        {localScripts.map((script) => {
-          const isExpanded = expandedId === script.id;
-          const platform = platformConfig[script.platform];
-
-          return (
-            <div
-              key={script.id}
-              className={`border rounded-lg overflow-hidden transition-all ${
-                script.status === "approved"
-                  ? "border-green-200 bg-green-50"
-                  : script.status === "rejected"
-                  ? "border-red-200 bg-red-50 opacity-60"
-                  : "border-gray-200 bg-white"
-              }`}
-            >
-              {/* Header row - always visible */}
-              <button
-                onClick={() => setExpandedId(isExpanded ? null : script.id)}
-                className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 transition-colors"
-              >
-                <Badge className={`${platform.color} text-xs`}>{platform.name}</Badge>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    {script.vehicleInfo ? (
-                      <>
-                        <Car className="w-4 h-4 text-gray-400" />
-                        <span className="font-medium text-gray-900">{script.vehicleInfo}</span>
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-4 h-4 text-gray-400" />
-                        <span className="font-medium text-gray-900">{script.topic}</span>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-gray-500 mt-1">
-                    <span className="flex items-center gap-1">
-                      <User className="w-3 h-3" />
-                      {script.avatar}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
-                      {script.duration}
-                    </span>
-                    <span>{script.template}</span>
-                  </div>
+      <CardContent className="space-y-4">
+        {/* All Complete State */}
+        {allApproved ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Check className="w-8 h-8 text-green-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              All Scripts Approved!
+            </h3>
+            <p className="text-gray-600 mb-6">
+              {totalCount} scripts ready for video generation
+            </p>
+            <Button onClick={onComplete}>
+              Generate Videos
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
+          </div>
+        ) : (
+          <>
+            {/* Current Script Card */}
+            <div className="border rounded-lg overflow-hidden">
+              {/* Card Header */}
+              <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-gray-900">
+                    {currentScript.template} — {currentScript.theme}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Script {currentIndex + 1} of {totalCount}
+                  </p>
                 </div>
-
-                {script.status === "approved" && (
-                  <Badge variant="outline" className="text-green-600 border-green-300">
+                {currentApproved && (
+                  <Badge className="bg-green-100 text-green-700">
                     <Check className="w-3 h-3 mr-1" />
                     Approved
                   </Badge>
                 )}
-                {script.status === "rejected" && (
-                  <Badge variant="outline" className="text-red-600 border-red-300">
-                    <X className="w-3 h-3 mr-1" />
-                    Rejected
-                  </Badge>
-                )}
+              </div>
 
-                {isExpanded ? (
-                  <ChevronUp className="w-5 h-5 text-gray-400" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-400" />
-                )}
-              </button>
+              {/* Segments */}
+              <div className="p-4 space-y-4">
+                {currentScript.segments.map((segment, idx) => (
+                  <SegmentBlock key={idx} segment={segment} />
+                ))}
+              </div>
+            </div>
 
-              {/* Expanded content */}
-              {isExpanded && (
-                <div className="px-3 pb-3 space-y-3 border-t border-gray-100 pt-3">
-                  {/* Hook */}
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                      Opening Hook
-                    </p>
-                    <p className="text-sm text-gray-800 italic bg-amber-50 p-2 rounded">
-                      &ldquo;{script.hook}&rdquo;
-                    </p>
-                  </div>
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRegenerate}
+                className="flex-none"
+              >
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Regenerate
+              </Button>
 
-                  {/* Body */}
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                      Script Body
-                    </p>
-                    <p className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
-                      {script.body}
-                    </p>
-                  </div>
+              <div className="flex-1" />
 
-                  {/* CTA */}
-                  <div>
-                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">
-                      Call to Action
-                    </p>
-                    <p className="text-sm text-gray-800 font-medium bg-green-50 p-2 rounded">
-                      {script.cta}
-                    </p>
-                  </div>
+              {!currentApproved && (
+                <Button
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={handleApprove}
+                >
+                  <Check className="w-4 h-4 mr-1" />
+                  Approve
+                </Button>
+              )}
 
-                  {/* Actions */}
-                  {script.status === "pending" && (
-                    <div className="flex gap-2 pt-2">
-                      <Button
-                        size="sm"
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                        onClick={() => handleApprove(script.id)}
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        Approve
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onEdit?.(script.id)}
-                      >
-                        <Pencil className="w-4 h-4 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => onRegenerate?.(script.id)}
-                      >
-                        <RefreshCw className="w-4 h-4 mr-1" />
-                        Regenerate
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        onClick={() => handleReject(script.id)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
+              {!isLastScript && (
+                <Button size="sm" onClick={handleNext}>
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              )}
+
+              {isLastScript && currentApproved && (
+                <Button size="sm" onClick={onComplete}>
+                  Done
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
               )}
             </div>
-          );
-        })}
 
-        {approvedCount === localScripts.length && (
-          <Button className="w-full">
-            All scripts approved! Start generating videos
-          </Button>
+            {/* Navigation dots */}
+            <div className="flex justify-center gap-1.5 pt-2">
+              {localScripts.map((script, idx) => (
+                <button
+                  key={script.id}
+                  onClick={() => setCurrentIndex(idx)}
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    idx === currentIndex
+                      ? "w-6 bg-amber-500"
+                      : script.status === "approved"
+                      ? "bg-green-400"
+                      : "bg-gray-300 hover:bg-gray-400"
+                  }`}
+                  aria-label={`Go to script ${idx + 1}`}
+                />
+              ))}
+            </div>
+          </>
         )}
       </CardContent>
     </Card>
