@@ -213,7 +213,7 @@ function PlatformSection({
   isComplete: boolean;
   currentIndex: number;
   onToggle: () => void;
-  onApprove: (id: string) => void;
+  onApprove: (id: string, platform: Platform) => void;
   onRegenerate: (id: string) => void;
   onEditSegment: (scriptId: string, segmentIndex: number, content: string) => void;
   onNext: () => void;
@@ -311,12 +311,7 @@ function PlatformSection({
               <Button
                 size="sm"
                 className="bg-green-600 hover:bg-green-700"
-                onClick={() => {
-                  onApprove(currentScript.id);
-                  if (!isLastInPlatform) {
-                    onNext();
-                  }
-                }}
+                onClick={() => onApprove(currentScript.id, platform)}
               >
                 <Check className="w-4 h-4 mr-1" />
                 {isLastInPlatform ? "Approve" : "Approve & Next"}
@@ -386,11 +381,31 @@ export function ScriptApprovalCards({
   const totalCount = scripts.length;
   const allApproved = approvedCount === totalCount;
 
-  const handleApprove = (id: string) => {
-    setScripts((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status: "approved" as const } : s))
+  const handleApprove = (id: string, platform: Platform) => {
+    // Update the script status
+    const updatedScripts = scripts.map((s) =>
+      s.id === id ? { ...s, status: "approved" as const } : s
     );
+    setScripts(updatedScripts);
     onApprove?.(id);
+
+    // Check if this was the last script in the platform
+    const platformScripts = updatedScripts.filter((s) => s.platform === platform);
+    const allPlatformApproved = platformScripts.every((s) => s.status === "approved");
+    const currentIdx = platformIndices[platform];
+    const isLastInPlatform = currentIdx === platformScripts.length - 1;
+
+    if (allPlatformApproved && isLastInPlatform) {
+      // Auto-advance to next platform
+      const platformIdx = platformsWithScripts.indexOf(platform);
+      if (platformIdx < platformsWithScripts.length - 1) {
+        const nextPlatform = platformsWithScripts[platformIdx + 1];
+        setActivePlatform(nextPlatform);
+      }
+    } else if (!isLastInPlatform) {
+      // Move to next script within platform
+      setPlatformIndices((prev) => ({ ...prev, [platform]: currentIdx + 1 }));
+    }
   };
 
   const handleApproveAll = () => {
