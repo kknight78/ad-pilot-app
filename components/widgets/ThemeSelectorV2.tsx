@@ -20,23 +20,29 @@ export interface Theme {
 }
 
 interface ThemeSelectorV2Props {
-  onSelect?: (theme: Theme | string) => void;
-  onContinue?: (theme: Theme | string) => void;
+  onSelect?: (theme: string) => void;
+  onContinue?: (theme: string) => void;
 }
 
 type SuggestionMode = "lucky" | "guided";
+type HookLength = "punchy" | "detailed";
 
 export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) {
-  // Custom theme input
-  const [customTheme, setCustomTheme] = useState("");
+  // The main theme input - this is what gets submitted
+  const [themeInput, setThemeInput] = useState("");
+
+  // Track which suggestion was clicked (for highlighting)
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   // Suggestion mode
   const [suggestionMode, setSuggestionMode] = useState<SuggestionMode>("lucky");
   const [guidedInput, setGuidedInput] = useState("");
 
+  // Hook length toggle
+  const [hookLength, setHookLength] = useState<HookLength>("punchy");
+
   // Suggested themes from backend
   const [themes, setThemes] = useState<Theme[]>([]);
-  const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
 
   // Loading state
   const [loading, setLoading] = useState(false);
@@ -45,19 +51,26 @@ export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) 
   const fetchThemes = async () => {
     setLoading(true);
     setError(null);
-    setSelectedTheme(null);
+    setSelectedIndex(null);
 
     try {
+      const body: Record<string, string> = {
+        location: "Rantoul, IL",
+        client_id: "ccc",
+        hook_length: hookLength,
+      };
+
+      // Add topic if guided mode is selected
+      if (suggestionMode === "guided" && guidedInput.trim()) {
+        body.topic = guidedInput.trim();
+      }
+
       const response = await fetch(
         "https://corsproxy.io/?https://kelly-ads.app.n8n.cloud/webhook/theme-suggest",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            location: "Rantoul, IL",
-            client_id: "ccc",
-            guidance: suggestionMode === "guided" ? guidedInput : undefined,
-          }),
+          body: JSON.stringify(body),
         }
       );
 
@@ -77,21 +90,26 @@ export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) 
     }
   };
 
-  const handleSelectTheme = (theme: Theme) => {
-    setSelectedTheme(theme);
-    setCustomTheme(""); // Clear custom if selecting a suggested theme
-    onSelect?.(theme);
+  const handleSelectTheme = (theme: Theme, index: number) => {
+    // Populate the input field with the theme name
+    setThemeInput(theme.name);
+    setSelectedIndex(index);
+    onSelect?.(theme.name);
   };
 
   const handleContinue = () => {
-    if (customTheme.trim()) {
-      onContinue?.(customTheme.trim());
-    } else if (selectedTheme) {
-      onContinue?.(selectedTheme);
+    if (themeInput.trim()) {
+      onContinue?.(themeInput.trim());
     }
   };
 
-  const hasSelection = customTheme.trim() || selectedTheme;
+  const handleInputChange = (value: string) => {
+    setThemeInput(value);
+    // Clear selection highlight if user manually edits
+    if (selectedIndex !== null && themes[selectedIndex]?.name !== value) {
+      setSelectedIndex(null);
+    }
+  };
 
   return (
     <Card className="w-full max-w-xl">
@@ -110,18 +128,15 @@ export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) 
       </CardHeader>
 
       <CardContent className="space-y-5">
-        {/* Custom theme input */}
+        {/* Main theme input */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Create your own
           </label>
           <input
             type="text"
-            value={customTheme}
-            onChange={(e) => {
-              setCustomTheme(e.target.value);
-              if (e.target.value) setSelectedTheme(null); // Clear selected if typing custom
-            }}
+            value={themeInput}
+            onChange={(e) => handleInputChange(e.target.value)}
             placeholder="e.g., Holiday Road Trip Ready"
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
           />
@@ -167,13 +182,42 @@ export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) 
                   type="text"
                   value={guidedInput}
                   onChange={(e) => setGuidedInput(e.target.value)}
-                  placeholder="e.g., winter weather, family safety, budget"
+                  placeholder="e.g., 4wd, winter weather, family safety"
                   className="w-full mt-2 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   onClick={(e) => e.stopPropagation()}
                 />
               )}
             </div>
           </label>
+
+          {/* Hook length toggle */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Hook style
+            </label>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setHookLength("punchy")}
+                className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
+                  hookLength === "punchy"
+                    ? "border-purple-500 bg-purple-50 text-purple-700"
+                    : "border-gray-200 text-gray-600 hover:border-gray-300"
+                }`}
+              >
+                Punchy (15-20 words)
+              </button>
+              <button
+                onClick={() => setHookLength("detailed")}
+                className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
+                  hookLength === "detailed"
+                    ? "border-purple-500 bg-purple-50 text-purple-700"
+                    : "border-gray-200 text-gray-600 hover:border-gray-300"
+                }`}
+              >
+                Detailed (25-35 words)
+              </button>
+            </div>
+          </div>
 
           {/* Suggest button */}
           <Button
@@ -220,11 +264,11 @@ export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) 
 
             <div className="space-y-2">
               {themes.map((theme, index) => {
-                const isSelected = selectedTheme?.name === theme.name;
+                const isSelected = selectedIndex === index;
                 return (
                   <button
                     key={index}
-                    onClick={() => handleSelectTheme(theme)}
+                    onClick={() => handleSelectTheme(theme, index)}
                     className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
                       isSelected
                         ? "border-purple-500 bg-purple-50"
@@ -239,9 +283,7 @@ export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) 
                             {theme.name}
                           </span>
                           {isSelected && (
-                            <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
-                              <Check className="w-3 h-3 text-white" />
-                            </div>
+                            <Check className="w-4 h-4 text-purple-500" />
                           )}
                         </div>
                         <p className="text-sm text-gray-500 mt-1 italic">
@@ -256,10 +298,10 @@ export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) 
           </div>
         )}
 
-        {/* Continue button */}
-        {hasSelection && (
+        {/* Continue button - only show when there's input */}
+        {themeInput.trim() && (
           <Button className="w-full" onClick={handleContinue}>
-            Continue with {customTheme.trim() ? `"${customTheme.trim()}"` : selectedTheme?.name}
+            Continue with &ldquo;{themeInput.trim()}&rdquo;
           </Button>
         )}
 
