@@ -11,6 +11,8 @@ import {
   BookOpen,
   Lightbulb,
   Sparkles,
+  Plus,
+  X,
 } from "lucide-react";
 
 export interface Topic {
@@ -19,7 +21,7 @@ export interface Topic {
 }
 
 interface TopicSelectorV2Props {
-  numberOfTopics?: number; // How many topics to select (default 1)
+  numberOfTopics?: number; // How many topics to select (default 2 for prototype)
   onSelect?: (topics: string[]) => void;
   onContinue?: (topics: string[]) => void;
 }
@@ -41,18 +43,16 @@ const getEmojiForTopic = (title: string): string => {
   if (lowerTitle.includes("warranty")) return "📋";
   if (lowerTitle.includes("history") || lowerTitle.includes("report")) return "📄";
   if (lowerTitle.includes("test drive")) return "🛣️";
+  if (lowerTitle.includes("noise") || lowerTitle.includes("sound") || lowerTitle.includes("squeak")) return "🔊";
   return "💡";
 };
 
-export function TopicSelectorV2({ numberOfTopics = 1, onSelect, onContinue }: TopicSelectorV2Props) {
-  // For single select: the main topic input
-  const [topicInput, setTopicInput] = useState("");
+export function TopicSelectorV2({ numberOfTopics = 2, onSelect, onContinue }: TopicSelectorV2Props) {
+  // Custom topic input
+  const [customInput, setCustomInput] = useState("");
 
-  // For multi-select: locked/selected topics
+  // Selected topics list
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
-
-  // Track which suggestion was clicked (for highlighting in single-select mode)
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   // Suggestion mode
   const [suggestionMode, setSuggestionMode] = useState<SuggestionMode>("lucky");
@@ -68,14 +68,13 @@ export function TopicSelectorV2({ numberOfTopics = 1, onSelect, onContinue }: To
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isMultiSelect = numberOfTopics > 1;
+  const canSelectMore = selectedTopics.length < numberOfTopics;
+  const allSelected = selectedTopics.length === numberOfTopics;
+  const remaining = numberOfTopics - selectedTopics.length;
 
   const fetchTopics = async () => {
     setLoading(true);
     setError(null);
-    if (!isMultiSelect) {
-      setSelectedIndex(null);
-    }
 
     const topic = suggestionMode === "guided" ? guidedInput.trim() : "";
     setSearchedTopic(topic);
@@ -125,52 +124,42 @@ export function TopicSelectorV2({ numberOfTopics = 1, onSelect, onContinue }: To
     }
   };
 
-  // Single-select: click populates input
-  const handleSelectTopic = (topic: Topic, index: number) => {
-    if (isMultiSelect) {
-      // Multi-select: toggle lock
-      if (selectedTopics.includes(topic.title)) {
-        // Unlock
-        const newSelected = selectedTopics.filter(t => t !== topic.title);
-        setSelectedTopics(newSelected);
-        onSelect?.(newSelected);
-      } else if (selectedTopics.length < numberOfTopics) {
-        // Lock
-        const newSelected = [...selectedTopics, topic.title];
-        setSelectedTopics(newSelected);
-        onSelect?.(newSelected);
-      }
-    } else {
-      // Single-select: populate input
-      setTopicInput(topic.title);
-      setSelectedIndex(index);
-      onSelect?.([topic.title]);
+  const addTopic = (title: string) => {
+    if (canSelectMore && !selectedTopics.includes(title)) {
+      const newSelected = [...selectedTopics, title];
+      setSelectedTopics(newSelected);
+      onSelect?.(newSelected);
+    }
+  };
+
+  const removeTopic = (title: string) => {
+    const newSelected = selectedTopics.filter(t => t !== title);
+    setSelectedTopics(newSelected);
+    onSelect?.(newSelected);
+  };
+
+  const handleAddCustom = () => {
+    const trimmed = customInput.trim();
+    if (trimmed && canSelectMore && !selectedTopics.includes(trimmed)) {
+      addTopic(trimmed);
+      setCustomInput("");
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddCustom();
     }
   };
 
   const handleContinue = () => {
-    if (isMultiSelect) {
-      if (selectedTopics.length === numberOfTopics) {
-        onContinue?.(selectedTopics);
-      }
-    } else {
-      if (topicInput.trim()) {
-        onContinue?.([topicInput.trim()]);
-      }
+    if (allSelected) {
+      onContinue?.(selectedTopics);
     }
   };
 
-  const handleInputChange = (value: string) => {
-    setTopicInput(value);
-    // Clear selection highlight if user manually edits
-    if (selectedIndex !== null && topics[selectedIndex]?.title !== value) {
-      setSelectedIndex(null);
-    }
-  };
-
-  const isTopicLocked = (title: string) => selectedTopics.includes(title);
-  const canSelectMore = selectedTopics.length < numberOfTopics;
-  const allSelected = isMultiSelect && selectedTopics.length === numberOfTopics;
+  const isTopicSelected = (title: string) => selectedTopics.includes(title);
 
   return (
     <Card className="w-full max-w-xl">
@@ -180,53 +169,45 @@ export function TopicSelectorV2({ numberOfTopics = 1, onSelect, onContinue }: To
             <BookOpen className="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <CardTitle className="text-lg">🎓 Capitol Smarts Topic</CardTitle>
+            <CardTitle className="text-lg">🎓 Capitol Smarts Topics</CardTitle>
             <p className="text-sm text-gray-500">
-              {isMultiSelect
-                ? `You have ${numberOfTopics} Capitol Smarts video${numberOfTopics > 1 ? "s" : ""} — pick ${numberOfTopics} topic${numberOfTopics > 1 ? "s" : ""}`
-                : "What should the video be about?"}
+              You have {numberOfTopics} Capitol Smarts video{numberOfTopics > 1 ? "s" : ""} — pick {numberOfTopics} topic{numberOfTopics > 1 ? "s" : ""}
             </p>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-5">
-        {/* Multi-select indicator */}
-        {isMultiSelect && (
-          <div className="flex items-center justify-between bg-blue-50 px-4 py-2 rounded-lg">
-            <span className="text-sm text-blue-700">
-              Selected: {selectedTopics.length} of {numberOfTopics}
-            </span>
-            <Badge variant={allSelected ? "default" : "secondary"}>
-              {selectedTopics.length} / {numberOfTopics}
-            </Badge>
-          </div>
-        )}
-
-        {/* Topic input - only for single select */}
-        {!isMultiSelect && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Topic
-            </label>
-            <p className="text-sm text-gray-500 mb-2">
-              Add your own or select a suggestion below
-            </p>
+        {/* Custom topic input */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Add your own topic
+          </label>
+          <div className="flex gap-2">
             <input
               type="text"
-              value={topicInput}
-              onChange={(e) => handleInputChange(e.target.value)}
+              value={customInput}
+              onChange={(e) => setCustomInput(e.target.value)}
+              onKeyDown={handleKeyDown}
               placeholder="e.g., What to check before buying a used car"
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={!canSelectMore}
+              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
+            <Button
+              onClick={handleAddCustom}
+              disabled={!customInput.trim() || !canSelectMore}
+              className="px-4"
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
           </div>
-        )}
+        </div>
 
         {/* OR divider */}
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-gray-200" />
           <span className="text-sm text-gray-400 font-medium">
-            {isMultiSelect ? "GET SUGGESTIONS" : "OR LET US HELP"}
+            OR GET SUGGESTIONS
           </span>
           <div className="flex-1 h-px bg-gray-200" />
         </div>
@@ -319,32 +300,27 @@ export function TopicSelectorV2({ numberOfTopics = 1, onSelect, onContinue }: To
 
             <div className="space-y-2">
               {topics.map((topic, index) => {
-                const isLocked = isMultiSelect && isTopicLocked(topic.title);
-                const isSelected = !isMultiSelect && selectedIndex === index;
-                const isDisabled = isMultiSelect && !canSelectMore && !isLocked;
+                const isSelected = isTopicSelected(topic.title);
+                const isDisabled = !canSelectMore && !isSelected;
+
+                if (isSelected) return null; // Hide already selected topics from suggestions
 
                 return (
                   <button
                     key={index}
-                    onClick={() => handleSelectTopic(topic, index)}
+                    onClick={() => addTopic(topic.title)}
                     disabled={isDisabled}
                     className={`w-full text-left p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
-                      isLocked
-                        ? "border-blue-500 bg-blue-50"
-                        : isSelected
-                        ? "border-blue-500 bg-blue-50"
-                        : isDisabled
+                      isDisabled
                         ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
-                        : "border-gray-200 hover:border-gray-300 bg-white"
+                        : "border-gray-200 hover:border-blue-300 hover:bg-blue-50 bg-white"
                     }`}
                   >
                     <span className="text-2xl">{topic.emoji}</span>
                     <span className="font-medium text-gray-900 flex-1">
                       {topic.title}
                     </span>
-                    {(isLocked || isSelected) && (
-                      <Check className="w-5 h-5 text-blue-500" />
-                    )}
+                    <Plus className="w-5 h-5 text-blue-500" />
                   </button>
                 );
               })}
@@ -352,22 +328,58 @@ export function TopicSelectorV2({ numberOfTopics = 1, onSelect, onContinue }: To
           </div>
         )}
 
+        {/* Selected Topics Section */}
+        <div className="border-t pt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-gray-700">
+              Selected: {selectedTopics.length} of {numberOfTopics}
+            </span>
+            <Badge variant={allSelected ? "default" : "secondary"}>
+              {selectedTopics.length} / {numberOfTopics}
+            </Badge>
+          </div>
+
+          {selectedTopics.length > 0 ? (
+            <div className="space-y-2">
+              {selectedTopics.map((title, index) => (
+                <div
+                  key={index}
+                  className="w-full p-3 rounded-lg border-2 border-green-500 bg-green-50 flex items-center gap-3"
+                >
+                  <Check className="w-5 h-5 text-green-600" />
+                  <span className="font-medium text-gray-900 flex-1">
+                    {title}
+                  </span>
+                  <button
+                    onClick={() => removeTopic(title)}
+                    className="p-1 hover:bg-green-100 rounded transition-colors"
+                  >
+                    <X className="w-4 h-4 text-gray-500 hover:text-red-500" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 italic">
+              No topics selected yet
+            </p>
+          )}
+
+          {!allSelected && selectedTopics.length > 0 && (
+            <p className="text-sm text-gray-500">
+              Select {remaining} more topic{remaining > 1 ? "s" : ""} to continue
+            </p>
+          )}
+        </div>
+
         {/* Continue button */}
-        {isMultiSelect ? (
-          <Button
-            className="w-full"
-            onClick={handleContinue}
-            disabled={!allSelected}
-          >
-            Continue →
-          </Button>
-        ) : (
-          topicInput.trim() && (
-            <Button className="w-full" onClick={handleContinue}>
-              Continue with &ldquo;{topicInput.trim()}&rdquo;
-            </Button>
-          )
-        )}
+        <Button
+          className="w-full"
+          onClick={handleContinue}
+          disabled={!allSelected}
+        >
+          Continue →
+        </Button>
 
         {/* Footer note */}
         <p className="text-xs text-gray-400 text-center">
