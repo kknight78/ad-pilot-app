@@ -93,9 +93,11 @@ export function InvoiceWidget({
   pastInvoices = demoPastInvoices,
   onPay,
   stripeCheckoutUrl,
-}: InvoiceWidgetProps) {
+  customerEmail = "shad@capitolcarcredit.com",
+}: InvoiceWidgetProps & { customerEmail?: string }) {
   const [showHistory, setShowHistory] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [paymentComplete, setPaymentComplete] = useState(false);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -109,12 +111,19 @@ export function InvoiceWidget({
     setIsProcessing(true);
     if (stripeCheckoutUrl) {
       window.open(stripeCheckoutUrl, "_blank");
+      setIsProcessing(false);
     } else {
       onPay?.();
-      // Simulate processing
+      // Simulate processing delay
       await new Promise((resolve) => setTimeout(resolve, 1500));
+      setIsProcessing(false);
+      setPaymentComplete(true);
     }
-    setIsProcessing(false);
+  };
+
+  const handleDone = () => {
+    setPaymentComplete(false);
+    // In real app, this would refresh invoice data
   };
 
   const currentStatus = statusConfig[currentInvoice.status];
@@ -141,7 +150,28 @@ export function InvoiceWidget({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        {/* Current invoice */}
+        {/* Payment Confirmation State */}
+        {paymentComplete && (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Check className="w-8 h-8 text-green-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Payment Received!
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Thank you! Your receipt has been sent to<br />
+              <span className="font-medium">{customerEmail}</span>
+            </p>
+            <Button onClick={handleDone}>
+              Done
+            </Button>
+          </div>
+        )}
+
+        {/* Current invoice and actions - hidden during confirmation */}
+        {!paymentComplete && (
+          <>
         <div className="border rounded-lg overflow-hidden">
           {/* Invoice header */}
           <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
@@ -267,6 +297,8 @@ export function InvoiceWidget({
             </div>
           )}
         </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );
