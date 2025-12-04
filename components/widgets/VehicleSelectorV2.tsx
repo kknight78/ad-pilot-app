@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Check,
-  RefreshCw,
   ArrowRight,
   Loader2,
   Car,
-  Calendar,
-  DollarSign,
-  AlertCircle,
-  Filter,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  Snowflake,
+  Info,
 } from "lucide-react";
 
 export interface Vehicle {
@@ -27,32 +27,128 @@ export interface Vehicle {
   imageUrl?: string;
   vin?: string;
   color?: string;
+  driveType?: string; // AWD, 4WD, FWD, RWD
+}
+
+export interface AdSlot {
+  id: string;
+  platform: "tiktok" | "facebook" | "youtube" | "instagram";
+  themeTopic: string;
+  template: string;
+  vehicleCount: number; // How many vehicles this ad needs
 }
 
 interface VehicleSelectorV2Props {
-  maxSelections?: number;
-  onSelect?: (vehicles: Vehicle[]) => void;
-  onContinue?: (vehicles: Vehicle[]) => void;
+  adSlots?: AdSlot[];
+  onSelect?: (selections: Record<string, Vehicle[]>) => void;
+  onContinue?: (selections: Record<string, Vehicle[]>) => void;
 }
+
+// Demo ad slots matching the Ad Plan Table
+const demoAdSlots: AdSlot[] = [
+  { id: "1", platform: "tiktok", themeTopic: "Holiday Spirit", template: "Deep Dive", vehicleCount: 1 },
+  { id: "2", platform: "tiktok", themeTopic: "Holiday Spirit", template: "Deep Dive", vehicleCount: 1 },
+  { id: "3", platform: "tiktok", themeTopic: "Winter Ready", template: "Multi-Car", vehicleCount: 3 },
+  { id: "4", platform: "facebook", themeTopic: "Holiday Spirit", template: "Carousel", vehicleCount: 4 },
+  { id: "5", platform: "facebook", themeTopic: "Family First", template: "Testimonial", vehicleCount: 0 },
+  { id: "6", platform: "youtube", themeTopic: "Winter Tire Safety", template: "Capitol Smarts", vehicleCount: 0 },
+];
 
 // Fallback vehicles if API is unavailable
 const fallbackVehicles: Vehicle[] = [
-  { id: "1", year: 2019, make: "Honda", model: "CR-V", price: 22995, mileage: 45000, daysOnLot: 12 },
-  { id: "2", year: 2020, make: "Toyota", model: "Camry", price: 19995, mileage: 38000, daysOnLot: 8 },
-  { id: "3", year: 2018, make: "Ford", model: "F-150", price: 28995, mileage: 52000, daysOnLot: 45 },
-  { id: "4", year: 2021, make: "Chevrolet", model: "Equinox", price: 24995, mileage: 28000, daysOnLot: 5 },
-  { id: "5", year: 2017, make: "Nissan", model: "Altima", price: 14995, mileage: 68000, daysOnLot: 62 },
-  { id: "6", year: 2019, make: "Jeep", model: "Cherokee", price: 21995, mileage: 41000, daysOnLot: 23 },
+  { id: "1", year: 2019, make: "Honda", model: "CR-V", price: 22995, mileage: 45000, daysOnLot: 12, driveType: "AWD" },
+  { id: "2", year: 2020, make: "Toyota", model: "Camry", price: 19995, mileage: 38000, daysOnLot: 8, driveType: "FWD" },
+  { id: "3", year: 2018, make: "Ford", model: "F-150", price: 28995, mileage: 52000, daysOnLot: 67, driveType: "4WD" },
+  { id: "4", year: 2021, make: "Chevrolet", model: "Equinox", price: 24995, mileage: 28000, daysOnLot: 5, driveType: "AWD" },
+  { id: "5", year: 2017, make: "Nissan", model: "Altima", price: 14995, mileage: 68000, daysOnLot: 72, driveType: "FWD" },
+  { id: "6", year: 2019, make: "Jeep", model: "Cherokee", price: 21995, mileage: 41000, daysOnLot: 63, driveType: "4WD" },
+  { id: "7", year: 2020, make: "Subaru", model: "Outback", price: 26995, mileage: 35000, daysOnLot: 15, driveType: "AWD" },
+  { id: "8", year: 2018, make: "Toyota", model: "RAV4", price: 23995, mileage: 48000, daysOnLot: 45, driveType: "AWD" },
+  { id: "9", year: 2019, make: "Honda", model: "Civic", price: 17995, mileage: 42000, daysOnLot: 28, driveType: "FWD" },
+  { id: "10", year: 2017, make: "Ford", model: "Escape", price: 16995, mileage: 55000, daysOnLot: 58, driveType: "AWD" },
+  { id: "11", year: 2020, make: "Mazda", model: "CX-5", price: 25995, mileage: 32000, daysOnLot: 10, driveType: "AWD" },
+  { id: "12", year: 2019, make: "Hyundai", model: "Tucson", price: 20995, mileage: 39000, daysOnLot: 22, driveType: "AWD" },
 ];
 
-type SortOption = "daysOnLot" | "price" | "newest";
+const platformConfig = {
+  tiktok: {
+    name: "TikTok",
+    icon: "▶",
+    bgColor: "bg-black",
+    textColor: "text-white",
+    borderColor: "border-gray-800",
+    headerBg: "bg-gray-900",
+    headerText: "text-white",
+  },
+  facebook: {
+    name: "Facebook",
+    icon: "f",
+    bgColor: "bg-blue-600",
+    textColor: "text-white",
+    borderColor: "border-blue-500",
+    headerBg: "bg-blue-600",
+    headerText: "text-white",
+  },
+  youtube: {
+    name: "YouTube",
+    icon: "▷",
+    bgColor: "bg-red-600",
+    textColor: "text-white",
+    borderColor: "border-red-500",
+    headerBg: "bg-red-600",
+    headerText: "text-white",
+  },
+  instagram: {
+    name: "Instagram",
+    icon: "◎",
+    bgColor: "bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400",
+    textColor: "text-white",
+    borderColor: "border-pink-400",
+    headerBg: "bg-gradient-to-r from-purple-600 to-pink-500",
+    headerText: "text-white",
+  },
+};
 
-export function VehicleSelectorV2({ maxSelections = 3, onSelect, onContinue }: VehicleSelectorV2Props) {
+// Theme emoji mapping
+const getThemeEmoji = (theme: string): string => {
+  const lowerTheme = theme.toLowerCase();
+  if (lowerTheme.includes("holiday") || lowerTheme.includes("christmas")) return "🎄";
+  if (lowerTheme.includes("winter") || lowerTheme.includes("cold") || lowerTheme.includes("snow")) return "❄️";
+  if (lowerTheme.includes("family")) return "👨‍👩‍👧‍👦";
+  if (lowerTheme.includes("budget") || lowerTheme.includes("save")) return "💰";
+  if (lowerTheme.includes("safety") || lowerTheme.includes("tire")) return "🛡️";
+  if (lowerTheme.includes("summer") || lowerTheme.includes("road trip")) return "☀️";
+  return "📌";
+};
+
+function PlatformIcon({ platform }: { platform: keyof typeof platformConfig }) {
+  const config = platformConfig[platform];
+  return (
+    <span
+      className={`inline-flex items-center justify-center w-6 h-6 rounded ${config.bgColor} ${config.textColor} text-xs font-bold`}
+    >
+      {config.icon}
+    </span>
+  );
+}
+
+export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue }: VehicleSelectorV2Props) {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [selectedVehicles, setSelectedVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortBy, setSortBy] = useState<SortOption>("daysOnLot");
-  const [showFilters, setShowFilters] = useState(false);
+
+  // Selections per ad slot: { adSlotId: Vehicle[] }
+  const [selections, setSelections] = useState<Record<string, Vehicle[]>>({});
+
+  // Track which platform sections are expanded
+  const [expandedPlatforms, setExpandedPlatforms] = useState<Record<string, boolean>>({
+    tiktok: true,
+    facebook: true,
+    youtube: true,
+    instagram: true,
+  });
+
+  // Track which ad slots have dropdown open
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
 
   const fetchInventory = async () => {
     setLoading(true);
@@ -85,39 +181,23 @@ export function VehicleSelectorV2({ maxSelections = 3, onSelect, onContinue }: V
     fetchInventory();
   }, []);
 
-  const sortedVehicles = [...vehicles].sort((a, b) => {
-    switch (sortBy) {
-      case "daysOnLot":
-        return b.daysOnLot - a.daysOnLot; // Oldest first (most days)
-      case "price":
-        return a.price - b.price; // Cheapest first
-      case "newest":
-        return b.year - a.year; // Newest year first
-      default:
-        return 0;
-    }
-  });
-
-  const handleSelect = (vehicle: Vehicle) => {
-    let newSelected: Vehicle[];
-
-    if (selectedVehicles.find((v) => v.id === vehicle.id)) {
-      newSelected = selectedVehicles.filter((v) => v.id !== vehicle.id);
-    } else if (selectedVehicles.length < maxSelections) {
-      newSelected = [...selectedVehicles, vehicle];
-    } else {
-      return;
-    }
-
-    setSelectedVehicles(newSelected);
-    onSelect?.(newSelected);
+  // Get suggested priority vehicles (top 10 based on days on lot + AWD/4WD)
+  const getSuggestedPriorities = () => {
+    return [...vehicles]
+      .map(v => ({
+        ...v,
+        priority: (v.daysOnLot >= 60 ? 100 : 0) + (["AWD", "4WD"].includes(v.driveType || "") ? 50 : 0) + v.daysOnLot
+      }))
+      .sort((a, b) => b.priority - a.priority)
+      .slice(0, 10);
   };
 
-  const handleContinue = () => {
-    if (selectedVehicles.length > 0) {
-      onContinue?.(selectedVehicles);
-    }
-  };
+  // Group ad slots by platform
+  const adSlotsByPlatform = adSlots.reduce((acc, slot) => {
+    if (!acc[slot.platform]) acc[slot.platform] = [];
+    acc[slot.platform].push(slot);
+    return acc;
+  }, {} as Record<string, AdSlot[]>);
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -131,12 +211,58 @@ export function VehicleSelectorV2({ maxSelections = 3, onSelect, onContinue }: V
     return new Intl.NumberFormat("en-US").format(mileage);
   };
 
-  const isSelected = (id: string) => selectedVehicles.some((v) => v.id === id);
-  const isDisabled = (id: string) => !isSelected(id) && selectedVehicles.length >= maxSelections;
+  const handleSelectVehicle = (adSlotId: string, vehicle: Vehicle, maxCount: number) => {
+    const current = selections[adSlotId] || [];
+    let newSelection: Vehicle[];
+
+    if (current.find(v => v.id === vehicle.id)) {
+      // Remove if already selected
+      newSelection = current.filter(v => v.id !== vehicle.id);
+    } else if (current.length < maxCount) {
+      // Add if under limit
+      newSelection = [...current, vehicle];
+    } else {
+      return;
+    }
+
+    const newSelections = { ...selections, [adSlotId]: newSelection };
+    setSelections(newSelections);
+    onSelect?.(newSelections);
+  };
+
+  const handleQuickAdd = (adSlotId: string, vehicle: Vehicle, maxCount: number) => {
+    const current = selections[adSlotId] || [];
+    if (current.length < maxCount && !current.find(v => v.id === vehicle.id)) {
+      const newSelections = { ...selections, [adSlotId]: [...current, vehicle] };
+      setSelections(newSelections);
+      onSelect?.(newSelections);
+    }
+  };
+
+  const toggleDropdown = (adSlotId: string) => {
+    setOpenDropdowns(prev => ({ ...prev, [adSlotId]: !prev[adSlotId] }));
+  };
+
+  const togglePlatform = (platform: string) => {
+    setExpandedPlatforms(prev => ({ ...prev, [platform]: !prev[platform] }));
+  };
+
+  // Calculate total selections needed vs selected
+  const totalNeeded = adSlots.reduce((sum, slot) => sum + slot.vehicleCount, 0);
+  const totalSelected = Object.values(selections).reduce((sum, arr) => sum + arr.length, 0);
+  const allComplete = adSlots.every(slot =>
+    slot.vehicleCount === 0 || (selections[slot.id]?.length || 0) >= slot.vehicleCount
+  );
+
+  const handleContinue = () => {
+    if (allComplete) {
+      onContinue?.(selections);
+    }
+  };
 
   if (loading) {
     return (
-      <Card className="w-full max-w-2xl">
+      <Card className="w-full max-w-3xl">
         <CardContent className="py-12">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
@@ -147,157 +273,260 @@ export function VehicleSelectorV2({ maxSelections = 3, onSelect, onContinue }: V
     );
   }
 
-  return (
-    <Card className="w-full max-w-2xl">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Car className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">Select Vehicles for Ads</CardTitle>
-              <p className="text-sm text-gray-500">
-                Choose up to {maxSelections} vehicles to feature
-              </p>
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="text-gray-600"
-          >
-            <Filter className="w-4 h-4 mr-1" />
-            Sort
-          </Button>
-        </div>
+  const suggestedVehicles = getSuggestedPriorities();
 
-        {/* Sort options */}
-        {showFilters && (
-          <div className="flex gap-2 mt-3">
-            <Button
-              variant={sortBy === "daysOnLot" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSortBy("daysOnLot")}
-            >
-              Longest on Lot
-            </Button>
-            <Button
-              variant={sortBy === "price" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSortBy("price")}
-            >
-              Lowest Price
-            </Button>
-            <Button
-              variant={sortBy === "newest" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSortBy("newest")}
-            >
-              Newest Year
-            </Button>
+  return (
+    <Card className="w-full max-w-3xl">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-green-100 rounded-lg">
+            <Car className="w-5 h-5 text-green-600" />
           </div>
-        )}
+          <div>
+            <CardTitle className="text-lg">🚗 Select Vehicles for Your Ads</CardTitle>
+            <p className="text-sm text-gray-500">
+              Choose vehicles for each ad in your plan
+            </p>
+          </div>
+        </div>
       </CardHeader>
 
-      <CardContent className="space-y-3">
-        {/* Selection counter */}
-        <div className="flex items-center justify-between">
-          <Badge variant={selectedVehicles.length > 0 ? "default" : "secondary"}>
-            {selectedVehicles.length} of {maxSelections} selected
-          </Badge>
-          {selectedVehicles.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => setSelectedVehicles([])}>
-              Clear all
-            </Button>
-          )}
+      <CardContent className="space-y-6">
+        {/* === SUGGESTED PRIORITIES SECTION === */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold text-gray-700">Suggested Priorities</span>
+            <Badge variant="secondary" className="text-xs">Top 10</Badge>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {suggestedVehicles.map(vehicle => {
+              const isOld = vehicle.daysOnLot >= 60;
+              const isWinterReady = ["AWD", "4WD"].includes(vehicle.driveType || "");
+
+              return (
+                <div
+                  key={vehicle.id}
+                  className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200"
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">
+                      {vehicle.year} {vehicle.make} {vehicle.model}
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {isOld && (
+                        <span className="inline-flex items-center gap-0.5 text-xs text-amber-600">
+                          <AlertTriangle className="w-3 h-3" />
+                          {vehicle.daysOnLot}d
+                        </span>
+                      )}
+                      {isWinterReady && (
+                        <span className="inline-flex items-center gap-0.5 text-xs text-blue-600">
+                          <Snowflake className="w-3 h-3" />
+                          {vehicle.driveType}
+                        </span>
+                      )}
+                      {!isOld && !isWinterReady && (
+                        <span className="text-xs text-gray-500">{vehicle.daysOnLot}d on lot</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center gap-4 text-xs text-gray-500">
+            <span className="flex items-center gap-1">
+              <AlertTriangle className="w-3 h-3 text-amber-600" />
+              60+ days on lot
+            </span>
+            <span className="flex items-center gap-1">
+              <Snowflake className="w-3 h-3 text-blue-600" />
+              AWD/4WD (winter ready)
+            </span>
+          </div>
         </div>
 
-        {/* Vehicle list */}
-        <div className="grid gap-2 max-h-[400px] overflow-y-auto pr-1">
-          {sortedVehicles.map((vehicle) => {
-            const selected = isSelected(vehicle.id);
-            const disabled = isDisabled(vehicle.id);
-            const isOld = vehicle.daysOnLot > 45;
+        {/* Divider */}
+        <div className="border-t border-gray-200" />
+
+        {/* === PER-AD VEHICLE SELECTION === */}
+        <div className="space-y-4">
+          <span className="text-sm font-semibold text-gray-700">Assign Vehicles to Ads</span>
+
+          {Object.entries(adSlotsByPlatform).map(([platform, slots]) => {
+            const config = platformConfig[platform as keyof typeof platformConfig];
+            const isExpanded = expandedPlatforms[platform];
+            const platformSlots = slots.filter(s => s.vehicleCount > 0);
+
+            if (platformSlots.length === 0) return null;
 
             return (
-              <button
-                key={vehicle.id}
-                onClick={() => handleSelect(vehicle)}
-                disabled={disabled}
-                className={`flex items-center gap-4 p-3 rounded-lg border-2 transition-all text-left ${
-                  selected
-                    ? "border-primary-500 bg-primary-50"
-                    : disabled
-                    ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
-                    : "border-gray-200 hover:border-gray-300 bg-white"
-                }`}
-              >
-                {/* Vehicle image placeholder */}
-                <div className="w-16 h-12 bg-gray-100 rounded flex items-center justify-center shrink-0">
-                  {vehicle.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={vehicle.imageUrl}
-                      alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
-                      className="w-full h-full object-cover rounded"
-                    />
-                  ) : (
-                    <Car className="w-6 h-6 text-gray-400" />
-                  )}
-                </div>
-
-                {/* Vehicle info */}
-                <div className="flex-1 min-w-0">
+              <div key={platform} className={`border rounded-lg overflow-hidden ${config.borderColor}`}>
+                {/* Platform Header */}
+                <button
+                  onClick={() => togglePlatform(platform)}
+                  className={`w-full flex items-center justify-between p-3 ${config.headerBg} hover:opacity-90 transition-opacity`}
+                >
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900">
-                      {vehicle.year} {vehicle.make} {vehicle.model}
+                    <PlatformIcon platform={platform as keyof typeof platformConfig} />
+                    <span className={`font-semibold ${config.headerText}`}>{config.name}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`text-sm ${config.headerText} opacity-90`}>
+                      {platformSlots.length} {platformSlots.length === 1 ? "ad" : "ads"} need vehicles
                     </span>
-                    {isOld && (
-                      <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-50">
-                        <AlertCircle className="w-3 h-3 mr-1" />
-                        {vehicle.daysOnLot}d on lot
-                      </Badge>
+                    {isExpanded ? (
+                      <ChevronUp className={`w-4 h-4 ${config.headerText}`} />
+                    ) : (
+                      <ChevronDown className={`w-4 h-4 ${config.headerText}`} />
                     )}
                   </div>
-                  <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                    <span className="flex items-center gap-1">
-                      <DollarSign className="w-3 h-3" />
-                      {formatPrice(vehicle.price)}
-                    </span>
-                    <span>{formatMileage(vehicle.mileage)} mi</span>
-                    {!isOld && (
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {vehicle.daysOnLot}d
-                      </span>
-                    )}
-                  </div>
-                </div>
+                </button>
 
-                {/* Selection indicator */}
-                {selected && (
-                  <div className="shrink-0 w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center">
-                    <Check className="w-4 h-4 text-white" />
+                {/* Ad slots */}
+                {isExpanded && (
+                  <div className="divide-y divide-gray-100">
+                    {platformSlots.map((slot, idx) => {
+                      const slotSelections = selections[slot.id] || [];
+                      const isComplete = slotSelections.length >= slot.vehicleCount;
+                      const isDropdownOpen = openDropdowns[slot.id];
+
+                      return (
+                        <div key={slot.id} className="p-3 bg-white">
+                          {/* Ad info row */}
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{getThemeEmoji(slot.themeTopic)}</span>
+                              <div>
+                                <span className="text-sm font-medium text-gray-900">{slot.themeTopic}</span>
+                                <span className="text-xs text-gray-500 ml-2">• {slot.template}</span>
+                              </div>
+                            </div>
+                            <Badge variant={isComplete ? "default" : "secondary"} className="text-xs">
+                              {slotSelections.length} / {slot.vehicleCount}
+                            </Badge>
+                          </div>
+
+                          {/* Selected vehicles */}
+                          {slotSelections.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {slotSelections.map(v => (
+                                <Badge
+                                  key={v.id}
+                                  variant="outline"
+                                  className="text-xs bg-green-50 border-green-200 text-green-700 cursor-pointer hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                                  onClick={() => handleSelectVehicle(slot.id, v, slot.vehicleCount)}
+                                >
+                                  {v.year} {v.make} {v.model} ✕
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Add vehicle dropdown */}
+                          {!isComplete && (
+                            <div className="relative">
+                              <button
+                                onClick={() => toggleDropdown(slot.id)}
+                                className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+                              >
+                                <span>+ Add vehicle</span>
+                                <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+                              </button>
+
+                              {isDropdownOpen && (
+                                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                  {vehicles
+                                    .filter(v => !slotSelections.find(s => s.id === v.id))
+                                    .map(vehicle => {
+                                      const isOld = vehicle.daysOnLot >= 60;
+                                      const isWinterReady = ["AWD", "4WD"].includes(vehicle.driveType || "");
+
+                                      return (
+                                        <button
+                                          key={vehicle.id}
+                                          onClick={() => {
+                                            handleSelectVehicle(slot.id, vehicle, slot.vehicleCount);
+                                            if (slotSelections.length + 1 >= slot.vehicleCount) {
+                                              setOpenDropdowns(prev => ({ ...prev, [slot.id]: false }));
+                                            }
+                                          }}
+                                          className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                                        >
+                                          <div>
+                                            <div className="text-sm font-medium text-gray-900">
+                                              {vehicle.year} {vehicle.make} {vehicle.model}
+                                            </div>
+                                            <div className="flex items-center gap-3 text-xs text-gray-500">
+                                              <span>{formatPrice(vehicle.price)}</span>
+                                              <span>{formatMileage(vehicle.mileage)} mi</span>
+                                              <span>{vehicle.daysOnLot}d on lot</span>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-1">
+                                            {isOld && <AlertTriangle className="w-3 h-3 text-amber-500" />}
+                                            {isWinterReady && <Snowflake className="w-3 h-3 text-blue-500" />}
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {isComplete && (
+                            <div className="flex items-center gap-1 text-xs text-green-600">
+                              <Check className="w-3 h-3" />
+                              Complete
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>
 
-        {/* Continue button */}
-        {selectedVehicles.length > 0 && (
-          <Button className="w-full" onClick={handleContinue}>
-            Continue with {selectedVehicles.length} vehicle{selectedVehicles.length !== 1 ? "s" : ""}
+        {/* === FOOTER === */}
+        <div className="border-t border-gray-200 pt-4 space-y-3">
+          {/* Progress indicator */}
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-600">
+              Vehicle assignments: <span className="font-medium">{totalSelected}</span> of <span className="font-medium">{totalNeeded}</span>
+            </span>
+            {allComplete ? (
+              <Badge className="bg-green-100 text-green-700 border-green-200">All Complete</Badge>
+            ) : (
+              <Badge variant="secondary">In Progress</Badge>
+            )}
+          </div>
+
+          {/* Continue button */}
+          <Button
+            className="w-full"
+            onClick={handleContinue}
+            disabled={!allComplete}
+          >
+            Continue to Script Review
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
-        )}
 
-        <p className="text-xs text-gray-400 text-center">
-          Inventory pulled from your live feed • {vehicles.length} vehicles available
-        </p>
+          {/* Inventory notes */}
+          <div className="flex items-start gap-2 text-xs text-gray-400">
+            <Info className="w-3 h-3 mt-0.5 shrink-0" />
+            <span>
+              Showing {vehicles.length} vehicles from live inventory feed.
+              Vehicles can appear in multiple ads.
+            </span>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
