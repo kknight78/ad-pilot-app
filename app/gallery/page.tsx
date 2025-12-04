@@ -34,21 +34,12 @@ import { GenerationProgress } from "@/components/widgets/GenerationProgress";
 import { AvatarPhotoCapture } from "@/components/widgets/AvatarPhotoCapture";
 import { InvoiceWidget } from "@/components/widgets/InvoiceWidget";
 
-// Demo data for each widget
-const guidanceRulesData = [
-  { id: "1", category: "tone" as const, rule: "Friendly and approachable, like talking to a neighbor" },
-  { id: "2", category: "tone" as const, rule: "Never pushy or salesy - focus on helping" },
-  { id: "3", category: "content" as const, rule: "Always mention financing options for all credit levels" },
-  { id: "4", category: "content" as const, rule: "Highlight local Rantoul community connection" },
-  { id: "5", category: "cta" as const, rule: "Primary: Call or text (217) 555-1234" },
-  { id: "6", category: "cta" as const, rule: "Secondary: Visit capitolcarcredit.com" },
-  { id: "7", category: "style" as const, rule: "Use casual language, avoid jargon" },
-];
+// Demo data removed - widgets now have built-in demo data
 
 const widgets = [
   { id: "performance", name: "Performance Dashboard", icon: BarChart3, status: "working" },
   { id: "recommendations", name: "Recommendations", icon: Lightbulb, status: "rebuilt" },
-  { id: "guidance", name: "Guidance Rules", icon: Settings, status: "working" },
+  { id: "guidance", name: "Guidance Rules", icon: Settings, status: "rebuilt" },
   { id: "video", name: "Video Preview Card", icon: Video, status: "working" },
   { id: "adplan", name: "Ad Plan Table", icon: Calendar, status: "working" },
   { id: "theme", name: "Theme Selector", icon: Palette, status: "rebuilt" },
@@ -89,10 +80,8 @@ export default function GalleryPage() {
       case "guidance":
         return (
           <GuidanceRulesCard
-            rules={guidanceRulesData}
-            clientName="Capitol Car Credit"
-            onAddRule={() => console.log("Add rule")}
-            onEditRule={(id) => console.log("Edit rule", id)}
+            onAddRule={(rule) => console.log("Add rule", rule)}
+            onEditRule={(id, rule) => console.log("Edit rule", id, rule)}
             onDeleteRule={(id) => console.log("Delete rule", id)}
           />
         );
