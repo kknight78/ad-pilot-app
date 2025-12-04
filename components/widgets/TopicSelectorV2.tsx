@@ -81,17 +81,17 @@ export function TopicSelectorV2({ numberOfTopics = 1, onSelect, onContinue }: To
     setSearchedTopic(topic);
 
     try {
-      const webhookUrl = "https://kelly-ads.app.n8n.cloud/webhook/suggest-topics";
-      const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(webhookUrl);
-
-      const response = await fetch(proxyUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          subject: topic,
-          client_id: "ccc",
-        }),
-      });
+      const response = await fetch(
+        "https://corsproxy.io/?https://kelly-ads.app.n8n.cloud/webhook/suggest-topics",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subject: topic,
+            client_id: "ccc",
+          }),
+        }
+      );
 
       if (!response.ok) throw new Error("Failed to fetch topics");
 
