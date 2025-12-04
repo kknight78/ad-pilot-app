@@ -11,8 +11,6 @@ import {
   Car,
   ChevronDown,
   ChevronUp,
-  AlertTriangle,
-  Snowflake,
   Info,
 } from "lucide-react";
 
@@ -56,18 +54,18 @@ const demoAdSlots: AdSlot[] = [
 
 // Fallback vehicles if API is unavailable
 const fallbackVehicles: Vehicle[] = [
-  { id: "1", year: 2019, make: "Honda", model: "CR-V", price: 22995, mileage: 45000, daysOnLot: 12, driveType: "AWD" },
-  { id: "2", year: 2020, make: "Toyota", model: "Camry", price: 19995, mileage: 38000, daysOnLot: 8, driveType: "FWD" },
-  { id: "3", year: 2018, make: "Ford", model: "F-150", price: 28995, mileage: 52000, daysOnLot: 67, driveType: "4WD" },
-  { id: "4", year: 2021, make: "Chevrolet", model: "Equinox", price: 24995, mileage: 28000, daysOnLot: 5, driveType: "AWD" },
-  { id: "5", year: 2017, make: "Nissan", model: "Altima", price: 14995, mileage: 68000, daysOnLot: 72, driveType: "FWD" },
-  { id: "6", year: 2019, make: "Jeep", model: "Cherokee", price: 21995, mileage: 41000, daysOnLot: 63, driveType: "4WD" },
-  { id: "7", year: 2020, make: "Subaru", model: "Outback", price: 26995, mileage: 35000, daysOnLot: 15, driveType: "AWD" },
-  { id: "8", year: 2018, make: "Toyota", model: "RAV4", price: 23995, mileage: 48000, daysOnLot: 45, driveType: "AWD" },
-  { id: "9", year: 2019, make: "Honda", model: "Civic", price: 17995, mileage: 42000, daysOnLot: 28, driveType: "FWD" },
-  { id: "10", year: 2017, make: "Ford", model: "Escape", price: 16995, mileage: 55000, daysOnLot: 58, driveType: "AWD" },
-  { id: "11", year: 2020, make: "Mazda", model: "CX-5", price: 25995, mileage: 32000, daysOnLot: 10, driveType: "AWD" },
-  { id: "12", year: 2019, make: "Hyundai", model: "Tucson", price: 20995, mileage: 39000, daysOnLot: 22, driveType: "AWD" },
+  { id: "1", year: 2019, make: "Honda", model: "CR-V", price: 22995, mileage: 45000, daysOnLot: 12, driveType: "AWD", vin: "1HGBH41JXMN109186" },
+  { id: "2", year: 2020, make: "Toyota", model: "Camry", price: 19995, mileage: 38000, daysOnLot: 8, driveType: "FWD", vin: "4T1B11HK5LU123456" },
+  { id: "3", year: 2018, make: "Ford", model: "F-150", price: 28995, mileage: 52000, daysOnLot: 67, driveType: "4WD", vin: "1FTEW1EP5JFB12345" },
+  { id: "4", year: 2021, make: "Chevrolet", model: "Equinox", price: 24995, mileage: 28000, daysOnLot: 5, driveType: "AWD", vin: "2GNAXUEV5M6123456" },
+  { id: "5", year: 2017, make: "Nissan", model: "Altima", price: 14995, mileage: 115000, daysOnLot: 72, driveType: "FWD", vin: "1N4AL3AP8HC123789" },
+  { id: "6", year: 2019, make: "Jeep", model: "Cherokee", price: 21995, mileage: 41000, daysOnLot: 63, driveType: "4WD", vin: "1C4PJMLB0KD123456" },
+  { id: "7", year: 2020, make: "Subaru", model: "Outback", price: 26995, mileage: 35000, daysOnLot: 15, driveType: "AWD", vin: "4S4BTAPC5L3123456" },
+  { id: "8", year: 2018, make: "Toyota", model: "RAV4", price: 23995, mileage: 98000, daysOnLot: 45, driveType: "AWD", vin: "2T3RFREV7JW123456" },
+  { id: "9", year: 2019, make: "Honda", model: "Civic", price: 17995, mileage: 42000, daysOnLot: 28, driveType: "FWD", vin: "2HGFC2F59KH123456" },
+  { id: "10", year: 2017, make: "Ford", model: "Escape", price: 16995, mileage: 92000, daysOnLot: 58, driveType: "AWD", vin: "1FMCU9GD5HUA12345" },
+  { id: "11", year: 2020, make: "Mazda", model: "CX-5", price: 25995, mileage: 32000, daysOnLot: 10, driveType: "AWD", vin: "JM3KFBCM5L0123456" },
+  { id: "12", year: 2019, make: "Hyundai", model: "Tucson", price: 20995, mileage: 39000, daysOnLot: 22, driveType: "AWD", vin: "KM8J3CA46KU123456" },
 ];
 
 const platformConfig = {
@@ -181,12 +179,15 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
     fetchInventory();
   }, []);
 
-  // Get suggested priority vehicles (top 10 based on days on lot + AWD/4WD)
+  // Get suggested priority vehicles (top 10 based on days on lot + AWD/4WD + high mileage)
   const getSuggestedPriorities = () => {
     return [...vehicles]
       .map(v => ({
         ...v,
-        priority: (v.daysOnLot >= 60 ? 100 : 0) + (["AWD", "4WD"].includes(v.driveType || "") ? 50 : 0) + v.daysOnLot
+        priority: (v.daysOnLot >= 60 ? 100 : 0) +
+                  (["AWD", "4WD"].includes(v.driveType || "") ? 50 : 0) +
+                  (v.mileage >= 90000 ? 30 : 0) +
+                  v.daysOnLot
       }))
       .sort((a, b) => b.priority - a.priority)
       .slice(0, 10);
@@ -299,37 +300,39 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
             <Badge variant="secondary" className="text-xs">Top 10</Badge>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            {suggestedVehicles.map(vehicle => {
+          <div className="space-y-2">
+            {suggestedVehicles.map((vehicle, index) => {
               const isOld = vehicle.daysOnLot >= 60;
               const isWinterReady = ["AWD", "4WD"].includes(vehicle.driveType || "");
+              const isHighMileage = vehicle.mileage >= 90000;
 
               return (
                 <div
                   key={vehicle.id}
-                  className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200"
+                  className="p-3 bg-gray-50 rounded-lg border border-gray-200"
                 >
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-900 truncate">
-                      {vehicle.year} {vehicle.make} {vehicle.model}
+                  {/* Row 1: Year Make Model + Badges */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium text-gray-900">
+                      {index + 1}. {vehicle.year} {vehicle.make} {vehicle.model}
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      {isOld && (
-                        <span className="inline-flex items-center gap-0.5 text-xs text-amber-600">
-                          <AlertTriangle className="w-3 h-3" />
-                          {vehicle.daysOnLot}d
-                        </span>
-                      )}
-                      {isWinterReady && (
-                        <span className="inline-flex items-center gap-0.5 text-xs text-blue-600">
-                          <Snowflake className="w-3 h-3" />
-                          {vehicle.driveType}
-                        </span>
-                      )}
-                      {!isOld && !isWinterReady && (
-                        <span className="text-xs text-gray-500">{vehicle.daysOnLot}d on lot</span>
-                      )}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">{vehicle.daysOnLot}d</span>
+                      {isOld && <span title="60+ days on lot">😬</span>}
+                      {isWinterReady && <span title={`${vehicle.driveType} - Winter ready`}>❄️</span>}
+                      {isHighMileage && <span title="90k+ miles">🛣️</span>}
                     </div>
+                  </div>
+                  {/* Row 2: VIN + mileage if high */}
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-gray-400 font-mono">
+                      {vehicle.vin || "VIN unavailable"}
+                    </span>
+                    {isHighMileage && (
+                      <span className="text-xs text-gray-500">
+                        ({Math.round(vehicle.mileage / 1000)}k mi)
+                      </span>
+                    )}
                   </div>
                 </div>
               );
@@ -337,14 +340,15 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-4 text-xs text-gray-500">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
             <span className="flex items-center gap-1">
-              <AlertTriangle className="w-3 h-3 text-amber-600" />
-              60+ days on lot
+              😬 60+ days on lot
             </span>
             <span className="flex items-center gap-1">
-              <Snowflake className="w-3 h-3 text-blue-600" />
-              AWD/4WD (winter ready)
+              ❄️ AWD/4WD (winter ready)
+            </span>
+            <span className="flex items-center gap-1">
+              🛣️ 90k+ miles
             </span>
           </div>
         </div>
@@ -438,12 +442,13 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
                               </button>
 
                               {isDropdownOpen && (
-                                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-72 overflow-y-auto bottom-full mb-1">
                                   {vehicles
                                     .filter(v => !slotSelections.find(s => s.id === v.id))
                                     .map(vehicle => {
                                       const isOld = vehicle.daysOnLot >= 60;
                                       const isWinterReady = ["AWD", "4WD"].includes(vehicle.driveType || "");
+                                      const isHighMileage = vehicle.mileage >= 90000;
 
                                       return (
                                         <button
@@ -454,21 +459,26 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
                                               setOpenDropdowns(prev => ({ ...prev, [slot.id]: false }));
                                             }
                                           }}
-                                          className="w-full flex items-center justify-between px-3 py-2 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                                          className="w-full px-3 py-2.5 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
                                         >
-                                          <div>
-                                            <div className="text-sm font-medium text-gray-900">
+                                          {/* Row 1: Year Make Model + badges */}
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-gray-900">
                                               {vehicle.year} {vehicle.make} {vehicle.model}
-                                            </div>
-                                            <div className="flex items-center gap-3 text-xs text-gray-500">
-                                              <span>{formatPrice(vehicle.price)}</span>
-                                              <span>{formatMileage(vehicle.mileage)} mi</span>
-                                              <span>{vehicle.daysOnLot}d on lot</span>
+                                            </span>
+                                            <div className="flex items-center gap-1">
+                                              {isOld && <span>😬</span>}
+                                              {isWinterReady && <span>❄️</span>}
+                                              {isHighMileage && <span>🛣️</span>}
                                             </div>
                                           </div>
-                                          <div className="flex items-center gap-1">
-                                            {isOld && <AlertTriangle className="w-3 h-3 text-amber-500" />}
-                                            {isWinterReady && <Snowflake className="w-3 h-3 text-blue-500" />}
+                                          {/* Row 2: VIN */}
+                                          <div className="text-xs text-gray-400 font-mono mt-0.5">
+                                            {vehicle.vin || "VIN unavailable"}
+                                          </div>
+                                          {/* Row 3: Price, mileage, days */}
+                                          <div className="text-xs text-gray-500 mt-0.5">
+                                            {formatPrice(vehicle.price)} • {Math.round(vehicle.mileage / 1000)}k mi • {vehicle.daysOnLot}d on lot
                                           </div>
                                         </button>
                                       );
