@@ -237,19 +237,25 @@ export async function executeTool(
             : [
                 {
                   id: "1",
-                  category: "tone",
+                  presenter: "all" as const,
+                  category: "style" as const,
                   rule: data.tone || "Professional but friendly",
+                  active: true,
                 },
                 {
                   id: "2",
-                  category: "content",
+                  presenter: "all" as const,
+                  category: "facts" as const,
                   rule: data.content || "Always mention financing options",
+                  active: true,
                 },
                 {
                   id: "3",
-                  category: "cta",
+                  presenter: "all" as const,
+                  category: "compliance" as const,
                   rule:
                     data.cta || "Include call to action with phone number",
+                  active: true,
                 },
               ];
         } else {
@@ -257,43 +263,31 @@ export async function executeTool(
           rules = [
             {
               id: "1",
-              category: "tone",
-              rule: "Professional but friendly - approachable for families",
+              presenter: "kelly" as const,
+              category: "style" as const,
+              rule: "Kelly should always act like a badass",
+              active: true,
             },
             {
               id: "2",
-              category: "tone",
-              rule: "Emphasize value and reliability over luxury",
+              presenter: "shad" as const,
+              category: "facts" as const,
+              rule: "Shad has over 35 years of automotive experience - mention this when introducing him",
+              active: true,
             },
             {
               id: "3",
-              category: "content",
-              rule: "Always mention financing options available",
+              presenter: "all" as const,
+              category: "facts" as const,
+              rule: "Capitol Car Credit has been family-owned for over 20 years",
+              active: true,
             },
             {
               id: "4",
-              category: "content",
-              rule: "Highlight warranty coverage when applicable",
-            },
-            {
-              id: "5",
-              category: "cta",
-              rule: "End with phone number: (555) 123-4567",
-            },
-            {
-              id: "6",
-              category: "cta",
-              rule: 'Use phrase "Come see us today!"',
-            },
-            {
-              id: "7",
-              category: "style",
-              rule: "Videos should be 30-45 seconds",
-            },
-            {
-              id: "8",
-              category: "style",
-              rule: "Use upbeat background music",
+              presenter: "gary" as const,
+              category: "facts" as const,
+              rule: "Gary is the owner and founded the dealership",
+              active: false,
             },
           ];
         }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,10 @@ import {
 
 export interface GuidanceRule {
   id: string;
-  category: "tone" | "content" | "cta" | "forbidden" | "style";
+  presenter: "all" | "kelly" | "shad" | "gary";
+  category: "facts" | "pronunciation" | "style" | "compliance" | "other";
   rule: string;
+  active: boolean;
 }
 
 export interface TemplateRules {
@@ -36,12 +38,26 @@ export interface GuidanceRulesProps {
 }
 
 const categoryLabels: Record<string, string> = {
-  tone: "Tone",
-  content: "Content",
-  cta: "CTA",
-  forbidden: "Forbidden",
+  facts: "Facts",
+  pronunciation: "Pronunciation",
   style: "Style",
+  compliance: "Compliance",
+  other: "Other",
 };
+
+const presenterLabels: Record<string, string> = {
+  all: "All",
+  kelly: "Kelly",
+  shad: "Shad",
+  gary: "Gary",
+};
+
+const presenterOptions = [
+  { value: "all", label: "* All Presenters" },
+  { value: "kelly", label: "Kelly" },
+  { value: "shad", label: "Shad" },
+  { value: "gary", label: "Gary" },
+];
 
 // Demo data - Base Rules grouped by category
 const demoBaseRules: Record<string, string[]> = {
@@ -70,9 +86,10 @@ const demoTemplateRules: TemplateRules[] = [
 
 // Demo data - Custom Rules
 const demoCustomRules: GuidanceRule[] = [
-  { id: "c1", category: "tone", rule: "Highlight local Rantoul connection" },
-  { id: "c2", category: "cta", rule: "Primary: Call or text (217) 893-1190" },
-  { id: "c3", category: "forbidden", rule: "Never mention competitor dealerships" },
+  { id: "c1", presenter: "kelly", category: "style", rule: "Kelly should always act like a badass", active: true },
+  { id: "c2", presenter: "shad", category: "facts", rule: "Shad has over 35 years of automotive experience - mention this when introducing him", active: true },
+  { id: "c3", presenter: "all", category: "facts", rule: "Capitol Car Credit has been family-owned for over 20 years", active: true },
+  { id: "c4", presenter: "gary", category: "facts", rule: "Gary is the owner and founded the dealership", active: false },
 ];
 
 // Compact Base Rules Section
@@ -180,12 +197,14 @@ function CustomRulesSection({
   onToggle,
   onEdit,
   onDelete,
+  onToggleActive,
 }: {
   rules: GuidanceRule[];
   isExpanded: boolean;
   onToggle: () => void;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onToggleActive?: (id: string) => void;
 }) {
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -211,12 +230,29 @@ function CustomRulesSection({
           {rules.map((rule) => (
             <div
               key={rule.id}
-              className="flex items-start justify-between gap-2 p-2 bg-gray-50 rounded-lg group"
+              className={`flex items-start justify-between gap-2 p-3 bg-gray-50 rounded-lg group ${
+                !rule.active ? "opacity-60" : ""
+              }`}
             >
               <div className="flex-1 min-w-0">
-                <span className="text-xs text-gray-500 font-medium">
-                  {categoryLabels[rule.category]}
-                </span>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs text-gray-500 font-medium">
+                    {presenterLabels[rule.presenter]} • {categoryLabels[rule.category]}
+                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggleActive?.(rule.id);
+                    }}
+                    className={`text-xs px-2 py-0.5 rounded-full font-medium transition-colors ${
+                      rule.active
+                        ? "bg-green-100 text-green-700 hover:bg-green-200"
+                        : "bg-gray-200 text-gray-500 hover:bg-gray-300"
+                    }`}
+                  >
+                    {rule.active ? "Active" : "Inactive"}
+                  </button>
+                </div>
                 <p className="text-sm text-gray-700">{rule.rule}</p>
               </div>
 
@@ -260,39 +296,74 @@ function CustomRulesSection({
   );
 }
 
-// Add Rule Modal
-function AddRuleModal({
+// Add/Edit Rule Modal
+function RuleModal({
   isOpen,
   onClose,
-  onAdd,
+  onSave,
+  editingRule,
 }: {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (rule: Omit<GuidanceRule, "id">) => void;
+  onSave: (rule: Omit<GuidanceRule, "id">) => void;
+  editingRule?: GuidanceRule | null;
 }) {
-  const [category, setCategory] = useState<GuidanceRule["category"]>("tone");
+  const [presenter, setPresenter] = useState<GuidanceRule["presenter"]>("all");
+  const [category, setCategory] = useState<GuidanceRule["category"]>("facts");
   const [ruleText, setRuleText] = useState("");
+  const [active, setActive] = useState(true);
+
+  // Reset form when modal opens with editingRule
+  useEffect(() => {
+    if (isOpen) {
+      if (editingRule) {
+        setPresenter(editingRule.presenter);
+        setCategory(editingRule.category);
+        setRuleText(editingRule.rule);
+        setActive(editingRule.active);
+      } else {
+        setPresenter("all");
+        setCategory("facts");
+        setRuleText("");
+        setActive(true);
+      }
+    }
+  }, [isOpen, editingRule]);
 
   const handleSubmit = () => {
     if (ruleText.trim()) {
-      onAdd({ category, rule: ruleText.trim() });
+      onSave({ presenter, category, rule: ruleText.trim(), active });
       setRuleText("");
-      setCategory("tone");
+      setPresenter("all");
+      setCategory("facts");
+      setActive(true);
       onClose();
     }
   };
 
+  const handleClose = () => {
+    setRuleText("");
+    setPresenter("all");
+    setCategory("facts");
+    setActive(true);
+    onClose();
+  };
+
   if (!isOpen || typeof window === "undefined") return null;
+
+  const isEditing = !!editingRule;
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50" onClick={handleClose} />
 
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">Add Custom Rule</h3>
+          <h3 className="font-semibold text-gray-900">
+            {isEditing ? "Edit Custom Rule" : "Add Custom Rule"}
+          </h3>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
           >
             <X className="w-5 h-5" />
@@ -300,6 +371,21 @@ function AddRuleModal({
         </div>
 
         <div className="p-4 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Presenter</label>
+            <select
+              value={presenter}
+              onChange={(e) => setPresenter(e.target.value as GuidanceRule["presenter"])}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {presenterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
             <select
@@ -320,7 +406,7 @@ function AddRuleModal({
             <textarea
               value={ruleText}
               onChange={(e) => setRuleText(e.target.value)}
-              placeholder='e.g., "Always mention we are family-owned"'
+              placeholder='e.g., "Shad has over 35 years of experience"'
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
               rows={3}
             />
@@ -328,11 +414,11 @@ function AddRuleModal({
         </div>
 
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl">
-          <Button variant="outline" size="sm" onClick={onClose}>
+          <Button variant="outline" size="sm" onClick={handleClose}>
             Cancel
           </Button>
           <Button size="sm" onClick={handleSubmit} disabled={!ruleText.trim()}>
-            Add Rule
+            {isEditing ? "Save Changes" : "Add Rule"}
           </Button>
         </div>
       </div>
@@ -344,8 +430,9 @@ function AddRuleModal({
 export function GuidanceRulesCard({
   baseRules = demoBaseRules,
   templateRules = demoTemplateRules,
-  customRules = demoCustomRules,
+  customRules: initialCustomRules = demoCustomRules,
   onAddRule,
+  onEditRule,
   onDeleteRule,
 }: GuidanceRulesProps) {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
@@ -354,7 +441,9 @@ export function GuidanceRulesCard({
     custom: true, // Expanded by default
   });
 
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [editingRule, setEditingRule] = useState<GuidanceRule | null>(null);
+  const [localRules, setLocalRules] = useState<GuidanceRule[]>(initialCustomRules);
 
   const toggleSection = (sectionId: string) => {
     setExpandedSections((prev) => ({
@@ -363,18 +452,54 @@ export function GuidanceRulesCard({
     }));
   };
 
-  const handleAddRule = (rule: Omit<GuidanceRule, "id">) => {
-    console.log("Adding rule:", rule);
-    onAddRule?.(rule);
+  const handleSaveRule = (rule: Omit<GuidanceRule, "id">) => {
+    if (editingRule) {
+      // Editing existing rule
+      const updatedRule = { ...rule, id: editingRule.id };
+      setLocalRules((prev) =>
+        prev.map((r) => (r.id === editingRule.id ? updatedRule : r))
+      );
+      onEditRule?.(editingRule.id, rule);
+      console.log("Editing rule:", editingRule.id, rule);
+    } else {
+      // Adding new rule
+      const newRule = { ...rule, id: `c${Date.now()}` };
+      setLocalRules((prev) => [...prev, newRule]);
+      onAddRule?.(rule);
+      console.log("Adding rule:", rule);
+    }
+    setEditingRule(null);
   };
 
   const handleEditRule = (id: string) => {
-    console.log("Editing rule:", id);
+    const rule = localRules.find((r) => r.id === id);
+    if (rule) {
+      setEditingRule(rule);
+      setShowModal(true);
+    }
   };
 
   const handleDeleteRule = (id: string) => {
-    console.log("Deleting rule:", id);
+    setLocalRules((prev) => prev.filter((r) => r.id !== id));
     onDeleteRule?.(id);
+    console.log("Deleting rule:", id);
+  };
+
+  const handleToggleActive = (id: string) => {
+    setLocalRules((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, active: !r.active } : r))
+    );
+    console.log("Toggling active:", id);
+  };
+
+  const handleOpenAddModal = () => {
+    setEditingRule(null);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingRule(null);
   };
 
   return (
@@ -409,18 +534,19 @@ export function GuidanceRulesCard({
 
           {/* Custom Rules - expanded by default, editable */}
           <CustomRulesSection
-            rules={customRules}
+            rules={localRules}
             isExpanded={expandedSections.custom}
             onToggle={() => toggleSection("custom")}
             onEdit={handleEditRule}
             onDelete={handleDeleteRule}
+            onToggleActive={handleToggleActive}
           />
 
           {/* Add New Rule Button */}
           <Button
             variant="outline"
             className="w-full mt-4"
-            onClick={() => setShowAddModal(true)}
+            onClick={handleOpenAddModal}
           >
             <Plus className="w-4 h-4 mr-2" />
             Add New Rule
@@ -428,10 +554,11 @@ export function GuidanceRulesCard({
         </CardContent>
       </Card>
 
-      <AddRuleModal
-        isOpen={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onAdd={handleAddRule}
+      <RuleModal
+        isOpen={showModal}
+        onClose={handleCloseModal}
+        onSave={handleSaveRule}
+        editingRule={editingRule}
       />
     </>
   );
