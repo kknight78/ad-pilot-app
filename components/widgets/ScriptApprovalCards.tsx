@@ -395,12 +395,17 @@ export function ScriptApprovalCards({
     const currentIdx = platformIndices[platform];
     const isLastInPlatform = currentIdx === platformScripts.length - 1;
 
-    if (allPlatformApproved && isLastInPlatform) {
+    if (isLastInPlatform && allPlatformApproved) {
       // Auto-advance to next platform
       const platformIdx = platformsWithScripts.indexOf(platform);
       if (platformIdx < platformsWithScripts.length - 1) {
         const nextPlatform = platformsWithScripts[platformIdx + 1];
+        // Reset next platform to first script and expand it
+        setPlatformIndices((prev) => ({ ...prev, [nextPlatform]: 0 }));
         setActivePlatform(nextPlatform);
+      } else {
+        // This was the last platform - collapse it
+        setActivePlatform(null);
       }
     } else if (!isLastInPlatform) {
       // Move to next script within platform
