@@ -63,16 +63,16 @@ const demoData: AdPlanData = {
     {
       platform: "tiktok",
       items: [
-        { id: "1", themeTopic: "Holiday Spirit", template: "Quick Feature", vehicles: "2019 Honda CR-V", avatar: "Shad", length: "30s", adSpend: 75 },
-        { id: "2", themeTopic: "Holiday Spirit", template: "Quick Feature", vehicles: "2020 Toyota Camry", avatar: "Shad", length: "30s", adSpend: 50 },
-        { id: "3", themeTopic: "Winter Ready", template: "Multi-Car", vehicles: "3 vehicles", avatar: "Shad", length: "45s", adSpend: "organic" },
+        { id: "1", themeTopic: "Holiday Spirit", template: "Deep Dive", vehicles: 1, avatar: "Shad", length: "30s", adSpend: 75 },
+        { id: "2", themeTopic: "Holiday Spirit", template: "Deep Dive", vehicles: 1, avatar: "Shad", length: "30s", adSpend: 50 },
+        { id: "3", themeTopic: "Winter Ready", template: "Multi-Car", vehicles: 3, avatar: "Shad", length: "45s", adSpend: "organic" },
       ],
       subtotal: 125,
     },
     {
       platform: "facebook",
       items: [
-        { id: "4", themeTopic: "Holiday Spirit", template: "Carousel", vehicles: "4 vehicles", avatar: "—", length: "—", adSpend: 125 },
+        { id: "4", themeTopic: "Holiday Spirit", template: "Carousel", vehicles: 4, avatar: "—", length: "—", adSpend: 125 },
         { id: "5", themeTopic: "Family First", template: "Testimonial", vehicles: "—", avatar: "Lisa", length: "60s", adSpend: 50 },
       ],
       subtotal: 175,
