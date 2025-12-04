@@ -185,7 +185,9 @@ function VehicleModal({
 
   if (!isOpen || typeof window === "undefined") return null;
 
-  const availableVehicles = vehicles.filter(v => !excludedIds.includes(v.id));
+  const availableVehicles = vehicles
+    .filter(v => !excludedIds.includes(v.id))
+    .sort((a, b) => b.year - a.year); // Sort by year descending (newest first)
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
