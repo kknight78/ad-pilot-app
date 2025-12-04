@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,7 @@ import {
   Video,
   Lightbulb,
   ArrowUpRight,
+  X,
 } from "lucide-react";
 
 export interface AdPlanItem {
@@ -146,6 +148,216 @@ const getThemeEmoji = (theme: string): string => {
   if (lowerTheme.includes("summer") || lowerTheme.includes("road trip")) return "☀️";
   return "📌";
 };
+
+// Dropdown options for edit modal
+const templateOptions = ["Deep Dive", "Multi-Car", "Capitol Smarts", "Carousel", "Testimonial"];
+const avatarOptions = [
+  { value: "Shad", label: "Shad" },
+  { value: "Gary", label: "Gary" },
+  { value: "Lisa", label: "Lisa" },
+  { value: "Kelly", label: "Kelly" },
+];
+const lengthOptions = ["15s", "30s", "45s", "60s"];
+
+// Edit Ad Modal
+interface EditingItem {
+  platformIndex: number;
+  platform: keyof typeof platformConfig;
+  item: AdPlanItem;
+}
+
+function EditAdModal({
+  isOpen,
+  onClose,
+  editingItem,
+  onSave,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  editingItem: EditingItem | null;
+  onSave: (platformIndex: number, itemId: string, updates: Partial<AdPlanItem>) => void;
+}) {
+  const [template, setTemplate] = useState("");
+  const [themeTopic, setThemeTopic] = useState("");
+  const [avatar, setAvatar] = useState("");
+  const [length, setLength] = useState("");
+  const [adSpend, setAdSpend] = useState<number | "organic">(0);
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen && editingItem) {
+      setTemplate(editingItem.item.template);
+      setThemeTopic(editingItem.item.themeTopic);
+      setAvatar(editingItem.item.avatar);
+      setLength(editingItem.item.length);
+      setAdSpend(editingItem.item.adSpend);
+    }
+  }, [isOpen, editingItem]);
+
+  // Handle escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "";
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !editingItem || typeof window === "undefined") return null;
+
+  const platformName = platformConfig[editingItem.platform].name;
+
+  const handleSave = () => {
+    onSave(editingItem.platformIndex, editingItem.item.id, {
+      template,
+      themeTopic,
+      avatar,
+      length,
+      adSpend,
+    });
+    onClose();
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+          <div>
+            <h3 className="font-semibold text-gray-900">Edit Ad</h3>
+            <p className="text-sm text-gray-500">
+              {platformName} — {editingItem.item.themeTopic}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <div className="p-4 space-y-4">
+          {/* Template */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Template
+            </label>
+            <select
+              value={template}
+              onChange={(e) => setTemplate(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {templateOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Theme/Topic */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Theme/Topic
+            </label>
+            <input
+              type="text"
+              value={themeTopic}
+              onChange={(e) => setThemeTopic(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="e.g., Holiday Spirit"
+            />
+          </div>
+
+          {/* Avatar Presenter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Avatar Presenter
+            </label>
+            <select
+              value={avatar}
+              onChange={(e) => setAvatar(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="—">— None —</option>
+              {avatarOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Target Length */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Target Length
+            </label>
+            <select
+              value={length}
+              onChange={(e) => setLength(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="—">— N/A —</option>
+              {lengthOptions.map((opt) => (
+                <option key={opt} value={opt}>
+                  {opt}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Ad Spend */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Ad Spend
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
+                $
+              </span>
+              <input
+                type="number"
+                value={adSpend === "organic" ? 0 : adSpend}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value) || 0;
+                  setAdSpend(val === 0 ? "organic" : val);
+                }}
+                min={0}
+                className="w-full border border-gray-300 rounded-lg pl-7 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="0"
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
+              <Lightbulb className="w-3 h-3" />
+              This is your platform spend, not Ad Pilot fee
+            </p>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+          <Button variant="outline" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button size="sm" onClick={handleSave}>
+            Save Changes
+          </Button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 function PlatformIcon({ platform }: { platform: keyof typeof platformConfig }) {
   const config = platformConfig[platform];
@@ -349,73 +561,136 @@ export function AdPlanWidget({
   onAddAd,
   onUpgradePlan,
 }: AdPlanWidgetProps) {
+  const [localData, setLocalData] = useState(data);
+  const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
+
+  const handleOpenEdit = (platformIndex: number, itemId: string) => {
+    const platform = localData.platforms[platformIndex];
+    const item = platform.items.find((i) => i.id === itemId);
+    if (item) {
+      setEditingItem({
+        platformIndex,
+        platform: platform.platform,
+        item,
+      });
+    }
+    onEdit?.(platformIndex, itemId);
+  };
+
+  const handleSaveEdit = (
+    platformIndex: number,
+    itemId: string,
+    updates: Partial<AdPlanItem>
+  ) => {
+    setLocalData((prev) => {
+      const newPlatforms = [...prev.platforms];
+      const platformItems = [...newPlatforms[platformIndex].items];
+      const itemIndex = platformItems.findIndex((i) => i.id === itemId);
+      if (itemIndex !== -1) {
+        platformItems[itemIndex] = { ...platformItems[itemIndex], ...updates };
+        newPlatforms[platformIndex] = {
+          ...newPlatforms[platformIndex],
+          items: platformItems,
+        };
+
+        // Recalculate subtotal
+        const newSubtotal = platformItems.reduce((sum, item) => {
+          return sum + (item.adSpend === "organic" ? 0 : item.adSpend);
+        }, 0);
+        newPlatforms[platformIndex].subtotal = newSubtotal;
+      }
+
+      // Recalculate total ad spend
+      const newTotalAdSpend = newPlatforms.reduce(
+        (sum, p) => sum + p.subtotal,
+        0
+      );
+
+      return {
+        ...prev,
+        platforms: newPlatforms,
+        totalAdSpend: newTotalAdSpend,
+      };
+    });
+  };
+
   return (
-    <Card className="w-full max-w-4xl">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Calendar className="w-5 h-5 text-blue-600" />
+    <>
+      <Card className="w-full max-w-4xl">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <Calendar className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">
+                  This Week&apos;s Content Plan
+                </CardTitle>
+                <p className="text-sm text-gray-500">{localData.dateRange}</p>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-lg">
-                This Week&apos;s Content Plan
-              </CardTitle>
-              <p className="text-sm text-gray-500">{data.dateRange}</p>
-            </div>
-          </div>
 
-          {/* Strategy Badges */}
-          <div className="flex flex-wrap gap-2">
-            {data.strategyBadges.map((badge, index) => (
-              <Badge
-                key={index}
-                variant="secondary"
-                className="bg-green-50 text-green-700 border-green-200"
-              >
-                <CheckCircle2 className="w-3 h-3 mr-1" />
-                {badge}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Video Usage Tracker */}
-        <VideoUsageTracker usage={videoUsage} onUpgrade={onUpgradePlan} />
-
-        {/* Platform Sections */}
-        {data.platforms.map((platform, index) => (
-          <PlatformSection
-            key={platform.platform}
-            plan={platform}
-            platformIndex={index}
-            onEdit={onEdit}
-            onRemove={onRemove}
-            onAddAd={onAddAd}
-          />
-        ))}
-
-        {/* Summary Footer */}
-        <div className="bg-gray-50 rounded-lg p-4 mt-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="text-sm text-gray-700">
-              <span className="font-semibold">Total:</span>{" "}
-              {data.totalContent} pieces of content •{" "}
-              <span className="text-blue-600 font-medium">${data.totalAdSpend}</span> platform spend
+            {/* Strategy Badges */}
+            <div className="flex flex-wrap gap-2">
+              {localData.strategyBadges.map((badge, index) => (
+                <Badge
+                  key={index}
+                  variant="secondary"
+                  className="bg-green-50 text-green-700 border-green-200"
+                >
+                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                  {badge}
+                </Badge>
+              ))}
             </div>
           </div>
+        </CardHeader>
 
-          {/* Platform Spend Disclaimer */}
-          <div className="flex items-start gap-2 mt-3 pt-3 border-t border-gray-200">
-            <Lightbulb className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-            <p className="text-xs text-gray-400">
-              Platform ad spend (${data.totalAdSpend} total) is charged directly by TikTok/Meta/YouTube — not by Ad Pilot.
-            </p>
+        <CardContent className="space-y-4">
+          {/* Video Usage Tracker */}
+          <VideoUsageTracker usage={videoUsage} onUpgrade={onUpgradePlan} />
+
+          {/* Platform Sections */}
+          {localData.platforms.map((platform, index) => (
+            <PlatformSection
+              key={platform.platform}
+              plan={platform}
+              platformIndex={index}
+              onEdit={handleOpenEdit}
+              onRemove={onRemove}
+              onAddAd={onAddAd}
+            />
+          ))}
+
+          {/* Summary Footer */}
+          <div className="bg-gray-50 rounded-lg p-4 mt-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="text-sm text-gray-700">
+                <span className="font-semibold">Total:</span>{" "}
+                {localData.totalContent} pieces of content •{" "}
+                <span className="text-blue-600 font-medium">${localData.totalAdSpend}</span> platform spend
+              </div>
+            </div>
+
+            {/* Platform Spend Disclaimer */}
+            <div className="flex items-start gap-2 mt-3 pt-3 border-t border-gray-200">
+              <Lightbulb className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+              <p className="text-xs text-gray-400">
+                Platform ad spend (${localData.totalAdSpend} total) is charged directly by TikTok/Meta/YouTube — not by Ad Pilot.
+              </p>
+            </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {/* Edit Ad Modal */}
+      <EditAdModal
+        isOpen={!!editingItem}
+        onClose={() => setEditingItem(null)}
+        editingItem={editingItem}
+        onSave={handleSaveEdit}
+      />
+    </>
   );
 }
