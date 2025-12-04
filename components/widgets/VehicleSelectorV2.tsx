@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -119,6 +120,23 @@ const getThemeEmoji = (theme: string): string => {
   return "📌";
 };
 
+// Chip components for urgency (red) and positive (green) attributes
+function UrgencyChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800">
+      ‼️ {children}
+    </span>
+  );
+}
+
+function PositiveChip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+      ✅ {children}
+    </span>
+  );
+}
+
 function PlatformIcon({ platform }: { platform: keyof typeof platformConfig }) {
   const config = platformConfig[platform];
   return (
@@ -127,6 +145,69 @@ function PlatformIcon({ platform }: { platform: keyof typeof platformConfig }) {
     >
       {config.icon}
     </span>
+  );
+}
+
+// Portal dropdown component
+function DropdownPortal({
+  isOpen,
+  triggerRef,
+  onClose,
+  children,
+}: {
+  isOpen: boolean;
+  triggerRef: React.RefObject<HTMLButtonElement | null>;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.bottom + window.scrollY + 4,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  }, [isOpen, triggerRef]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (triggerRef.current && !triggerRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [isOpen, onClose, triggerRef]);
+
+  if (!isOpen || typeof window === "undefined") return null;
+
+  return createPortal(
+    <div
+      className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl max-h-72 overflow-y-auto"
+      style={{
+        top: position.top,
+        left: position.left,
+        width: position.width,
+      }}
+    >
+      {children}
+    </div>,
+    document.body
   );
 }
 
@@ -147,6 +228,9 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
 
   // Track which ad slots have dropdown open
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+
+  // Refs for dropdown triggers
+  const dropdownRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   const fetchInventory = async () => {
     setLoading(true);
@@ -179,7 +263,7 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
     fetchInventory();
   }, []);
 
-  // Get suggested priority vehicles (top 10 based on days on lot + AWD/4WD + high mileage)
+  // Get suggested priority vehicles (top 6 based on days on lot + AWD/4WD + high mileage)
   const getSuggestedPriorities = () => {
     return [...vehicles]
       .map(v => ({
@@ -190,7 +274,7 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
                   v.daysOnLot
       }))
       .sort((a, b) => b.priority - a.priority)
-      .slice(0, 10);
+      .slice(0, 6);
   };
 
   // Group ad slots by platform
@@ -206,10 +290,6 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
       currency: "USD",
       minimumFractionDigits: 0,
     }).format(price);
-  };
-
-  const formatMileage = (mileage: number) => {
-    return new Intl.NumberFormat("en-US").format(mileage);
   };
 
   const handleSelectVehicle = (adSlotId: string, vehicle: Vehicle, maxCount: number) => {
@@ -231,17 +311,20 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
     onSelect?.(newSelections);
   };
 
-  const handleQuickAdd = (adSlotId: string, vehicle: Vehicle, maxCount: number) => {
-    const current = selections[adSlotId] || [];
-    if (current.length < maxCount && !current.find(v => v.id === vehicle.id)) {
-      const newSelections = { ...selections, [adSlotId]: [...current, vehicle] };
-      setSelections(newSelections);
-      onSelect?.(newSelections);
-    }
+  const toggleDropdown = (adSlotId: string) => {
+    setOpenDropdowns(prev => {
+      // Close all other dropdowns when opening a new one
+      const newState: Record<string, boolean> = {};
+      Object.keys(prev).forEach(key => {
+        newState[key] = false;
+      });
+      newState[adSlotId] = !prev[adSlotId];
+      return newState;
+    });
   };
 
-  const toggleDropdown = (adSlotId: string) => {
-    setOpenDropdowns(prev => ({ ...prev, [adSlotId]: !prev[adSlotId] }));
+  const closeDropdown = (adSlotId: string) => {
+    setOpenDropdowns(prev => ({ ...prev, [adSlotId]: false }));
   };
 
   const togglePlatform = (platform: string) => {
@@ -297,10 +380,10 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold text-gray-700">Suggested Priorities</span>
-            <Badge variant="secondary" className="text-xs">Top 10</Badge>
+            <Badge variant="secondary" className="text-xs">Top 6</Badge>
           </div>
 
-          <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-3">
             {suggestedVehicles.map((vehicle, index) => {
               const isOld = vehicle.daysOnLot >= 60;
               const isWinterReady = ["AWD", "4WD"].includes(vehicle.driveType || "");
@@ -311,45 +394,33 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
                   key={vehicle.id}
                   className="p-3 bg-gray-50 rounded-lg border border-gray-200"
                 >
-                  {/* Row 1: Year Make Model + Badges */}
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium text-gray-900">
-                      {index + 1}. {vehicle.year} {vehicle.make} {vehicle.model}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">{vehicle.daysOnLot}d</span>
-                      {isOld && <span title="60+ days on lot">😬</span>}
-                      {isWinterReady && <span title={`${vehicle.driveType} - Winter ready`}>❄️</span>}
-                      {isHighMileage && <span title="90k+ miles">🛣️</span>}
-                    </div>
+                  {/* Row 1: Number + Year Make Model */}
+                  <div className="text-sm font-medium text-gray-900">
+                    {index + 1}. {vehicle.year} {vehicle.make} {vehicle.model}
                   </div>
-                  {/* Row 2: VIN + mileage if high */}
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-xs text-gray-400 font-mono">
-                      {vehicle.vin || "VIN unavailable"}
-                    </span>
-                    {isHighMileage && (
-                      <span className="text-xs text-gray-500">
-                        ({Math.round(vehicle.mileage / 1000)}k mi)
-                      </span>
-                    )}
+
+                  {/* Row 2: VIN */}
+                  <div className="text-xs text-gray-400 font-mono mt-1">
+                    {vehicle.vin || "VIN unavailable"}
                   </div>
+
+                  {/* Row 3: Urgency chips (red) */}
+                  {(isOld || isHighMileage) && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {isOld && <UrgencyChip>{vehicle.daysOnLot} days</UrgencyChip>}
+                      {isHighMileage && <UrgencyChip>{Math.round(vehicle.mileage / 1000)}k mi</UrgencyChip>}
+                    </div>
+                  )}
+
+                  {/* Row 4: Positive chips (green) */}
+                  {isWinterReady && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      <PositiveChip>{vehicle.driveType} · Winter ready</PositiveChip>
+                    </div>
+                  )}
                 </div>
               );
             })}
-          </div>
-
-          {/* Legend */}
-          <div className="flex flex-wrap items-center gap-3 text-xs text-gray-500">
-            <span className="flex items-center gap-1">
-              😬 60+ days on lot
-            </span>
-            <span className="flex items-center gap-1">
-              ❄️ AWD/4WD (winter ready)
-            </span>
-            <span className="flex items-center gap-1">
-              🛣️ 90k+ miles
-            </span>
           </div>
         </div>
 
@@ -393,7 +464,7 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
                 {/* Ad slots */}
                 {isExpanded && (
                   <div className="divide-y divide-gray-100">
-                    {platformSlots.map((slot, idx) => {
+                    {platformSlots.map((slot) => {
                       const slotSelections = selections[slot.id] || [];
                       const isComplete = slotSelections.length >= slot.vehicleCount;
                       const isDropdownOpen = openDropdowns[slot.id];
@@ -434,6 +505,7 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
                           {!isComplete && (
                             <div className="relative">
                               <button
+                                ref={(el) => { dropdownRefs.current[slot.id] = el; }}
                                 onClick={() => toggleDropdown(slot.id)}
                                 className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
                               >
@@ -441,50 +513,39 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
                                 <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
                               </button>
 
-                              {isDropdownOpen && (
-                                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-72 overflow-y-auto bottom-full mb-1">
-                                  {vehicles
-                                    .filter(v => !slotSelections.find(s => s.id === v.id))
-                                    .map(vehicle => {
-                                      const isOld = vehicle.daysOnLot >= 60;
-                                      const isWinterReady = ["AWD", "4WD"].includes(vehicle.driveType || "");
-                                      const isHighMileage = vehicle.mileage >= 90000;
-
-                                      return (
-                                        <button
-                                          key={vehicle.id}
-                                          onClick={() => {
-                                            handleSelectVehicle(slot.id, vehicle, slot.vehicleCount);
-                                            if (slotSelections.length + 1 >= slot.vehicleCount) {
-                                              setOpenDropdowns(prev => ({ ...prev, [slot.id]: false }));
-                                            }
-                                          }}
-                                          className="w-full px-3 py-2.5 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
-                                        >
-                                          {/* Row 1: Year Make Model + badges */}
-                                          <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-gray-900">
-                                              {vehicle.year} {vehicle.make} {vehicle.model}
-                                            </span>
-                                            <div className="flex items-center gap-1">
-                                              {isOld && <span>😬</span>}
-                                              {isWinterReady && <span>❄️</span>}
-                                              {isHighMileage && <span>🛣️</span>}
-                                            </div>
-                                          </div>
-                                          {/* Row 2: VIN */}
-                                          <div className="text-xs text-gray-400 font-mono mt-0.5">
-                                            {vehicle.vin || "VIN unavailable"}
-                                          </div>
-                                          {/* Row 3: Price, mileage, days */}
-                                          <div className="text-xs text-gray-500 mt-0.5">
-                                            {formatPrice(vehicle.price)} • {Math.round(vehicle.mileage / 1000)}k mi • {vehicle.daysOnLot}d on lot
-                                          </div>
-                                        </button>
-                                      );
-                                    })}
-                                </div>
-                              )}
+                              <DropdownPortal
+                                isOpen={isDropdownOpen}
+                                triggerRef={{ current: dropdownRefs.current[slot.id] }}
+                                onClose={() => closeDropdown(slot.id)}
+                              >
+                                {vehicles
+                                  .filter(v => !slotSelections.find(s => s.id === v.id))
+                                  .map(vehicle => (
+                                    <button
+                                      key={vehicle.id}
+                                      onClick={() => {
+                                        handleSelectVehicle(slot.id, vehicle, slot.vehicleCount);
+                                        if (slotSelections.length + 1 >= slot.vehicleCount) {
+                                          closeDropdown(slot.id);
+                                        }
+                                      }}
+                                      className="w-full px-3 py-2.5 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                                    >
+                                      {/* Row 1: Year Make Model */}
+                                      <div className="text-sm font-medium text-gray-900">
+                                        {vehicle.year} {vehicle.make} {vehicle.model}
+                                      </div>
+                                      {/* Row 2: VIN */}
+                                      <div className="text-xs text-gray-400 font-mono mt-0.5">
+                                        {vehicle.vin || "VIN unavailable"}
+                                      </div>
+                                      {/* Row 3: Price, mileage, days */}
+                                      <div className="text-xs text-gray-500 mt-0.5">
+                                        {formatPrice(vehicle.price)} • {Math.round(vehicle.mileage / 1000)}k mi • {vehicle.daysOnLot}d on lot
+                                      </div>
+                                    </button>
+                                  ))}
+                              </DropdownPortal>
                             </div>
                           )}
 
