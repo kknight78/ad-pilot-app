@@ -1,63 +1,65 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
-  Check,
   RefreshCw,
-  ArrowRight,
-  Loader2,
-  Palette,
+  Lightbulb,
   Sparkles,
+  Palette,
+  Loader2,
+  Check,
 } from "lucide-react";
 
 export interface Theme {
-  id: string;
   name: string;
-  description: string;
   emoji: string;
-  seasonal?: boolean;
-  trending?: boolean;
+  hook_example: string;
+  why?: string;
 }
 
 interface ThemeSelectorV2Props {
-  onSelect?: (theme: Theme) => void;
-  onContinue?: (theme: Theme) => void;
+  onSelect?: (theme: Theme | string) => void;
+  onContinue?: (theme: Theme | string) => void;
 }
 
-// Fallback themes if API is unavailable
-const fallbackThemes: Theme[] = [
-  { id: "winter-prep", name: "Winter Ready", description: "Cold weather prep & safety tips", emoji: "❄️", seasonal: true },
-  { id: "family-first", name: "Family First", description: "Safety features & spacious vehicles", emoji: "👨‍👩‍👧‍👦" },
-  { id: "budget-smart", name: "Budget Smart", description: "Great value & financing options", emoji: "💰" },
-  { id: "reliability", name: "Built to Last", description: "Dependable vehicles with great history", emoji: "🔧" },
-];
+type SuggestionMode = "lucky" | "guided";
 
 export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) {
+  // Custom theme input
+  const [customTheme, setCustomTheme] = useState("");
+
+  // Suggestion mode
+  const [suggestionMode, setSuggestionMode] = useState<SuggestionMode>("lucky");
+  const [guidedInput, setGuidedInput] = useState("");
+
+  // Suggested themes from backend
   const [themes, setThemes] = useState<Theme[]>([]);
   const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+
+  // Loading state
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchThemes = async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+  const fetchThemes = async () => {
+    setLoading(true);
     setError(null);
+    setSelectedTheme(null);
 
     try {
-      // Try to fetch from backend - adjust endpoint as needed
-      const response = await fetch("https://kelly-ads.app.n8n.cloud/webhook/themes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          client_id: "ccc",
-          season: getCurrentSeason(),
-          context: "weekly_content_planning"
-        }),
-      });
+      const response = await fetch(
+        "https://corsproxy.io/?https://kelly-ads.app.n8n.cloud/webhook/theme-suggest",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location: "Rantoul, IL",
+            client_id: "ccc",
+            guidance: suggestionMode === "guided" ? guidedInput : undefined,
+          }),
+        }
+      );
 
       if (!response.ok) throw new Error("Failed to fetch themes");
 
@@ -65,148 +67,205 @@ export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) 
       if (data.themes && Array.isArray(data.themes)) {
         setThemes(data.themes);
       } else {
-        // Use fallback if response format is unexpected
-        setThemes(fallbackThemes);
+        throw new Error("Invalid response format");
       }
     } catch (err) {
-      console.log("Using fallback themes:", err);
-      setThemes(fallbackThemes);
-      // Don't show error for fallback - just silently use defaults
+      console.error("Theme fetch error:", err);
+      setError("Couldn't load suggestions. Try again or enter a custom theme.");
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    fetchThemes();
-  }, []);
-
-  const getCurrentSeason = () => {
-    const month = new Date().getMonth();
-    if (month >= 2 && month <= 4) return "spring";
-    if (month >= 5 && month <= 7) return "summer";
-    if (month >= 8 && month <= 10) return "fall";
-    return "winter";
-  };
-
-  const handleSelect = (theme: Theme) => {
+  const handleSelectTheme = (theme: Theme) => {
     setSelectedTheme(theme);
+    setCustomTheme(""); // Clear custom if selecting a suggested theme
     onSelect?.(theme);
   };
 
   const handleContinue = () => {
-    if (selectedTheme) {
+    if (customTheme.trim()) {
+      onContinue?.(customTheme.trim());
+    } else if (selectedTheme) {
       onContinue?.(selectedTheme);
     }
   };
 
-  const handleRefresh = () => {
-    setSelectedTheme(null);
-    fetchThemes(true);
-  };
-
-  if (loading) {
-    return (
-      <Card className="w-full max-w-xl">
-        <CardContent className="py-12">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
-            <p className="text-sm text-gray-500">Loading theme suggestions...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const hasSelection = customTheme.trim() || selectedTheme;
 
   return (
     <Card className="w-full max-w-xl">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Palette className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">Choose a Weekly Theme</CardTitle>
-              <p className="text-sm text-gray-500">
-                One theme keeps your content consistent
-              </p>
-            </div>
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-purple-100 rounded-lg">
+            <Palette className="w-5 h-5 text-purple-600" />
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="text-gray-500"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`} />
-          </Button>
+          <div>
+            <CardTitle className="text-lg">Choose a Weekly Theme</CardTitle>
+            <p className="text-sm text-gray-500">
+              Sets the tone for all your content this week
+            </p>
+          </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
+        {/* Custom theme input */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Create your own
+          </label>
+          <input
+            type="text"
+            value={customTheme}
+            onChange={(e) => {
+              setCustomTheme(e.target.value);
+              if (e.target.value) setSelectedTheme(null); // Clear selected if typing custom
+            }}
+            placeholder="e.g., Holiday Road Trip Ready"
+            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+          />
+        </div>
+
+        {/* OR divider */}
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-px bg-gray-200" />
+          <span className="text-sm text-gray-400 font-medium">OR</span>
+          <div className="flex-1 h-px bg-gray-200" />
+        </div>
+
+        {/* Suggestion options */}
+        <div className="space-y-3">
+          {/* I'm feeling lucky */}
+          <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+            <input
+              type="radio"
+              name="suggestionMode"
+              checked={suggestionMode === "lucky"}
+              onChange={() => setSuggestionMode("lucky")}
+              className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+            />
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-500" />
+              <span className="font-medium text-gray-700">I&apos;m feeling lucky</span>
+            </div>
+          </label>
+
+          {/* Give me themes about... */}
+          <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+            <input
+              type="radio"
+              name="suggestionMode"
+              checked={suggestionMode === "guided"}
+              onChange={() => setSuggestionMode("guided")}
+              className="w-4 h-4 mt-1 text-purple-600 focus:ring-purple-500"
+            />
+            <div className="flex-1">
+              <span className="font-medium text-gray-700">Give me themes about...</span>
+              {suggestionMode === "guided" && (
+                <input
+                  type="text"
+                  value={guidedInput}
+                  onChange={(e) => setGuidedInput(e.target.value)}
+                  placeholder="e.g., winter weather, family safety, budget"
+                  className="w-full mt-2 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              )}
+            </div>
+          </label>
+
+          {/* Suggest button */}
+          <Button
+            onClick={fetchThemes}
+            disabled={loading || (suggestionMode === "guided" && !guidedInput.trim())}
+            className="w-full bg-purple-600 hover:bg-purple-700"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Generating...
+              </>
+            ) : (
+              <>
+                <Lightbulb className="w-4 h-4 mr-2" />
+                Suggest Themes
+              </>
+            )}
+          </Button>
+        </div>
+
+        {/* Error message */}
         {error && (
-          <div className="text-sm text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
+          <div className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
             {error}
           </div>
         )}
 
-        {/* Theme cards */}
-        <div className="grid gap-3">
-          {themes.map((theme) => {
-            const isSelected = selectedTheme?.id === theme.id;
-            return (
-              <button
-                key={theme.id}
-                onClick={() => handleSelect(theme)}
-                className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left ${
-                  isSelected
-                    ? "border-primary-500 bg-primary-50 shadow-sm"
-                    : "border-gray-200 hover:border-gray-300 bg-white hover:shadow-sm"
-                }`}
+        {/* Suggested themes */}
+        {themes.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium text-gray-700">Suggestions</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={fetchThemes}
+                disabled={loading}
+                className="text-gray-500 hover:text-purple-600"
               >
-                <span className="text-3xl">{theme.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-gray-900">{theme.name}</span>
-                    {theme.seasonal && (
-                      <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700">
-                        <Sparkles className="w-3 h-3 mr-1" />
-                        Seasonal
-                      </Badge>
-                    )}
-                    {theme.trending && (
-                      <Badge variant="secondary" className="text-xs bg-green-50 text-green-700">
-                        Trending
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600 mt-1">{theme.description}</p>
-                </div>
-                {isSelected && (
-                  <div className="shrink-0">
-                    <div className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center">
-                      <Check className="w-4 h-4 text-white" />
+                <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              {themes.map((theme, index) => {
+                const isSelected = selectedTheme?.name === theme.name;
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleSelectTheme(theme)}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                      isSelected
+                        ? "border-purple-500 bg-purple-50"
+                        : "border-gray-200 hover:border-gray-300 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl">{theme.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900">
+                            {theme.name}
+                          </span>
+                          {isSelected && (
+                            <div className="w-5 h-5 rounded-full bg-purple-500 flex items-center justify-center">
+                              <Check className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1 italic">
+                          &ldquo;{theme.hook_example}&rdquo;
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Continue button */}
-        {selectedTheme && (
+        {hasSelection && (
           <Button className="w-full" onClick={handleContinue}>
-            Continue with &ldquo;{selectedTheme.name}&rdquo;
-            <ArrowRight className="w-4 h-4 ml-2" />
+            Continue with {customTheme.trim() ? `"${customTheme.trim()}"` : selectedTheme?.name}
           </Button>
         )}
 
+        {/* Footer note */}
         <p className="text-xs text-gray-400 text-center">
-          Themes are suggested based on season, inventory, and past performance
+          Applies to all ads. Override in Content Plan if needed.
         </p>
       </CardContent>
     </Card>
