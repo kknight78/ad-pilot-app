@@ -35,13 +35,6 @@ import { AvatarPhotoCapture } from "@/components/widgets/AvatarPhotoCapture";
 import { InvoiceWidget } from "@/components/widgets/InvoiceWidget";
 
 // Demo data for each widget
-const recommendationsData = [
-  { id: "1", type: "success" as const, message: "TikTok is crushing it! Consider increasing ad spend by 20% to capitalize on momentum." },
-  { id: "2", type: "warning" as const, message: "Instagram CPL is high ($37.50). Consider pausing or refreshing creative." },
-  { id: "3", type: "action" as const, message: "You have 3 vehicles over 45 days on lot. Feature them in this week's ads?" },
-  { id: "4", type: "neutral" as const, message: "YouTube Shorts performing on par with expectations. Maintain current strategy." },
-];
-
 const guidanceRulesData = [
   { id: "1", category: "tone" as const, rule: "Friendly and approachable, like talking to a neighbor" },
   { id: "2", category: "tone" as const, rule: "Never pushy or salesy - focus on helping" },
@@ -54,7 +47,7 @@ const guidanceRulesData = [
 
 const widgets = [
   { id: "performance", name: "Performance Dashboard", icon: BarChart3, status: "working" },
-  { id: "recommendations", name: "Recommendations List", icon: Lightbulb, status: "working" },
+  { id: "recommendations", name: "Recommendations", icon: Lightbulb, status: "rebuilt" },
   { id: "guidance", name: "Guidance Rules", icon: Settings, status: "working" },
   { id: "video", name: "Video Preview Card", icon: Video, status: "working" },
   { id: "adplan", name: "Ad Plan Table", icon: Calendar, status: "working" },
@@ -87,7 +80,12 @@ export default function GalleryPage() {
           />
         );
       case "recommendations":
-        return <RecommendationsList recommendations={recommendationsData} />;
+        return (
+          <RecommendationsList
+            onDismiss={() => console.log("Dismissed")}
+            onAction={(id) => console.log("Action", id)}
+          />
+        );
       case "guidance":
         return (
           <GuidanceRulesCard

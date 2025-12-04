@@ -1,46 +1,118 @@
 "use client";
 
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lightbulb, TrendingDown, TrendingUp, ArrowRight, Zap } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Lightbulb, Camera, RefreshCw, Youtube, X } from "lucide-react";
 
 export interface Recommendation {
   id: string;
-  type: "warning" | "success" | "neutral" | "action";
-  message: string;
+  category: "included" | "levelup";
+  icon: string; // emoji
+  title: string;
+  description: string;
+  actionLabel: string;
+  onAction?: () => void;
 }
 
 export interface RecommendationsListProps {
-  recommendations: Recommendation[];
+  recommendations?: Recommendation[];
+  onDismiss?: () => void;
+  onAction?: (id: string) => void;
 }
 
-const typeConfig = {
-  warning: {
-    icon: TrendingDown,
-    bgColor: "bg-red-50",
-    iconColor: "text-red-500",
-    borderColor: "border-red-100",
+// Demo data with curated recommendations
+const demoRecommendations: Recommendation[] = [
+  {
+    id: "1",
+    category: "included",
+    icon: "📸",
+    title: "Freshen Up Your Look",
+    description:
+      "Ad fatigue is real — viewers tune out familiar faces. Throw on an Illini tee or winter sweater and we'll create a new avatar. You have 4 photo sessions included this month (0 used).",
+    actionLabel: "Create New Avatar",
   },
-  success: {
-    icon: TrendingUp,
-    bgColor: "bg-green-50",
-    iconColor: "text-green-500",
-    borderColor: "border-green-100",
+  {
+    id: "2",
+    category: "included",
+    icon: "🔄",
+    title: "Rest Your Multi-Car Template",
+    description:
+      "You've run it 47 times! Swap it out for 2-3 months and it'll feel fresh again.",
+    actionLabel: "Explore Options",
   },
-  neutral: {
-    icon: ArrowRight,
-    bgColor: "bg-gray-50",
-    iconColor: "text-gray-500",
-    borderColor: "border-gray-100",
+  {
+    id: "3",
+    category: "levelup",
+    icon: "📺",
+    title: "Expand to YouTube Shorts",
+    description:
+      "Your TikToks are crushing it — same content, whole new audience.",
+    actionLabel: "Learn More",
   },
-  action: {
-    icon: Zap,
-    bgColor: "bg-amber-50",
-    iconColor: "text-amber-500",
-    borderColor: "border-amber-100",
-  },
+];
+
+// Icon mapping for Lucide icons (used for section headers)
+const iconComponents = {
+  camera: Camera,
+  refresh: RefreshCw,
+  youtube: Youtube,
 };
 
-export function RecommendationsList({ recommendations }: RecommendationsListProps) {
+function RecommendationCard({
+  recommendation,
+  onAction,
+}: {
+  recommendation: Recommendation;
+  onAction?: (id: string) => void;
+}) {
+  return (
+    <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+      {/* Title row with emoji */}
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-lg">{recommendation.icon}</span>
+        <h4 className="font-medium text-gray-900">{recommendation.title}</h4>
+      </div>
+
+      {/* Description */}
+      <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+        {recommendation.description}
+      </p>
+
+      {/* Action button - right aligned */}
+      <div className="flex justify-end">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => onAction?.(recommendation.id)}
+          className="text-sm"
+        >
+          {recommendation.actionLabel}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function RecommendationsList({
+  recommendations = demoRecommendations,
+  onDismiss,
+  onAction,
+}: RecommendationsListProps) {
+  const [dismissed, setDismissed] = useState(false);
+
+  if (dismissed) {
+    return null;
+  }
+
+  const includedRecs = recommendations.filter((r) => r.category === "included");
+  const levelupRecs = recommendations.filter((r) => r.category === "levelup");
+
+  const handleDismiss = () => {
+    setDismissed(true);
+    onDismiss?.();
+  };
+
   return (
     <Card className="w-full max-w-lg">
       <CardHeader className="pb-3">
@@ -48,26 +120,62 @@ export function RecommendationsList({ recommendations }: RecommendationsListProp
           <div className="p-2 bg-amber-100 rounded-lg">
             <Lightbulb className="w-5 h-5 text-amber-600" />
           </div>
-          <CardTitle className="text-lg">Recommendations</CardTitle>
+          <div>
+            <CardTitle className="text-lg">Recommendations</CardTitle>
+            <p className="text-sm text-gray-500">
+              Ways to improve your video performance
+            </p>
+          </div>
         </div>
       </CardHeader>
 
-      <CardContent>
-        <div className="space-y-2">
-          {recommendations.map((rec) => {
-            const config = typeConfig[rec.type];
-            const Icon = config.icon;
+      <CardContent className="space-y-6">
+        {/* INCLUDED WITH YOUR PLAN */}
+        {includedRecs.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Included with your plan
+            </h3>
+            <div className="space-y-3">
+              {includedRecs.map((rec) => (
+                <RecommendationCard
+                  key={rec.id}
+                  recommendation={rec}
+                  onAction={onAction}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
-            return (
-              <div
-                key={rec.id}
-                className={`flex items-start gap-3 p-3 rounded-lg border ${config.bgColor} ${config.borderColor}`}
-              >
-                <Icon className={`w-5 h-5 mt-0.5 shrink-0 ${config.iconColor}`} />
-                <p className="text-sm text-gray-700">{rec.message}</p>
-              </div>
-            );
-          })}
+        {/* LEVEL UP */}
+        {levelupRecs.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Level Up
+            </h3>
+            <div className="space-y-3">
+              {levelupRecs.map((rec) => (
+                <RecommendationCard
+                  key={rec.id}
+                  recommendation={rec}
+                  onAction={onAction}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Dismiss button */}
+        <div className="pt-2 flex justify-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleDismiss}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            Not right now
+          </Button>
         </div>
       </CardContent>
     </Card>
