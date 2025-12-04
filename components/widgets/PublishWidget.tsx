@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import {
   Pencil,
   X,
   Calendar,
-  Send,
   Save,
 } from "lucide-react";
 
@@ -243,6 +242,18 @@ export function PublishWidget({
   const [editingPlatform, setEditingPlatform] = useState<Platform | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [published, setPublished] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Control video playback
+  useEffect(() => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.play();
+      } else {
+        videoRef.current.pause();
+      }
+    }
+  }, [isPlaying]);
 
   const selectedPlatforms = platforms.filter((p) => p.enabled);
   const selectedCount = selectedPlatforms.length;
@@ -310,17 +321,17 @@ export function PublishWidget({
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Published Success State */}
+          {/* Approved Success State */}
           {published ? (
             <div className="text-center py-8">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-green-600" />
               </div>
               <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Published!
+                Approved!
               </h3>
               <p className="text-gray-600 mb-2">
-                Your video is now live on:
+                Your video will be published to:
               </p>
               <div className="flex justify-center gap-2 mb-6">
                 {selectedPlatforms.map((p) => (
@@ -341,30 +352,38 @@ export function PublishWidget({
             </div>
           ) : (
             <>
-              {/* Video Player Placeholder */}
-              <div className="relative aspect-video bg-gray-900 rounded-lg overflow-hidden">
-                {/* Placeholder gradient background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-purple-900 to-blue-900" />
+              {/* Video Player - Vertical 9:16 aspect ratio */}
+              <div className="flex justify-center">
+                <div className="relative w-48 bg-gray-900 rounded-lg overflow-hidden" style={{ aspectRatio: '9/16' }}>
+                  {/* Actual video */}
+                  <video
+                    ref={videoRef}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    src="https://res.cloudinary.com/dtpqxuwby/video/upload/v1763688792/facebook_2025-11-20_test.mp4"
+                    playsInline
+                    muted
+                    loop
+                    onClick={() => setIsPlaying(!isPlaying)}
+                  />
 
-                {/* Play/Pause button */}
-                <button
-                  onClick={() => setIsPlaying(!isPlaying)}
-                  className="absolute inset-0 flex items-center justify-center"
-                >
-                  <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
-                    {isPlaying ? (
-                      <Pause className="w-8 h-8 text-white" />
-                    ) : (
-                      <Play className="w-8 h-8 text-white ml-1" />
-                    )}
+                  {/* Play/Pause overlay */}
+                  {!isPlaying && (
+                    <button
+                      onClick={() => setIsPlaying(true)}
+                      className="absolute inset-0 flex items-center justify-center bg-black/30"
+                    >
+                      <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
+                        <Play className="w-6 h-6 text-white ml-0.5" />
+                      </div>
+                    </button>
+                  )}
+
+                  {/* Video title overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                    <p className="text-white text-xs font-medium">
+                      {videoTitle} — {videoTheme}
+                    </p>
                   </div>
-                </button>
-
-                {/* Video title overlay */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
-                  <p className="text-white text-sm font-medium">
-                    {videoTitle} — {videoTheme}
-                  </p>
                 </div>
               </div>
 
@@ -400,11 +419,11 @@ export function PublishWidget({
                   disabled={selectedCount === 0 || isPublishing}
                 >
                   {isPublishing ? (
-                    "Publishing..."
+                    "Approving..."
                   ) : (
                     <>
-                      <Send className="w-4 h-4 mr-2" />
-                      Publish Selected ({selectedCount})
+                      <Check className="w-4 h-4 mr-2" />
+                      Approve for Publish ({selectedCount})
                     </>
                   )}
                 </Button>
