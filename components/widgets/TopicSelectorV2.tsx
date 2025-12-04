@@ -82,13 +82,14 @@ export function TopicSelectorV2({ numberOfTopics = 1, onSelect, onContinue }: To
 
     try {
       const response = await fetch(
-        "https://corsproxy.io/?https://kelly-ads.app.n8n.cloud/webhook/suggest-topics",
+        "https://corsproxy.io/?https://kelly-ads.app.n8n.cloud/webhook/topic-suggest",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            subject: topic,
-            client_id: "ccc",
+            topic_guidance: topic,
+            target_length: "standard_30_45",
+            avatar_name: "Shad",
           }),
         }
       );
