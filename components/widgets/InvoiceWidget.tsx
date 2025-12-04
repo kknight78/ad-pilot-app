@@ -121,11 +121,7 @@ export function InvoiceWidget({
     }
   };
 
-  const handleDone = () => {
-    setPaymentComplete(false);
-    // In real app, this would refresh invoice data
-  };
-
+  
   const currentStatus = statusConfig[currentInvoice.status];
   const StatusIcon = currentStatus.icon;
 
@@ -159,13 +155,10 @@ export function InvoiceWidget({
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
               Payment Received!
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600">
               Thank you! Your receipt has been sent to<br />
               <span className="font-medium">{customerEmail}</span>
             </p>
-            <Button onClick={handleDone}>
-              Done
-            </Button>
           </div>
         )}
 
