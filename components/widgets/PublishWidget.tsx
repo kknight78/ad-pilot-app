@@ -9,30 +9,34 @@ import {
   Play,
   Pause,
   Check,
-  Square,
   Pencil,
   X,
   Calendar,
   Send,
+  Save,
 } from "lucide-react";
 
+type Platform = "tiktok" | "facebook" | "instagram" | "youtube";
+
 interface PlatformPost {
-  platform: "tiktok" | "facebook" | "instagram" | "youtube";
+  platform: Platform;
   enabled: boolean;
   caption: string;
-  charLimit: number;
 }
 
 interface PublishWidgetProps {
   videoTitle?: string;
   videoTheme?: string;
-  videoUrl?: string;
+  runDates?: string;
+  currentVideo?: number;
+  totalVideos?: number;
   platforms?: PlatformPost[];
   onPublish?: (platforms: string[]) => void;
-  onSchedule?: (platforms: string[], date: Date) => void;
+  onSaveForLater?: () => void;
+  onNext?: () => void;
 }
 
-const platformConfig = {
+const platformConfig: Record<Platform, { name: string; icon: string; tips: string; charLimit: number }> = {
   tiktok: {
     name: "TikTok",
     icon: "🎵",
@@ -59,30 +63,17 @@ const platformConfig = {
   },
 };
 
+// Only show platforms that are in the ad plan (TikTok + Facebook for demo)
 const demoPlatforms: PlatformPost[] = [
   {
     platform: "tiktok",
     enabled: true,
     caption: "Ready to gobble up some savings? 🦃\n#UsedCars #TurkeyDay #RantoulIL #CCC #BuyHerePayHere #Thanksgiving #CarDealership #fyp",
-    charLimit: 300,
   },
   {
     platform: "facebook",
     enabled: true,
     caption: "This Thanksgiving, we're thankful for great customers like YOU! 🦃\n\nCheck out these Turkey Day specials - reliable cars at prices that won't ruffle your feathers.\n\n👉 capitolcarcredit.com",
-    charLimit: 500,
-  },
-  {
-    platform: "instagram",
-    enabled: false,
-    caption: "",
-    charLimit: 400,
-  },
-  {
-    platform: "youtube",
-    enabled: false,
-    caption: "",
-    charLimit: 500,
   },
 ];
 
@@ -96,7 +87,7 @@ function EditCaptionModal({
 }: {
   isOpen: boolean;
   onClose: () => void;
-  platform: keyof typeof platformConfig;
+  platform: Platform;
   caption: string;
   onSave: (caption: string) => void;
 }) {
@@ -191,7 +182,6 @@ function PlatformRow({
   onEdit: () => void;
 }) {
   const config = platformConfig[post.platform];
-  const hasCaption = post.caption.trim().length > 0;
 
   return (
     <div
@@ -220,26 +210,18 @@ function PlatformRow({
             <span>{config.icon}</span>
             <span className="font-medium text-gray-900">{config.name}</span>
           </div>
-          {hasCaption ? (
-            <p className="text-sm text-gray-600 line-clamp-2">
-              {post.caption}
-            </p>
-          ) : (
-            <p className="text-sm text-gray-400 italic">
-              (click Edit to add caption)
-            </p>
-          )}
+          <p className="text-sm text-gray-600 line-clamp-2">
+            {post.caption}
+          </p>
         </div>
 
         {/* Edit button */}
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
           onClick={onEdit}
-          className="shrink-0 text-gray-500"
+          className="shrink-0 p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded"
         >
           <Pencil className="w-4 h-4" />
-        </Button>
+        </button>
       </div>
     </div>
   );
@@ -248,15 +230,17 @@ function PlatformRow({
 export function PublishWidget({
   videoTitle = "Multi-Car",
   videoTheme = "Turkey Day Specials",
-  videoUrl,
+  runDates = "Dec 2 - Dec 8",
+  currentVideo = 2,
+  totalVideos = 6,
   platforms: initialPlatforms = demoPlatforms,
   onPublish,
-  onSchedule,
+  onSaveForLater,
+  onNext,
 }: PublishWidgetProps) {
   const [platforms, setPlatforms] = useState(initialPlatforms);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [editingPlatform, setEditingPlatform] = useState<keyof typeof platformConfig | null>(null);
-  const [showSchedule, setShowSchedule] = useState(false);
+  const [editingPlatform, setEditingPlatform] = useState<Platform | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [published, setPublished] = useState(false);
 
@@ -274,7 +258,7 @@ export function PublishWidget({
   const handleSaveCaption = (platform: string, caption: string) => {
     setPlatforms((prev) =>
       prev.map((p) =>
-        p.platform === platform ? { ...p, caption, enabled: caption.trim().length > 0 ? true : p.enabled } : p
+        p.platform === platform ? { ...p, caption } : p
       )
     );
   };
@@ -287,22 +271,41 @@ export function PublishWidget({
     setPublished(true);
   };
 
+  const handleSaveForLater = () => {
+    onSaveForLater?.();
+    // Could show a toast or advance to next video
+  };
+
+  const handleNextVideo = () => {
+    setPublished(false);
+    onNext?.();
+  };
+
   const editingPost = platforms.find((p) => p.platform === editingPlatform);
 
   return (
     <>
       <Card className="w-full max-w-lg">
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Film className="w-5 h-5 text-purple-600" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <Film className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Your Video is Ready!</CardTitle>
+                <p className="text-sm text-gray-900 font-medium">
+                  {videoTitle} — {videoTheme}
+                </p>
+                <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                  <Calendar className="w-3 h-3" />
+                  Runs {runDates}
+                </p>
+              </div>
             </div>
-            <div>
-              <CardTitle className="text-lg">Your Video is Ready!</CardTitle>
-              <p className="text-sm text-gray-500">
-                {videoTitle} — {videoTheme}
-              </p>
-            </div>
+            <span className="text-sm text-gray-500 font-medium">
+              {currentVideo} of {totalVideos}
+            </span>
           </div>
         </CardHeader>
 
@@ -326,9 +329,15 @@ export function PublishWidget({
                   </span>
                 ))}
               </div>
-              <Button onClick={() => setPublished(false)}>
-                Publish Another
-              </Button>
+              {currentVideo < totalVideos ? (
+                <Button onClick={handleNextVideo}>
+                  Next Video ({currentVideo + 1} of {totalVideos})
+                </Button>
+              ) : (
+                <Button onClick={() => setPublished(false)}>
+                  All Done!
+                </Button>
+              )}
             </div>
           ) : (
             <>
@@ -379,6 +388,13 @@ export function PublishWidget({
               {/* Action Buttons */}
               <div className="flex gap-2">
                 <Button
+                  variant="outline"
+                  onClick={handleSaveForLater}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save for Later
+                </Button>
+                <Button
                   className="flex-1"
                   onClick={handlePublish}
                   disabled={selectedCount === 0 || isPublishing}
@@ -391,14 +407,6 @@ export function PublishWidget({
                       Publish Selected ({selectedCount})
                     </>
                   )}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setShowSchedule(true)}
-                  disabled={selectedCount === 0}
-                >
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Schedule
                 </Button>
               </div>
             </>
