@@ -81,7 +81,6 @@ export default function GalleryPage() {
         return (
           <GuidanceRulesCard
             onAddRule={(rule) => console.log("Add rule", rule)}
-            onEditRule={(id, rule) => console.log("Edit rule", id, rule)}
             onDeleteRule={(id) => console.log("Delete rule", id)}
           />
         );

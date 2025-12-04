@@ -13,11 +13,6 @@ import {
   ChevronRight,
   ChevronDown,
   X,
-  MessageSquare,
-  FileText,
-  Phone,
-  Ban,
-  Palette,
 } from "lucide-react";
 
 export interface GuidanceRule {
@@ -26,134 +21,74 @@ export interface GuidanceRule {
   rule: string;
 }
 
-export interface RuleSection {
-  id: string;
-  name: string;
-  rules: GuidanceRule[];
-  editable: boolean;
+export interface TemplateRules {
+  templateName: string;
+  rules: string[];
 }
 
 export interface GuidanceRulesProps {
-  sections?: RuleSection[];
+  baseRules?: Record<string, string[]>;
+  templateRules?: TemplateRules[];
+  customRules?: GuidanceRule[];
   onAddRule?: (rule: Omit<GuidanceRule, "id">) => void;
   onEditRule?: (id: string, rule: Omit<GuidanceRule, "id">) => void;
   onDeleteRule?: (id: string) => void;
-  // Legacy props for backwards compatibility
-  rules?: GuidanceRule[];
-  clientName?: string;
 }
 
-const categoryConfig = {
-  tone: {
-    label: "Tone",
-    icon: MessageSquare,
-    emoji: "🏷️",
-  },
-  content: {
-    label: "Content",
-    icon: FileText,
-    emoji: "📝",
-  },
-  cta: {
-    label: "CTA",
-    icon: Phone,
-    emoji: "📞",
-  },
-  forbidden: {
-    label: "Forbidden",
-    icon: Ban,
-    emoji: "🚫",
-  },
-  style: {
-    label: "Style",
-    icon: Palette,
-    emoji: "🎨",
-  },
+const categoryLabels: Record<string, string> = {
+  tone: "Tone",
+  content: "Content",
+  cta: "CTA",
+  forbidden: "Forbidden",
+  style: "Style",
 };
 
-// Demo data
-const demoSections: RuleSection[] = [
+// Demo data - Base Rules grouped by category
+const demoBaseRules: Record<string, string[]> = {
+  Tone: ["Friendly and approachable", "Never pushy or salesy"],
+  Content: ["Always mention financing", "Highlight key features", "Include year/make/model"],
+  CTA: ["Include clear next step", "Provide contact info"],
+  Forbidden: ["Never guarantee APR", "No false claims"],
+  Style: ["Casual and conversational", "Short sentences", "Avoid jargon"],
+};
+
+// Demo data - Template Rules (merged into one section)
+const demoTemplateRules: TemplateRules[] = [
   {
-    id: "base",
-    name: "Base Rules (Ad Pilot defaults)",
-    editable: false,
-    rules: [
-      { id: "b1", category: "tone", rule: "Friendly and approachable" },
-      { id: "b2", category: "tone", rule: "Never pushy or salesy" },
-      { id: "b3", category: "content", rule: "Always mention financing options" },
-      { id: "b4", category: "content", rule: "Highlight key vehicle features" },
-      { id: "b5", category: "content", rule: "Include vehicle year, make, and model" },
-      { id: "b6", category: "cta", rule: "Include clear next step" },
-      { id: "b7", category: "cta", rule: "Provide contact information" },
-      { id: "b8", category: "forbidden", rule: "Never guarantee specific APR rates" },
-      { id: "b9", category: "forbidden", rule: "No false claims about vehicle history" },
-      { id: "b10", category: "style", rule: "Use casual, conversational language" },
-      { id: "b11", category: "style", rule: "Keep sentences short and punchy" },
-      { id: "b12", category: "style", rule: "Avoid industry jargon" },
-    ],
+    templateName: "Deep Dive",
+    rules: ["Single vehicle focus", "Mention price/financing", "45-60 sec"],
   },
   {
-    id: "deep-dive",
-    name: "Template: Deep Dive",
-    editable: false,
-    rules: [
-      { id: "dd1", category: "content", rule: "Focus on single vehicle deep features" },
-      { id: "dd2", category: "content", rule: "Mention price and financing" },
-      { id: "dd3", category: "style", rule: "45-60 second target length" },
-      { id: "dd4", category: "cta", rule: "End with test drive invitation" },
-    ],
+    templateName: "Multi-Car",
+    rules: ["Compare 2-3 vehicles", "Highlight variety"],
   },
   {
-    id: "multi-car",
-    name: "Template: Multi-Car",
-    editable: false,
-    rules: [
-      { id: "mc1", category: "content", rule: "Showcase 3-5 vehicles" },
-      { id: "mc2", category: "style", rule: "Quick highlights, not deep dives" },
-      { id: "mc3", category: "cta", rule: "Drive traffic to inventory page" },
-    ],
-  },
-  {
-    id: "capitol-smarts",
-    name: "Template: Capitol Smarts",
-    editable: false,
-    rules: [
-      { id: "cs1", category: "tone", rule: "Educational tone, not sales" },
-      { id: "cs2", category: "tone", rule: "Focus on helping, not selling" },
-      { id: "cs3", category: "content", rule: "Include practical tips" },
-      { id: "cs4", category: "content", rule: "Establish expertise" },
-      { id: "cs5", category: "cta", rule: "Soft CTA only" },
-    ],
-  },
-  {
-    id: "custom",
-    name: "Your Custom Rules",
-    editable: true,
-    rules: [
-      { id: "c1", category: "tone", rule: "Highlight local Rantoul connection" },
-      { id: "c2", category: "cta", rule: "Primary: Call or text (217) 893-1190" },
-      { id: "c3", category: "forbidden", rule: "Never mention competitor dealerships" },
-    ],
+    templateName: "Capitol Smarts",
+    rules: ["Educational tone", "Help not sell", "Soft CTA only"],
   },
 ];
 
-// Collapsible Section Component
-function CollapsibleSection({
-  section,
+// Demo data - Custom Rules
+const demoCustomRules: GuidanceRule[] = [
+  { id: "c1", category: "tone", rule: "Highlight local Rantoul connection" },
+  { id: "c2", category: "cta", rule: "Primary: Call or text (217) 893-1190" },
+  { id: "c3", category: "forbidden", rule: "Never mention competitor dealerships" },
+];
+
+// Compact Base Rules Section
+function BaseRulesSection({
+  rules,
   isExpanded,
   onToggle,
-  onEdit,
-  onDelete,
 }: {
-  section: RuleSection;
+  rules: Record<string, string[]>;
   isExpanded: boolean;
   onToggle: () => void;
-  onEdit?: (id: string) => void;
-  onDelete?: (id: string) => void;
 }) {
+  const totalRules = Object.values(rules).reduce((sum, arr) => sum + arr.length, 0);
+
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden">
-      {/* Section Header */}
       <button
         onClick={onToggle}
         className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
@@ -164,68 +99,160 @@ function CollapsibleSection({
           ) : (
             <ChevronRight className="w-4 h-4 text-gray-500" />
           )}
-          <span className="font-medium text-gray-900 text-sm">{section.name}</span>
+          <span className="font-medium text-gray-900 text-sm">Base Rules (Ad Pilot defaults)</span>
         </div>
         <Badge variant="secondary" className="text-xs">
-          {section.rules.length} {section.rules.length === 1 ? "rule" : "rules"}
+          {totalRules} rules
         </Badge>
       </button>
 
-      {/* Expanded Content */}
+      {isExpanded && (
+        <div className="p-3 space-y-3 bg-white">
+          {Object.entries(rules).map(([category, categoryRules]) => (
+            <div key={category}>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                {category}
+              </div>
+              <p className="text-sm text-gray-700">
+                {categoryRules.join(" • ")}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Compact Template Rules Section
+function TemplateRulesSection({
+  templates,
+  isExpanded,
+  onToggle,
+}: {
+  templates: TemplateRules[];
+  isExpanded: boolean;
+  onToggle: () => void;
+}) {
+  const totalRules = templates.reduce((sum, t) => sum + t.rules.length, 0);
+
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+      >
+        <div className="flex items-center gap-2">
+          {isExpanded ? (
+            <ChevronDown className="w-4 h-4 text-gray-500" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-gray-500" />
+          )}
+          <span className="font-medium text-gray-900 text-sm">Template Rules</span>
+        </div>
+        <Badge variant="secondary" className="text-xs">
+          {totalRules} rules
+        </Badge>
+      </button>
+
+      {isExpanded && (
+        <div className="p-3 space-y-3 bg-white">
+          {templates.map((template) => (
+            <div key={template.templateName}>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+                {template.templateName}
+              </div>
+              <p className="text-sm text-gray-700">
+                {template.rules.join(" • ")}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Custom Rules Section (editable, expanded by default)
+function CustomRulesSection({
+  rules,
+  isExpanded,
+  onToggle,
+  onEdit,
+  onDelete,
+}: {
+  rules: GuidanceRule[];
+  isExpanded: boolean;
+  onToggle: () => void;
+  onEdit?: (id: string) => void;
+  onDelete?: (id: string) => void;
+}) {
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+      >
+        <div className="flex items-center gap-2">
+          {isExpanded ? (
+            <ChevronDown className="w-4 h-4 text-gray-500" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-gray-500" />
+          )}
+          <span className="font-medium text-gray-900 text-sm">Your Custom Rules</span>
+        </div>
+        <Badge variant="secondary" className="text-xs">
+          {rules.length} {rules.length === 1 ? "rule" : "rules"}
+        </Badge>
+      </button>
+
       {isExpanded && (
         <div className="p-3 space-y-2 bg-white">
-          {section.rules.map((rule) => {
-            const config = categoryConfig[rule.category];
-            return (
-              <div
-                key={rule.id}
-                className="flex items-start justify-between gap-2 p-2 bg-gray-50 rounded-lg group"
-              >
-                <div className="flex items-start gap-2 flex-1 min-w-0">
-                  <span className="text-sm shrink-0">{config.emoji}</span>
-                  <div className="min-w-0">
-                    <span className="text-xs text-gray-500 font-medium">{config.label}:</span>
-                    <p className="text-sm text-gray-700">{rule.rule}</p>
-                  </div>
-                </div>
+          {rules.map((rule) => (
+            <div
+              key={rule.id}
+              className="flex items-start justify-between gap-2 p-2 bg-gray-50 rounded-lg group"
+            >
+              <div className="flex-1 min-w-0">
+                <span className="text-xs text-gray-500 font-medium">
+                  {categoryLabels[rule.category]}
+                </span>
+                <p className="text-sm text-gray-700">{rule.rule}</p>
+              </div>
 
-                {/* Edit/Delete buttons - only for editable sections */}
-                {section.editable && (
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                    {onEdit && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 w-7 p-0 text-gray-400 hover:text-blue-600"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEdit(rule.id);
-                        }}
-                      >
-                        <Pencil className="w-3 h-3" />
-                      </Button>
-                    )}
-                    {onDelete && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="h-7 w-7 p-0 text-gray-400 hover:text-red-600"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(rule.id);
-                        }}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
-                    )}
-                  </div>
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                {onEdit && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0 text-gray-400 hover:text-blue-600"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEdit(rule.id);
+                    }}
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </Button>
+                )}
+                {onDelete && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0 text-gray-400 hover:text-red-600"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(rule.id);
+                    }}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
                 )}
               </div>
-            );
-          })}
+            </div>
+          ))}
 
-          {section.rules.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-2">No rules in this section</p>
+          {rules.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-2">No custom rules yet</p>
           )}
         </div>
       )}
@@ -259,12 +286,9 @@ function AddRuleModal({
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      {/* Modal */}
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md">
-        {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
           <h3 className="font-semibold text-gray-900">Add Custom Rule</h3>
           <button
@@ -275,9 +299,7 @@ function AddRuleModal({
           </button>
         </div>
 
-        {/* Content */}
         <div className="p-4 space-y-4">
-          {/* Category Select */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
             <select
@@ -285,28 +307,26 @@ function AddRuleModal({
               onChange={(e) => setCategory(e.target.value as GuidanceRule["category"])}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             >
-              {Object.entries(categoryConfig).map(([key, config]) => (
+              {Object.entries(categoryLabels).map(([key, label]) => (
                 <option key={key} value={key}>
-                  {config.emoji} {config.label}
+                  {label}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Rule Text */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Rule</label>
             <textarea
               value={ruleText}
               onChange={(e) => setRuleText(e.target.value)}
-              placeholder='e.g., "Always mention we&apos;re family-owned"'
+              placeholder='e.g., "Always mention we are family-owned"'
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
               rows={3}
             />
           </div>
         </div>
 
-        {/* Footer */}
         <div className="flex justify-end gap-2 px-4 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl">
           <Button variant="outline" size="sm" onClick={onClose}>
             Cancel
@@ -322,15 +342,16 @@ function AddRuleModal({
 }
 
 export function GuidanceRulesCard({
-  sections = demoSections,
+  baseRules = demoBaseRules,
+  templateRules = demoTemplateRules,
+  customRules = demoCustomRules,
   onAddRule,
-  onEditRule,
   onDeleteRule,
 }: GuidanceRulesProps) {
-  // Track which sections are expanded
-  // Custom rules expanded by default, others collapsed
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    custom: true,
+    base: false,
+    templates: false,
+    custom: true, // Expanded by default
   });
 
   const [showAddModal, setShowAddModal] = useState(false);
@@ -349,7 +370,6 @@ export function GuidanceRulesCard({
 
   const handleEditRule = (id: string) => {
     console.log("Editing rule:", id);
-    // In a real implementation, this would open an edit modal
   };
 
   const handleDeleteRule = (id: string) => {
@@ -373,16 +393,28 @@ export function GuidanceRulesCard({
         </CardHeader>
 
         <CardContent className="space-y-3">
-          {sections.map((section) => (
-            <CollapsibleSection
-              key={section.id}
-              section={section}
-              isExpanded={expandedSections[section.id] || false}
-              onToggle={() => toggleSection(section.id)}
-              onEdit={section.editable ? handleEditRule : undefined}
-              onDelete={section.editable ? handleDeleteRule : undefined}
-            />
-          ))}
+          {/* Base Rules - collapsed by default */}
+          <BaseRulesSection
+            rules={baseRules}
+            isExpanded={expandedSections.base}
+            onToggle={() => toggleSection("base")}
+          />
+
+          {/* Template Rules - collapsed by default */}
+          <TemplateRulesSection
+            templates={templateRules}
+            isExpanded={expandedSections.templates}
+            onToggle={() => toggleSection("templates")}
+          />
+
+          {/* Custom Rules - expanded by default, editable */}
+          <CustomRulesSection
+            rules={customRules}
+            isExpanded={expandedSections.custom}
+            onToggle={() => toggleSection("custom")}
+            onEdit={handleEditRule}
+            onDelete={handleDeleteRule}
+          />
 
           {/* Add New Rule Button */}
           <Button
@@ -396,7 +428,6 @@ export function GuidanceRulesCard({
         </CardContent>
       </Card>
 
-      {/* Add Rule Modal */}
       <AddRuleModal
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}

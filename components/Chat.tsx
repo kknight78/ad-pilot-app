@@ -144,7 +144,7 @@ function WidgetRenderer({
   switch (widget.type) {
     case "guidance_rules": {
       const data = widget.data as { rules: GuidanceRule[]; clientName: string };
-      return <GuidanceRulesCard rules={data.rules} clientName={data.clientName} />;
+      return <GuidanceRulesCard customRules={data.rules} />;
     }
     case "video_preview": {
       const data = widget.data as {
