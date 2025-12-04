@@ -52,39 +52,6 @@ const guidanceRulesData = [
   { id: "7", category: "style" as const, rule: "Use casual language, avoid jargon" },
 ];
 
-const adPlanData = {
-  dateRange: "Dec 2-8, 2024",
-  platforms: [
-    {
-      platform: "tiktok" as const,
-      items: [
-        { id: "1", description: "Vehicle Spotlight - Honda CR-V", template: "Quick Feature", vehicles: 1, avatar: "Shad", length: "30s", adSpend: 50 },
-        { id: "2", description: "Vehicle Spotlight - Toyota Camry", template: "Quick Feature", vehicles: 1, avatar: "Lisa", length: "30s", adSpend: 50 },
-        { id: "3", description: "Winter Driving Tips", template: "Educational", topic: "Winter prep", avatar: "Shad", length: "45s", adSpend: 25 },
-      ],
-      subtotal: 125,
-    },
-    {
-      platform: "facebook" as const,
-      items: [
-        { id: "4", description: "Weekly Inventory Showcase", template: "Carousel", vehicles: 5, avatar: "Shad", length: "60s", adSpend: 100 },
-        { id: "5", description: "Customer Testimonial", template: "Story", avatar: "Customer", length: "45s", adSpend: 75 },
-      ],
-      subtotal: 175,
-    },
-    {
-      platform: "youtube" as const,
-      items: [
-        { id: "6", description: "Capitol Smarts: Understanding APR", template: "Educational", topic: "Financing basics", avatar: "Shad", length: "90s", adSpend: "free" as const },
-      ],
-      subtotal: 0,
-    },
-  ],
-  totalContent: 6,
-  totalAdSpend: 300,
-  strategyBadges: ["Winter theme", "Avatar variety", "Educational mix"],
-};
-
 const widgets = [
   { id: "performance", name: "Performance Dashboard", icon: BarChart3, status: "working" },
   { id: "recommendations", name: "Recommendations List", icon: Lightbulb, status: "working" },
@@ -147,10 +114,10 @@ export default function GalleryPage() {
       case "adplan":
         return (
           <AdPlanWidget
-            data={adPlanData}
             onEdit={(platformIndex, itemId) => console.log("Edit", platformIndex, itemId)}
             onRemove={(platformIndex, itemId) => console.log("Remove", platformIndex, itemId)}
             onAddAd={(platformIndex) => console.log("Add ad", platformIndex)}
+            onUpgradePlan={() => console.log("Upgrade plan")}
           />
         );
       case "theme":
