@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Check,
   RefreshCw,
@@ -15,16 +16,15 @@ import {
 export interface Topic {
   title: string;
   emoji: string;
-  hook_example?: string;
 }
 
 interface TopicSelectorV2Props {
-  onSelect?: (topic: string) => void;
-  onContinue?: (topic: string) => void;
+  numberOfTopics?: number; // How many topics to select (default 1)
+  onSelect?: (topics: string[]) => void;
+  onContinue?: (topics: string[]) => void;
 }
 
 type SuggestionMode = "lucky" | "guided";
-type HookLength = "punchy" | "detailed";
 
 // Emoji mapping based on topic keywords
 const getEmojiForTopic = (title: string): string => {
@@ -44,19 +44,22 @@ const getEmojiForTopic = (title: string): string => {
   return "💡";
 };
 
-export function TopicSelectorV2({ onSelect, onContinue }: TopicSelectorV2Props) {
-  // The main topic input - this is what gets submitted
+export function TopicSelectorV2({ numberOfTopics = 1, onSelect, onContinue }: TopicSelectorV2Props) {
+  // For single select: the main topic input
   const [topicInput, setTopicInput] = useState("");
 
-  // Track which suggestion was clicked (for highlighting)
+  // For multi-select: locked/selected topics
+  const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+
+  // Track which suggestion was clicked (for highlighting in single-select mode)
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   // Suggestion mode
   const [suggestionMode, setSuggestionMode] = useState<SuggestionMode>("lucky");
   const [guidedInput, setGuidedInput] = useState("");
 
-  // Hook length toggle
-  const [hookLength, setHookLength] = useState<HookLength>("punchy");
+  // What was searched (for header display)
+  const [searchedTopic, setSearchedTopic] = useState("");
 
   // Suggested topics from backend
   const [topics, setTopics] = useState<Topic[]>([]);
@@ -65,37 +68,46 @@ export function TopicSelectorV2({ onSelect, onContinue }: TopicSelectorV2Props) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isMultiSelect = numberOfTopics > 1;
+
   const fetchTopics = async () => {
     setLoading(true);
     setError(null);
-    setSelectedIndex(null);
+    if (!isMultiSelect) {
+      setSelectedIndex(null);
+    }
+
+    const topic = suggestionMode === "guided" ? guidedInput.trim() : "";
+    setSearchedTopic(topic);
 
     try {
-      const body: Record<string, string> = {
-        target_length: hookLength === "punchy" ? "brief_15_30" : "standard_30_45",
-        avatar_name: "Shad",
-        topic_guidance: "",
-      };
-
-      // Add topic guidance if guided mode is selected
-      if (suggestionMode === "guided" && guidedInput.trim()) {
-        body.topic_guidance = guidedInput.trim();
-      }
-
       const response = await fetch(
-        "https://corsproxy.io/?https://kelly-ads.app.n8n.cloud/webhook/topic-suggest",
+        "https://corsproxy.io/?https://kelly-ads.app.n8n.cloud/webhook/suggest-topics",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify({
+            topic: topic,
+          }),
         }
       );
 
       if (!response.ok) throw new Error("Failed to fetch topics");
 
       const data = await response.json();
-      if (data.success && data.suggestions) {
-        const formattedTopics: Topic[] = data.suggestions.map((title: string) => ({
+
+      // Handle both array response and {suggestions: [...]} response
+      let suggestions: string[] = [];
+      if (Array.isArray(data)) {
+        suggestions = data;
+      } else if (data.suggestions && Array.isArray(data.suggestions)) {
+        suggestions = data.suggestions;
+      } else if (data.topics && Array.isArray(data.topics)) {
+        suggestions = data.topics;
+      }
+
+      if (suggestions.length > 0) {
+        const formattedTopics: Topic[] = suggestions.map((title: string) => ({
           title,
           emoji: getEmojiForTopic(title),
         }));
@@ -111,16 +123,38 @@ export function TopicSelectorV2({ onSelect, onContinue }: TopicSelectorV2Props) 
     }
   };
 
+  // Single-select: click populates input
   const handleSelectTopic = (topic: Topic, index: number) => {
-    // Populate the input field with the topic title
-    setTopicInput(topic.title);
-    setSelectedIndex(index);
-    onSelect?.(topic.title);
+    if (isMultiSelect) {
+      // Multi-select: toggle lock
+      if (selectedTopics.includes(topic.title)) {
+        // Unlock
+        const newSelected = selectedTopics.filter(t => t !== topic.title);
+        setSelectedTopics(newSelected);
+        onSelect?.(newSelected);
+      } else if (selectedTopics.length < numberOfTopics) {
+        // Lock
+        const newSelected = [...selectedTopics, topic.title];
+        setSelectedTopics(newSelected);
+        onSelect?.(newSelected);
+      }
+    } else {
+      // Single-select: populate input
+      setTopicInput(topic.title);
+      setSelectedIndex(index);
+      onSelect?.([topic.title]);
+    }
   };
 
   const handleContinue = () => {
-    if (topicInput.trim()) {
-      onContinue?.(topicInput.trim());
+    if (isMultiSelect) {
+      if (selectedTopics.length === numberOfTopics) {
+        onContinue?.(selectedTopics);
+      }
+    } else {
+      if (topicInput.trim()) {
+        onContinue?.([topicInput.trim()]);
+      }
     }
   };
 
@@ -132,6 +166,10 @@ export function TopicSelectorV2({ onSelect, onContinue }: TopicSelectorV2Props) 
     }
   };
 
+  const isTopicLocked = (title: string) => selectedTopics.includes(title);
+  const canSelectMore = selectedTopics.length < numberOfTopics;
+  const allSelected = isMultiSelect && selectedTopics.length === numberOfTopics;
+
   return (
     <Card className="w-full max-w-xl">
       <CardHeader className="pb-3">
@@ -140,33 +178,49 @@ export function TopicSelectorV2({ onSelect, onContinue }: TopicSelectorV2Props) 
             <BookOpen className="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <CardTitle className="text-lg">Choose an Educational Topic</CardTitle>
+            <CardTitle className="text-lg">🎓 Capitol Smarts Topic</CardTitle>
             <p className="text-sm text-gray-500">
-              For your Capitol Smarts video this week
+              What should the video be about?
             </p>
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-5">
-        {/* Main topic input */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Create your own
-          </label>
-          <input
-            type="text"
-            value={topicInput}
-            onChange={(e) => handleInputChange(e.target.value)}
-            placeholder="e.g., How to Check Your Tire Tread"
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-        </div>
+        {/* Multi-select indicator */}
+        {isMultiSelect && (
+          <div className="flex items-center justify-between bg-blue-50 px-4 py-2 rounded-lg">
+            <span className="text-sm text-blue-700">
+              Select {numberOfTopics} topic{numberOfTopics > 1 ? "s" : ""}
+            </span>
+            <Badge variant={allSelected ? "default" : "secondary"}>
+              {selectedTopics.length} / {numberOfTopics}
+            </Badge>
+          </div>
+        )}
+
+        {/* Create your own - only for single select */}
+        {!isMultiSelect && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Create your own
+            </label>
+            <input
+              type="text"
+              value={topicInput}
+              onChange={(e) => handleInputChange(e.target.value)}
+              placeholder="e.g., What to check before buying a used car"
+              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+        )}
 
         {/* OR divider */}
         <div className="flex items-center gap-3">
           <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-sm text-gray-400 font-medium">OR</span>
+          <span className="text-sm text-gray-400 font-medium">
+            {isMultiSelect ? "GET SUGGESTIONS" : "OR LET US HELP"}
+          </span>
           <div className="flex-1 h-px bg-gray-200" />
         </div>
 
@@ -211,35 +265,6 @@ export function TopicSelectorV2({ onSelect, onContinue }: TopicSelectorV2Props) 
             </div>
           </label>
 
-          {/* Hook length toggle */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Video length
-            </label>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setHookLength("punchy")}
-                className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
-                  hookLength === "punchy"
-                    ? "border-blue-500 bg-blue-50 text-blue-700"
-                    : "border-gray-200 text-gray-600 hover:border-gray-300"
-                }`}
-              >
-                Quick (15-30 sec)
-              </button>
-              <button
-                onClick={() => setHookLength("detailed")}
-                className={`flex-1 px-4 py-2 text-sm font-medium rounded-lg border-2 transition-all ${
-                  hookLength === "detailed"
-                    ? "border-blue-500 bg-blue-50 text-blue-700"
-                    : "border-gray-200 text-gray-600 hover:border-gray-300"
-                }`}
-              >
-                Standard (30-45 sec)
-              </button>
-            </div>
-          </div>
-
           {/* Suggest button */}
           <Button
             onClick={fetchTopics}
@@ -254,7 +279,7 @@ export function TopicSelectorV2({ onSelect, onContinue }: TopicSelectorV2Props) 
             ) : (
               <>
                 <Lightbulb className="w-4 h-4 mr-2" />
-                Suggest Topics
+                Suggest
               </>
             )}
           </Button>
@@ -267,11 +292,13 @@ export function TopicSelectorV2({ onSelect, onContinue }: TopicSelectorV2Props) 
           </div>
         )}
 
-        {/* Suggested topics */}
+        {/* Suggested topics - only shows after clicking Suggest */}
         {topics.length > 0 && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Suggestions</span>
+              <span className="text-sm font-medium text-gray-700">
+                {searchedTopic ? `Topics about: ${searchedTopic}` : "Suggestions"}
+              </span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -285,35 +312,32 @@ export function TopicSelectorV2({ onSelect, onContinue }: TopicSelectorV2Props) 
 
             <div className="space-y-2">
               {topics.map((topic, index) => {
-                const isSelected = selectedIndex === index;
+                const isLocked = isMultiSelect && isTopicLocked(topic.title);
+                const isSelected = !isMultiSelect && selectedIndex === index;
+                const isDisabled = isMultiSelect && !canSelectMore && !isLocked;
+
                 return (
                   <button
                     key={index}
                     onClick={() => handleSelectTopic(topic, index)}
-                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                      isSelected
+                    disabled={isDisabled}
+                    className={`w-full text-left p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
+                      isLocked
                         ? "border-blue-500 bg-blue-50"
+                        : isSelected
+                        ? "border-blue-500 bg-blue-50"
+                        : isDisabled
+                        ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
                         : "border-gray-200 hover:border-gray-300 bg-white"
                     }`}
                   >
-                    <div className="flex items-start gap-3">
-                      <span className="text-2xl">{topic.emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900">
-                            {topic.title}
-                          </span>
-                          {isSelected && (
-                            <Check className="w-4 h-4 text-blue-500" />
-                          )}
-                        </div>
-                        {topic.hook_example && (
-                          <p className="text-sm text-gray-500 mt-1 italic">
-                            &ldquo;{topic.hook_example}&rdquo;
-                          </p>
-                        )}
-                      </div>
-                    </div>
+                    <span className="text-2xl">{topic.emoji}</span>
+                    <span className="font-medium text-gray-900 flex-1">
+                      {topic.title}
+                    </span>
+                    {(isLocked || isSelected) && (
+                      <Check className="w-5 h-5 text-blue-500" />
+                    )}
                   </button>
                 );
               })}
@@ -321,16 +345,24 @@ export function TopicSelectorV2({ onSelect, onContinue }: TopicSelectorV2Props) 
           </div>
         )}
 
-        {/* Continue button - only show when there's input */}
-        {topicInput.trim() && (
-          <Button className="w-full" onClick={handleContinue}>
-            Continue with &ldquo;{topicInput.trim()}&rdquo;
-          </Button>
+        {/* Continue button */}
+        {isMultiSelect ? (
+          allSelected && (
+            <Button className="w-full" onClick={handleContinue}>
+              Continue with selected topics
+            </Button>
+          )
+        ) : (
+          topicInput.trim() && (
+            <Button className="w-full" onClick={handleContinue}>
+              Continue with &ldquo;{topicInput.trim()}&rdquo;
+            </Button>
+          )
         )}
 
         {/* Footer note */}
         <p className="text-xs text-gray-400 text-center">
-          Topics generated by AI based on season and audience interest
+          Topics are for Capitol Smarts educational videos
         </p>
       </CardContent>
     </Card>
