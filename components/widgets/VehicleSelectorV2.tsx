@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
+  X,
 } from "lucide-react";
 
 export interface Vehicle {
@@ -120,18 +121,18 @@ const getThemeEmoji = (theme: string): string => {
   return "📌";
 };
 
-// Chip components for urgency (red) and positive (green) attributes
-function UrgencyChip({ children }: { children: React.ReactNode }) {
+// Text-only chip components (no backgrounds)
+function UrgencyText({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-red-100 text-red-800">
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600">
       ‼️ {children}
     </span>
   );
 }
 
-function PositiveChip({ children }: { children: React.ReactNode }) {
+function PositiveText({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-green-600">
       ✅ {children}
     </span>
   );
@@ -148,64 +149,102 @@ function PlatformIcon({ platform }: { platform: keyof typeof platformConfig }) {
   );
 }
 
-// Portal dropdown component
-function DropdownPortal({
+// Vehicle Selection Modal
+function VehicleModal({
   isOpen,
-  triggerRef,
   onClose,
-  children,
+  adName,
+  vehicles,
+  excludedIds,
+  onSelect,
+  formatPrice,
 }: {
   isOpen: boolean;
-  triggerRef: React.RefObject<HTMLButtonElement | null>;
   onClose: () => void;
-  children: React.ReactNode;
+  adName: string;
+  vehicles: Vehicle[];
+  excludedIds: string[];
+  onSelect: (vehicle: Vehicle) => void;
+  formatPrice: (price: number) => string;
 }) {
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
-
-  useEffect(() => {
-    if (isOpen && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.bottom + window.scrollY + 4,
-        left: rect.left + window.scrollX,
-        width: rect.width,
-      });
-    }
-  }, [isOpen, triggerRef]);
-
   useEffect(() => {
     if (!isOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (triggerRef.current && !triggerRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
 
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
+    document.body.style.overflow = "hidden";
+
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "";
     };
-  }, [isOpen, onClose, triggerRef]);
+  }, [isOpen, onClose]);
 
   if (!isOpen || typeof window === "undefined") return null;
 
+  const availableVehicles = vehicles.filter(v => !excludedIds.includes(v.id));
+
   return createPortal(
-    <div
-      className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-xl max-h-72 overflow-y-auto"
-      style={{
-        top: position.top,
-        left: position.left,
-        width: position.width,
-      }}
-    >
-      {children}
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/50"
+        onClick={onClose}
+      />
+
+      {/* Modal */}
+      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+          <h3 className="font-semibold text-gray-900">
+            Select Vehicle for &ldquo;{adName}&rdquo;
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Vehicle List */}
+        <div className="flex-1 overflow-y-auto p-2">
+          {availableVehicles.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No vehicles available
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {availableVehicles.map(vehicle => (
+                <button
+                  key={vehicle.id}
+                  onClick={() => {
+                    onSelect(vehicle);
+                    onClose();
+                  }}
+                  className="w-full p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                >
+                  {/* Row 1: Year Make Model */}
+                  <div className="text-sm font-medium text-gray-900">
+                    {vehicle.year} {vehicle.make} {vehicle.model}
+                  </div>
+                  {/* Row 2: VIN */}
+                  <div className="text-xs text-gray-400 font-mono mt-0.5">
+                    {vehicle.vin || "VIN unavailable"}
+                  </div>
+                  {/* Row 3: Price, mileage, days */}
+                  <div className="text-xs text-gray-500 mt-0.5">
+                    {formatPrice(vehicle.price)} • {Math.round(vehicle.mileage / 1000)}k mi • {vehicle.daysOnLot}d on lot
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>,
     document.body
   );
@@ -226,11 +265,9 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
     instagram: true,
   });
 
-  // Track which ad slots have dropdown open
-  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
-
-  // Refs for dropdown triggers
-  const dropdownRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [activeSlot, setActiveSlot] = useState<AdSlot | null>(null);
 
   const fetchInventory = async () => {
     setLoading(true);
@@ -311,20 +348,14 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
     onSelect?.(newSelections);
   };
 
-  const toggleDropdown = (adSlotId: string) => {
-    setOpenDropdowns(prev => {
-      // Close all other dropdowns when opening a new one
-      const newState: Record<string, boolean> = {};
-      Object.keys(prev).forEach(key => {
-        newState[key] = false;
-      });
-      newState[adSlotId] = !prev[adSlotId];
-      return newState;
-    });
+  const openModal = (slot: AdSlot) => {
+    setActiveSlot(slot);
+    setModalOpen(true);
   };
 
-  const closeDropdown = (adSlotId: string) => {
-    setOpenDropdowns(prev => ({ ...prev, [adSlotId]: false }));
+  const closeModal = () => {
+    setModalOpen(false);
+    setActiveSlot(null);
   };
 
   const togglePlatform = (platform: string) => {
@@ -360,245 +391,221 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
   const suggestedVehicles = getSuggestedPriorities();
 
   return (
-    <Card className="w-full max-w-3xl">
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-green-100 rounded-lg">
-            <Car className="w-5 h-5 text-green-600" />
-          </div>
-          <div>
-            <CardTitle className="text-lg">🚗 Select Vehicles for Your Ads</CardTitle>
-            <p className="text-sm text-gray-500">
-              Choose vehicles for each ad in your plan
-            </p>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-6">
-        {/* === SUGGESTED PRIORITIES SECTION === */}
-        <div className="space-y-3">
+    <>
+      <Card className="w-full max-w-3xl">
+        <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold text-gray-700">Suggested Priorities</span>
-            <Badge variant="secondary" className="text-xs">Top 6</Badge>
+            <div className="p-2 bg-green-100 rounded-lg">
+              <Car className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">🚗 Select Vehicles for Your Ads</CardTitle>
+              <p className="text-sm text-gray-500">
+                Choose vehicles for each ad in your plan
+              </p>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-6">
+          {/* === SUGGESTED PRIORITIES SECTION === */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-gray-700">Suggested Priorities</span>
+              <Badge variant="secondary" className="text-xs">Top 6</Badge>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {suggestedVehicles.map((vehicle, index) => {
+                const isOld = vehicle.daysOnLot >= 60;
+                const isWinterReady = ["AWD", "4WD"].includes(vehicle.driveType || "");
+                const isHighMileage = vehicle.mileage >= 90000;
+
+                return (
+                  <div
+                    key={vehicle.id}
+                    className="p-3 bg-gray-50 rounded-lg border border-gray-200"
+                  >
+                    {/* Row 1: Number + Year Make Model */}
+                    <div className="text-sm font-medium text-gray-900">
+                      {index + 1}. {vehicle.year} {vehicle.make} {vehicle.model}
+                    </div>
+
+                    {/* Row 2: VIN */}
+                    <div className="text-xs text-gray-400 font-mono mt-1">
+                      {vehicle.vin || "VIN unavailable"}
+                    </div>
+
+                    {/* Row 3: Urgency text (red) */}
+                    {(isOld || isHighMileage) && (
+                      <div className="flex flex-wrap gap-3 mt-2">
+                        {isOld && <UrgencyText>{vehicle.daysOnLot} days</UrgencyText>}
+                        {isHighMileage && <UrgencyText>{Math.round(vehicle.mileage / 1000)}k mi</UrgencyText>}
+                      </div>
+                    )}
+
+                    {/* Row 4: Positive text (green) */}
+                    {isWinterReady && (
+                      <div className="flex flex-wrap gap-3 mt-1">
+                        <PositiveText>{vehicle.driveType} · Winter ready</PositiveText>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            {suggestedVehicles.map((vehicle, index) => {
-              const isOld = vehicle.daysOnLot >= 60;
-              const isWinterReady = ["AWD", "4WD"].includes(vehicle.driveType || "");
-              const isHighMileage = vehicle.mileage >= 90000;
+          {/* Divider */}
+          <div className="border-t border-gray-200" />
+
+          {/* === PER-AD VEHICLE SELECTION === */}
+          <div className="space-y-4">
+            <span className="text-sm font-semibold text-gray-700">Assign Vehicles to Ads</span>
+
+            {Object.entries(adSlotsByPlatform).map(([platform, slots]) => {
+              const config = platformConfig[platform as keyof typeof platformConfig];
+              const isExpanded = expandedPlatforms[platform];
+              const platformSlots = slots.filter(s => s.vehicleCount > 0);
+
+              if (platformSlots.length === 0) return null;
 
               return (
-                <div
-                  key={vehicle.id}
-                  className="p-3 bg-gray-50 rounded-lg border border-gray-200"
-                >
-                  {/* Row 1: Number + Year Make Model */}
-                  <div className="text-sm font-medium text-gray-900">
-                    {index + 1}. {vehicle.year} {vehicle.make} {vehicle.model}
-                  </div>
-
-                  {/* Row 2: VIN */}
-                  <div className="text-xs text-gray-400 font-mono mt-1">
-                    {vehicle.vin || "VIN unavailable"}
-                  </div>
-
-                  {/* Row 3: Urgency chips (red) */}
-                  {(isOld || isHighMileage) && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {isOld && <UrgencyChip>{vehicle.daysOnLot} days</UrgencyChip>}
-                      {isHighMileage && <UrgencyChip>{Math.round(vehicle.mileage / 1000)}k mi</UrgencyChip>}
+                <div key={platform} className={`border rounded-lg overflow-hidden ${config.borderColor}`}>
+                  {/* Platform Header */}
+                  <button
+                    onClick={() => togglePlatform(platform)}
+                    className={`w-full flex items-center justify-between p-3 ${config.headerBg} hover:opacity-90 transition-opacity`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <PlatformIcon platform={platform as keyof typeof platformConfig} />
+                      <span className={`font-semibold ${config.headerText}`}>{config.name}</span>
                     </div>
-                  )}
+                    <div className="flex items-center gap-3">
+                      <span className={`text-sm ${config.headerText} opacity-90`}>
+                        {platformSlots.length} {platformSlots.length === 1 ? "ad" : "ads"} need vehicles
+                      </span>
+                      {isExpanded ? (
+                        <ChevronUp className={`w-4 h-4 ${config.headerText}`} />
+                      ) : (
+                        <ChevronDown className={`w-4 h-4 ${config.headerText}`} />
+                      )}
+                    </div>
+                  </button>
 
-                  {/* Row 4: Positive chips (green) */}
-                  {isWinterReady && (
-                    <div className="flex flex-wrap gap-1.5 mt-1.5">
-                      <PositiveChip>{vehicle.driveType} · Winter ready</PositiveChip>
+                  {/* Ad slots */}
+                  {isExpanded && (
+                    <div className="divide-y divide-gray-100">
+                      {platformSlots.map((slot) => {
+                        const slotSelections = selections[slot.id] || [];
+                        const isComplete = slotSelections.length >= slot.vehicleCount;
+
+                        return (
+                          <div key={slot.id} className="p-3 bg-white">
+                            {/* Ad info row */}
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-lg">{getThemeEmoji(slot.themeTopic)}</span>
+                                <div>
+                                  <span className="text-sm font-medium text-gray-900">{slot.themeTopic}</span>
+                                  <span className="text-xs text-gray-500 ml-2">• {slot.template}</span>
+                                </div>
+                              </div>
+                              <Badge variant={isComplete ? "default" : "secondary"} className="text-xs">
+                                {slotSelections.length} / {slot.vehicleCount}
+                              </Badge>
+                            </div>
+
+                            {/* Selected vehicles */}
+                            {slotSelections.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mb-2">
+                                {slotSelections.map(v => (
+                                  <Badge
+                                    key={v.id}
+                                    variant="outline"
+                                    className="text-xs bg-green-50 border-green-200 text-green-700 cursor-pointer hover:bg-red-50 hover:border-red-200 hover:text-red-700"
+                                    onClick={() => handleSelectVehicle(slot.id, v, slot.vehicleCount)}
+                                  >
+                                    {v.year} {v.make} {v.model} ✕
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Add vehicle button */}
+                            {!isComplete && (
+                              <button
+                                onClick={() => openModal(slot)}
+                                className="w-full flex items-center justify-center px-3 py-2 text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
+                              >
+                                + Add vehicle
+                              </button>
+                            )}
+
+                            {isComplete && (
+                              <div className="flex items-center gap-1 text-xs text-green-600">
+                                <Check className="w-3 h-3" />
+                                Complete
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               );
             })}
           </div>
-        </div>
 
-        {/* Divider */}
-        <div className="border-t border-gray-200" />
+          {/* === FOOTER === */}
+          <div className="border-t border-gray-200 pt-4 space-y-3">
+            {/* Progress indicator */}
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-600">
+                Vehicle assignments: <span className="font-medium">{totalSelected}</span> of <span className="font-medium">{totalNeeded}</span>
+              </span>
+              {allComplete ? (
+                <Badge className="bg-green-100 text-green-700 border-green-200">All Complete</Badge>
+              ) : (
+                <Badge variant="secondary">In Progress</Badge>
+              )}
+            </div>
 
-        {/* === PER-AD VEHICLE SELECTION === */}
-        <div className="space-y-4">
-          <span className="text-sm font-semibold text-gray-700">Assign Vehicles to Ads</span>
+            {/* Continue button */}
+            <Button
+              className="w-full"
+              onClick={handleContinue}
+              disabled={!allComplete}
+            >
+              Continue to Script Review
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
 
-          {Object.entries(adSlotsByPlatform).map(([platform, slots]) => {
-            const config = platformConfig[platform as keyof typeof platformConfig];
-            const isExpanded = expandedPlatforms[platform];
-            const platformSlots = slots.filter(s => s.vehicleCount > 0);
-
-            if (platformSlots.length === 0) return null;
-
-            return (
-              <div key={platform} className={`border rounded-lg overflow-hidden ${config.borderColor}`}>
-                {/* Platform Header */}
-                <button
-                  onClick={() => togglePlatform(platform)}
-                  className={`w-full flex items-center justify-between p-3 ${config.headerBg} hover:opacity-90 transition-opacity`}
-                >
-                  <div className="flex items-center gap-2">
-                    <PlatformIcon platform={platform as keyof typeof platformConfig} />
-                    <span className={`font-semibold ${config.headerText}`}>{config.name}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`text-sm ${config.headerText} opacity-90`}>
-                      {platformSlots.length} {platformSlots.length === 1 ? "ad" : "ads"} need vehicles
-                    </span>
-                    {isExpanded ? (
-                      <ChevronUp className={`w-4 h-4 ${config.headerText}`} />
-                    ) : (
-                      <ChevronDown className={`w-4 h-4 ${config.headerText}`} />
-                    )}
-                  </div>
-                </button>
-
-                {/* Ad slots */}
-                {isExpanded && (
-                  <div className="divide-y divide-gray-100">
-                    {platformSlots.map((slot) => {
-                      const slotSelections = selections[slot.id] || [];
-                      const isComplete = slotSelections.length >= slot.vehicleCount;
-                      const isDropdownOpen = openDropdowns[slot.id];
-
-                      return (
-                        <div key={slot.id} className="p-3 bg-white">
-                          {/* Ad info row */}
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">{getThemeEmoji(slot.themeTopic)}</span>
-                              <div>
-                                <span className="text-sm font-medium text-gray-900">{slot.themeTopic}</span>
-                                <span className="text-xs text-gray-500 ml-2">• {slot.template}</span>
-                              </div>
-                            </div>
-                            <Badge variant={isComplete ? "default" : "secondary"} className="text-xs">
-                              {slotSelections.length} / {slot.vehicleCount}
-                            </Badge>
-                          </div>
-
-                          {/* Selected vehicles */}
-                          {slotSelections.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-2">
-                              {slotSelections.map(v => (
-                                <Badge
-                                  key={v.id}
-                                  variant="outline"
-                                  className="text-xs bg-green-50 border-green-200 text-green-700 cursor-pointer hover:bg-red-50 hover:border-red-200 hover:text-red-700"
-                                  onClick={() => handleSelectVehicle(slot.id, v, slot.vehicleCount)}
-                                >
-                                  {v.year} {v.make} {v.model} ✕
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Add vehicle dropdown */}
-                          {!isComplete && (
-                            <div className="relative">
-                              <button
-                                ref={(el) => { dropdownRefs.current[slot.id] = el; }}
-                                onClick={() => toggleDropdown(slot.id)}
-                                className="w-full flex items-center justify-between px-3 py-2 text-sm text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-colors"
-                              >
-                                <span>+ Add vehicle</span>
-                                <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
-                              </button>
-
-                              <DropdownPortal
-                                isOpen={isDropdownOpen}
-                                triggerRef={{ current: dropdownRefs.current[slot.id] }}
-                                onClose={() => closeDropdown(slot.id)}
-                              >
-                                {vehicles
-                                  .filter(v => !slotSelections.find(s => s.id === v.id))
-                                  .map(vehicle => (
-                                    <button
-                                      key={vehicle.id}
-                                      onClick={() => {
-                                        handleSelectVehicle(slot.id, vehicle, slot.vehicleCount);
-                                        if (slotSelections.length + 1 >= slot.vehicleCount) {
-                                          closeDropdown(slot.id);
-                                        }
-                                      }}
-                                      className="w-full px-3 py-2.5 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
-                                    >
-                                      {/* Row 1: Year Make Model */}
-                                      <div className="text-sm font-medium text-gray-900">
-                                        {vehicle.year} {vehicle.make} {vehicle.model}
-                                      </div>
-                                      {/* Row 2: VIN */}
-                                      <div className="text-xs text-gray-400 font-mono mt-0.5">
-                                        {vehicle.vin || "VIN unavailable"}
-                                      </div>
-                                      {/* Row 3: Price, mileage, days */}
-                                      <div className="text-xs text-gray-500 mt-0.5">
-                                        {formatPrice(vehicle.price)} • {Math.round(vehicle.mileage / 1000)}k mi • {vehicle.daysOnLot}d on lot
-                                      </div>
-                                    </button>
-                                  ))}
-                              </DropdownPortal>
-                            </div>
-                          )}
-
-                          {isComplete && (
-                            <div className="flex items-center gap-1 text-xs text-green-600">
-                              <Check className="w-3 h-3" />
-                              Complete
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* === FOOTER === */}
-        <div className="border-t border-gray-200 pt-4 space-y-3">
-          {/* Progress indicator */}
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">
-              Vehicle assignments: <span className="font-medium">{totalSelected}</span> of <span className="font-medium">{totalNeeded}</span>
-            </span>
-            {allComplete ? (
-              <Badge className="bg-green-100 text-green-700 border-green-200">All Complete</Badge>
-            ) : (
-              <Badge variant="secondary">In Progress</Badge>
-            )}
+            {/* Inventory notes */}
+            <div className="flex items-start gap-2 text-xs text-gray-400">
+              <Info className="w-3 h-3 mt-0.5 shrink-0" />
+              <span>
+                Showing {vehicles.length} vehicles from live inventory feed.
+                Vehicles can appear in multiple ads.
+              </span>
+            </div>
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Continue button */}
-          <Button
-            className="w-full"
-            onClick={handleContinue}
-            disabled={!allComplete}
-          >
-            Continue to Script Review
-            <ArrowRight className="w-4 h-4 ml-2" />
-          </Button>
-
-          {/* Inventory notes */}
-          <div className="flex items-start gap-2 text-xs text-gray-400">
-            <Info className="w-3 h-3 mt-0.5 shrink-0" />
-            <span>
-              Showing {vehicles.length} vehicles from live inventory feed.
-              Vehicles can appear in multiple ads.
-            </span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      {/* Vehicle Selection Modal */}
+      {activeSlot && (
+        <VehicleModal
+          isOpen={modalOpen}
+          onClose={closeModal}
+          adName={`${activeSlot.themeTopic} · ${activeSlot.template}`}
+          vehicles={vehicles}
+          excludedIds={(selections[activeSlot.id] || []).map(v => v.id)}
+          onSelect={(vehicle) => handleSelectVehicle(activeSlot.id, vehicle, activeSlot.vehicleCount)}
+          formatPrice={formatPrice}
+        />
+      )}
+    </>
   );
 }
