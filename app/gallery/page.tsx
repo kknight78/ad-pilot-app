@@ -22,7 +22,7 @@ import Link from "next/link";
 import { PerformanceDashboard } from "@/components/widgets/PerformanceDashboard";
 import { RecommendationsList } from "@/components/widgets/RecommendationsList";
 import { GuidanceRulesCard } from "@/components/widgets/GuidanceRulesCard";
-import { VideoPreviewCard } from "@/components/widgets/VideoPreviewCard";
+import { PublishWidget } from "@/components/widgets/PublishWidget";
 import { AdPlanWidget } from "@/components/widgets/AdPlanWidget";
 
 // Import new/rebuilt widgets
@@ -40,7 +40,7 @@ const widgets = [
   { id: "performance", name: "Performance Dashboard", icon: BarChart3, status: "working" },
   { id: "recommendations", name: "Recommendations", icon: Lightbulb, status: "rebuilt" },
   { id: "guidance", name: "Guidance Rules", icon: Settings, status: "rebuilt" },
-  { id: "video", name: "Video Preview Card", icon: Video, status: "working" },
+  { id: "publish", name: "Publish Widget", icon: Video, status: "new" },
   { id: "adplan", name: "Ad Plan Table", icon: Calendar, status: "working" },
   { id: "theme", name: "Theme Selector", icon: Palette, status: "rebuilt" },
   { id: "topic", name: "Topic Selector", icon: BookOpen, status: "rebuilt" },
@@ -84,19 +84,8 @@ export default function GalleryPage() {
             onDeleteRule={(id) => console.log("Delete rule", id)}
           />
         );
-      case "video":
-        return (
-          <VideoPreviewCard
-            title="2019 Honda CR-V - Perfect Family SUV"
-            hook="Looking for a reliable family SUV that won't break the bank?"
-            script="This 2019 Honda CR-V has everything you need. Low miles, clean history, and that legendary Honda reliability. Plus, we've got financing options for every credit situation. Come see it today at Capitol Car Credit!"
-            duration="30s"
-            status="preview"
-            onApprove={() => console.log("Approved")}
-            onEdit={() => console.log("Edit")}
-            onRegenerate={() => console.log("Regenerate")}
-          />
-        );
+      case "publish":
+        return <PublishWidget />;
       case "adplan":
         return (
           <AdPlanWidget
