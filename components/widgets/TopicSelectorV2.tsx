@@ -81,16 +81,17 @@ export function TopicSelectorV2({ numberOfTopics = 1, onSelect, onContinue }: To
     setSearchedTopic(topic);
 
     try {
-      const response = await fetch(
-        "https://corsproxy.io/?https://kelly-ads.app.n8n.cloud/webhook/suggest-topics",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            topic: topic,
-          }),
-        }
-      );
+      const webhookUrl = "https://kelly-ads.app.n8n.cloud/webhook/suggest-topics";
+      const proxyUrl = "https://corsproxy.io/?" + encodeURIComponent(webhookUrl);
+
+      const response = await fetch(proxyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: topic,
+          client_id: "ccc",
+        }),
+      });
 
       if (!response.ok) throw new Error("Failed to fetch topics");
 
@@ -180,7 +181,9 @@ export function TopicSelectorV2({ numberOfTopics = 1, onSelect, onContinue }: To
           <div>
             <CardTitle className="text-lg">🎓 Capitol Smarts Topic</CardTitle>
             <p className="text-sm text-gray-500">
-              What should the video be about?
+              {isMultiSelect
+                ? `You have ${numberOfTopics} Capitol Smarts video${numberOfTopics > 1 ? "s" : ""} — pick ${numberOfTopics} topic${numberOfTopics > 1 ? "s" : ""}`
+                : "What should the video be about?"}
             </p>
           </div>
         </div>
@@ -191,7 +194,7 @@ export function TopicSelectorV2({ numberOfTopics = 1, onSelect, onContinue }: To
         {isMultiSelect && (
           <div className="flex items-center justify-between bg-blue-50 px-4 py-2 rounded-lg">
             <span className="text-sm text-blue-700">
-              Select {numberOfTopics} topic{numberOfTopics > 1 ? "s" : ""}
+              Selected: {selectedTopics.length} of {numberOfTopics}
             </span>
             <Badge variant={allSelected ? "default" : "secondary"}>
               {selectedTopics.length} / {numberOfTopics}
@@ -199,12 +202,15 @@ export function TopicSelectorV2({ numberOfTopics = 1, onSelect, onContinue }: To
           </div>
         )}
 
-        {/* Create your own - only for single select */}
+        {/* Topic input - only for single select */}
         {!isMultiSelect && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Create your own
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Topic
             </label>
+            <p className="text-sm text-gray-500 mb-2">
+              Add your own or select a suggestion below
+            </p>
             <input
               type="text"
               value={topicInput}
@@ -347,11 +353,13 @@ export function TopicSelectorV2({ numberOfTopics = 1, onSelect, onContinue }: To
 
         {/* Continue button */}
         {isMultiSelect ? (
-          allSelected && (
-            <Button className="w-full" onClick={handleContinue}>
-              Continue with selected topics
-            </Button>
-          )
+          <Button
+            className="w-full"
+            onClick={handleContinue}
+            disabled={!allSelected}
+          >
+            Continue →
+          </Button>
         ) : (
           topicInput.trim() && (
             <Button className="w-full" onClick={handleContinue}>
