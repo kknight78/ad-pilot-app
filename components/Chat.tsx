@@ -183,18 +183,22 @@ function WidgetRenderer({
         platforms: PlatformData[];
         topContent: TopContent[];
       };
-      return (
-        <PerformanceDashboard
-          dateRange={data.dateRange}
-          totalViews={data.totalViews}
-          totalLeads={data.totalLeads}
-          totalSpend={data.totalSpend}
-          viewsTrend={data.viewsTrend}
-          leadsTrend={data.leadsTrend}
-          platforms={data.platforms}
-          topContent={data.topContent}
-        />
-      );
+      // Convert old format to new WeekData format
+      const weekData = [{
+        startDate: data.dateRange.split(" - ")[0] || "Nov 25",
+        endDate: data.dateRange.split(" - ")[1]?.replace(", 2024", "") || "Dec 1",
+        totalViews: data.totalViews,
+        totalLeads: data.totalLeads,
+        totalSpend: data.totalSpend,
+        spendDelta: 0,
+        viewsTrend: data.viewsTrend,
+        leadsTrend: data.leadsTrend,
+        cplTrend: 0,
+        platforms: data.platforms,
+        topContent: data.topContent,
+        adjustments: [],
+      }];
+      return <PerformanceDashboard weeks={weekData} />;
     }
     case "recommendations": {
       const data = widget.data as {

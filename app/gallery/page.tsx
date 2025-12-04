@@ -35,26 +35,6 @@ import { AvatarPhotoCapture } from "@/components/widgets/AvatarPhotoCapture";
 import { InvoiceWidget } from "@/components/widgets/InvoiceWidget";
 
 // Demo data for each widget
-const performanceData = {
-  dateRange: "Nov 25 - Dec 1, 2024",
-  totalViews: 45200,
-  totalLeads: 28,
-  totalSpend: 450,
-  viewsTrend: 12,
-  leadsTrend: 8,
-  platforms: [
-    { platform: "TikTok", views: 28500, leads: 15, spend: 150, cpl: 10, trend: 18 },
-    { platform: "Facebook", views: 12400, leads: 10, spend: 200, cpl: 20, trend: 5 },
-    { platform: "Instagram", views: 3100, leads: 2, spend: 75, cpl: 37.5, trend: -3 },
-    { platform: "YouTube", views: 1200, leads: 1, spend: 25, cpl: 25, trend: 0 },
-  ],
-  topContent: [
-    { title: "2019 Honda CR-V - Perfect Family SUV", platform: "TikTok", views: 8400, leads: 5, featured: true },
-    { title: "Why Buy Used? 5 Smart Reasons", platform: "Facebook", views: 4200, leads: 3 },
-    { title: "Winter Driving Tips from Shad", platform: "TikTok", views: 3800, leads: 2 },
-  ],
-};
-
 const recommendationsData = [
   { id: "1", type: "success" as const, message: "TikTok is crushing it! Consider increasing ad spend by 20% to capitalize on momentum." },
   { id: "2", type: "warning" as const, message: "Instagram CPL is high ($37.50). Consider pausing or refreshing creative." },
@@ -132,7 +112,13 @@ export default function GalleryPage() {
   const renderWidget = () => {
     switch (activeWidget) {
       case "performance":
-        return <PerformanceDashboard {...performanceData} />;
+        return (
+          <PerformanceDashboard
+            onViewPlan={() => console.log("View plan")}
+            onEmailReport={() => console.log("Email report")}
+            onDownloadPDF={() => console.log("Download PDF")}
+          />
+        );
       case "recommendations":
         return <RecommendationsList recommendations={recommendationsData} />;
       case "guidance":
