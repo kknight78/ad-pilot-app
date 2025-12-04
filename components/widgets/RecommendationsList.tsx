@@ -68,28 +68,26 @@ function RecommendationCard({
 }) {
   return (
     <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
-      {/* Title row with emoji */}
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-lg">{recommendation.icon}</span>
-        <h4 className="font-medium text-gray-900">{recommendation.title}</h4>
-      </div>
-
-      {/* Description */}
-      <p className="text-sm text-gray-600 mb-4 leading-relaxed">
-        {recommendation.description}
-      </p>
-
-      {/* Action button - right aligned */}
-      <div className="flex justify-end">
+      {/* Title row with emoji and action button */}
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{recommendation.icon}</span>
+          <h4 className="font-medium text-gray-900">{recommendation.title}</h4>
+        </div>
         <Button
           variant="outline"
           size="sm"
           onClick={() => onAction?.(recommendation.id)}
-          className="text-sm"
+          className="text-xs shrink-0"
         >
           {recommendation.actionLabel}
         </Button>
       </div>
+
+      {/* Description */}
+      <p className="text-sm text-gray-600 leading-relaxed">
+        {recommendation.description}
+      </p>
     </div>
   );
 }
