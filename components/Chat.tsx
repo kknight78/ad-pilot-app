@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Message from "./Message";
 import TypingIndicator from "./TypingIndicator";
+import { Button } from "@/components/ui/button";
 import { WidgetData } from "@/lib/tools-v2";
 import {
   ConversationState,
@@ -26,7 +27,6 @@ import {
   AvatarPhotoCapture,
   InvoiceWidget,
   ActionButtons,
-  type ActionButton,
 } from "./widgets";
 
 interface ChatMessage {
@@ -47,11 +47,11 @@ function getGreeting(): string {
 // Static initial message to avoid hydration mismatch
 const INITIAL_WELCOME = "Hey, Shad! Here's how last week went:";
 
-// Welcome action buttons
-const welcomeActionButtons: ActionButton[] = [
-  { label: "Show recommendations", message: "Show me recommendations based on this data", variant: "primary" },
-  { label: "Plan this week", message: "Let's plan this week's content", variant: "secondary" },
-];
+// Welcome action button configs (used for silent navigation)
+const welcomeActions = {
+  recommendations: { label: "Show recommendations", variant: "primary" as const },
+  planWeek: { label: "Plan this week", variant: "secondary" as const },
+};
 
 // Widget renderer — maps widget types to V2 components
 function WidgetRenderer({
@@ -470,13 +470,49 @@ export default function Chat() {
               {index === 0 &&
                 message.role === "assistant" &&
                 messages.length === 1 &&
+                flowState.currentStep === "performance_dashboard" &&
                 message.widgets?.some(w => w.type === "performance_dashboard") && (
-                  <div className="mb-4">
-                    <ActionButtons
-                      buttons={welcomeActionButtons}
-                      onAction={sendMessage}
+                  <div className="flex flex-wrap gap-2 my-2 mb-4">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => {
+                        // Silent navigation to recommendations
+                        updateFlowState({
+                          currentStep: "recommendations",
+                          detourStack: ["performance_dashboard"],
+                        });
+                        // Add assistant message with recommendations widget
+                        setMessages(prev => [...prev, {
+                          role: "assistant",
+                          content: "Here are some AI recommendations based on your performance:",
+                          widgets: [{ type: "recommendations" }],
+                        }]);
+                      }}
                       disabled={isLoading}
-                    />
+                    >
+                      {welcomeActions.recommendations.label}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        // Silent navigation to theme selector (start planning flow)
+                        updateFlowState({
+                          currentStep: "theme_selector",
+                        });
+                        // Add assistant message with theme selector
+                        setMessages(prev => [...prev, {
+                          role: "assistant",
+                          content: "Let's plan this week's content! First, pick a theme:",
+                          widgets: [{ type: "theme_selector" }],
+                        }]);
+                      }}
+                      disabled={isLoading}
+                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                    >
+                      {welcomeActions.planWeek.label}
+                    </Button>
                   </div>
                 )}
             </div>
