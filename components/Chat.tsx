@@ -155,11 +155,28 @@ export default function Chat() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // Check if user is near bottom of scroll container
+  const isNearBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+    const threshold = 100; // pixels from bottom
+    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+  }, []);
+
+  // Handle scroll events to detect if user scrolled up
+  const handleScroll = useCallback(() => {
+    setShouldAutoScroll(isNearBottom());
+  }, [isNearBottom]);
+
+  const scrollToBottom = useCallback(() => {
+    if (shouldAutoScroll) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [shouldAutoScroll]);
 
   // Update greeting client-side to avoid hydration mismatch
   useEffect(() => {
@@ -175,12 +192,14 @@ export default function Chat() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isLoading]);
+  }, [messages, isLoading, scrollToBottom]);
 
   const sendMessage = useCallback(
     async (userMessage: string) => {
       if (!userMessage.trim() || isLoading) return;
 
+      // When user sends a message, always scroll to show it
+      setShouldAutoScroll(true);
       setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
       setIsLoading(true);
 
@@ -290,7 +309,11 @@ export default function Chat() {
   return (
     <div className="flex flex-col h-[calc(100vh-72px)]">
       {/* Messages area */}
-      <div className="flex-1 overflow-y-auto p-6 chat-scrollbar bg-gray-50">
+      <div
+        ref={messagesContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-6 chat-scrollbar bg-gray-50"
+      >
         <div className="max-w-3xl mx-auto">
           {messages.map((message, index) => (
             <div key={index}>
