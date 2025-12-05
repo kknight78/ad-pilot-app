@@ -35,19 +35,17 @@ interface ChatMessage {
   widgets?: WidgetData[];
 }
 
-// Time-based greeting for welcome message
+// Time-based greeting for welcome message (client-side only)
 function getGreeting(): string {
+  if (typeof window === "undefined") return "Hey"; // Server-side fallback
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
   return "Good evening";
 }
 
-// Welcome message with performance snapshot
-function getWelcomeMessage(): string {
-  const greeting = getGreeting();
-  return `${greeting}, Shad! Here's how last week went:`;
-}
+// Static initial message to avoid hydration mismatch
+const INITIAL_WELCOME = "Hey, Shad! Here's how last week went:";
 
 // Initial performance data for welcome screen
 const initialPerformanceData = {
@@ -273,7 +271,7 @@ function WidgetRenderer({
 
 export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", content: getWelcomeMessage(), widgets: [welcomeWidget] },
+    { role: "assistant", content: INITIAL_WELCOME, widgets: [welcomeWidget] },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -283,6 +281,18 @@ export default function Chat() {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
+
+  // Update greeting client-side to avoid hydration mismatch
+  useEffect(() => {
+    const greeting = getGreeting();
+    const dynamicWelcome = `${greeting}, Shad! Here's how last week went:`;
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].content === INITIAL_WELCOME) {
+        return [{ ...prev[0], content: dynamicWelcome }];
+      }
+      return prev;
+    });
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
