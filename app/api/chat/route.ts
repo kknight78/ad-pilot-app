@@ -328,12 +328,16 @@ export async function POST(req: Request) {
     // Build flow state block for Claude's context
     const stateBlock = flowState
       ? `
-[[CURRENT FLOW STATE]]
+[[CURRENT FLOW STATE — READ THIS CAREFULLY]]
 Current Step: ${flowState.currentStep}
 Completed Steps: ${flowState.completedSteps.join(", ") || "none yet"}
 Theme: ${flowState.selections.theme || "not selected"}
 Topics: ${flowState.selections.topics?.join(", ") || "not selected"}
 Return To (after detour): ${flowState.detourStack[flowState.detourStack.length - 1] || "n/a"}
+
+IMPORTANT: If user skips recommendations or completes a detour, do NOT show performance_dashboard again.
+Instead, ask what they'd like to do next or offer to continue planning.
+Only show performance_dashboard at the START of a conversation (when completedSteps is empty).
 [[/CURRENT FLOW STATE]]
 `
       : "";
@@ -434,11 +438,19 @@ ${stateBlock}`;
           controller.close();
         } catch (error) {
           console.error("Stream error:", error);
+          if (error instanceof Error) {
+            console.error("Error message:", error.message);
+            console.error("Error stack:", error.stack);
+          }
           const errorData = JSON.stringify({
             content: "Sorry, I encountered an error processing your request.",
           });
-          controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
-          controller.close();
+          try {
+            controller.enqueue(encoder.encode(`data: ${errorData}\n\n`));
+            controller.close();
+          } catch {
+            // Controller may already be closed
+          }
         }
       },
     });
