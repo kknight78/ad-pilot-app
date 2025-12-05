@@ -157,43 +157,7 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  // Track if user has scrolled away from bottom (to pause auto-scroll)
-  const userScrolledUpRef = useRef(false);
-  const lastScrollTopRef = useRef(0);
-  const hasUserInteractedRef = useRef(false);
-
-  // Check if currently near bottom
-  const isNearBottom = useCallback(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return true;
-    const threshold = 150; // pixels from bottom
-    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
-  }, []);
-
-  // Handle scroll events - detect if user manually scrolled UP
-  const handleScroll = useCallback(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return;
-
-    const currentScrollTop = container.scrollTop;
-    // User scrolled up (not down, and not at bottom)
-    if (currentScrollTop < lastScrollTopRef.current && !isNearBottom()) {
-      userScrolledUpRef.current = true;
-    }
-    // User scrolled back to bottom
-    if (isNearBottom()) {
-      userScrolledUpRef.current = false;
-    }
-    lastScrollTopRef.current = currentScrollTop;
-  }, [isNearBottom]);
-
-  const scrollToBottom = useCallback(() => {
-    // Don't scroll if: initial load OR user has scrolled up to read
-    if (!hasUserInteractedRef.current || userScrolledUpRef.current) {
-      return;
-    }
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, []);
+  const latestUserMessageRef = useRef<HTMLDivElement>(null);
 
   // Update greeting client-side to avoid hydration mismatch
   useEffect(() => {
@@ -207,18 +171,16 @@ export default function Chat() {
     });
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, isLoading, scrollToBottom]);
-
   const sendMessage = useCallback(
     async (userMessage: string) => {
       if (!userMessage.trim() || isLoading) return;
 
-      // When user sends a message, enable auto-scroll and reset "scrolled up" flag
-      hasUserInteractedRef.current = true;
-      userScrolledUpRef.current = false;
       setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+
+      // Scroll user's message to top of viewport after it renders
+      setTimeout(() => {
+        latestUserMessageRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
       setIsLoading(true);
 
       try {
@@ -329,12 +291,17 @@ export default function Chat() {
       {/* Messages area */}
       <div
         ref={messagesContainerRef}
-        onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-6 chat-scrollbar bg-gray-50"
       >
         <div className="max-w-3xl mx-auto">
-          {messages.map((message, index) => (
-            <div key={index}>
+          {messages.map((message, index) => {
+            // Track the latest user message for scroll targeting
+            const isLatestUserMessage = message.role === "user" && index === messages.length - 2;
+            return (
+            <div
+              key={index}
+              ref={isLatestUserMessage ? latestUserMessageRef : undefined}
+            >
               <Message role={message.role} content={message.content} />
               {/* Render all widgets for this message */}
               {message.widgets && message.widgets.map((widget, widgetIndex) => (
@@ -359,7 +326,8 @@ export default function Chat() {
                   </div>
                 )}
             </div>
-          ))}
+          );
+          })}
           {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
             <TypingIndicator />
           )}
