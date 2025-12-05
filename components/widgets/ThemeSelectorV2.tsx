@@ -112,7 +112,7 @@ export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) 
             <Palette className="w-5 h-5 text-purple-600" />
           </div>
           <div>
-            <CardTitle className="text-lg">🎨 Weekly Theme</CardTitle>
+            <CardTitle className="text-lg">Weekly Theme</CardTitle>
             <p className="text-sm text-gray-500">
               Sets the tone for your ads
             </p>

@@ -1,0 +1,18 @@
+{
+  "name": "Ad Pilot",
+  "short_name": "Ad Pilot",
+  "description": "AI-powered advertising for local businesses",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#3B82F6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -402,7 +402,7 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
               <Car className="w-5 h-5 text-green-600" />
             </div>
             <div>
-              <CardTitle className="text-lg">🚗 Select Vehicles for Your Ads</CardTitle>
+              <CardTitle className="text-lg">Select Vehicles for Your Ads</CardTitle>
               <p className="text-sm text-gray-500">
                 Choose vehicles for each ad in your plan
               </p>

@@ -170,7 +170,7 @@ export function TopicSelectorV2({ numberOfTopics = 2, onSelect, onContinue }: To
             <BookOpen className="w-5 h-5 text-blue-600" />
           </div>
           <div>
-            <CardTitle className="text-lg">🎓 Capitol Smarts Topics</CardTitle>
+            <CardTitle className="text-lg">Capitol Smarts Topics</CardTitle>
             <p className="text-sm text-gray-500">
               You have {numberOfTopics} Capitol Smarts video{numberOfTopics > 1 ? "s" : ""} — pick {numberOfTopics} topic{numberOfTopics > 1 ? "s" : ""}
             </p>

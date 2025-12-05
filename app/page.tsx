@@ -1,5 +1,6 @@
 import Header from "@/components/Header";
 import Chat from "@/components/Chat";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { getClientConfig } from "@/lib/client-config";
 
 export default function Home() {
@@ -9,6 +10,7 @@ export default function Home() {
     <main className="min-h-screen flex flex-col">
       <Header clientName={config.clientName} />
       <Chat />
+      <InstallPrompt />
     </main>
   );
 }
