@@ -56,6 +56,7 @@ export interface AdPlanWidgetProps {
   onRemove?: (platformIndex: number, itemId: string) => void;
   onAddAd?: (platformIndex: number) => void;
   onUpgradePlan?: () => void;
+  onConfirm?: () => void;
 }
 
 // Demo data
@@ -561,6 +562,7 @@ export function AdPlanWidget({
   onRemove,
   onAddAd,
   onUpgradePlan,
+  onConfirm,
 }: AdPlanWidgetProps) {
   const [localData, setLocalData] = useState(data);
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
@@ -672,6 +674,12 @@ export function AdPlanWidget({
                 {localData.totalContent} pieces of content •{" "}
                 <span className="text-blue-600 font-medium">${localData.totalAdSpend}</span> platform spend
               </div>
+              {onConfirm && (
+                <Button onClick={onConfirm}>
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Confirm Plan
+                </Button>
+              )}
             </div>
 
             {/* Platform Spend Disclaimer */}

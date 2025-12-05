@@ -108,9 +108,17 @@ function WidgetRenderer({
       );
 
     case "ad_plan":
-      // Self-contained widget — fetches its own data
-      // TODO: Add onConfirm callback to AdPlanWidget to update state
-      return <AdPlanWidget />;
+      return (
+        <AdPlanWidget
+          onConfirm={() => {
+            onStateUpdate({
+              currentStep: "vehicle_selector",
+              completedSteps: [...flowState.completedSteps, "ad_plan"] as GoldenPathStep[],
+            });
+            onSendMessage("I've confirmed the content plan - let's pick vehicles");
+          }}
+        />
+      );
 
     case "vehicle_selector":
       return (
