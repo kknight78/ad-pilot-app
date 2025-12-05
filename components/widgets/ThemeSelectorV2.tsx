@@ -50,33 +50,43 @@ export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) 
     setError(null);
     setSelectedIndex(null);
 
-    const topic = suggestionMode === "guided" ? guidedInput.trim() : "";
-    setSearchedTopic(topic);
+    const subject = suggestionMode === "guided" ? guidedInput.trim() : "";
+    setSearchedTopic(subject);
+
+    console.log("[ThemeSelector] Fetching themes...");
+    console.log("[ThemeSelector] Mode:", suggestionMode);
+    console.log("[ThemeSelector] Subject:", subject);
 
     try {
+      const payload = subject
+        ? { client_id: "ccc", subject }
+        : { client_id: "ccc" };
+
+      console.log("[ThemeSelector] Payload:", payload);
+
       const response = await fetch(
         "https://corsproxy.io/?https://kelly-ads.app.n8n.cloud/webhook/theme-suggest",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            location: "Rantoul, IL",
-            client_id: "ccc",
-            topic: topic,
-          }),
+          body: JSON.stringify(payload),
         }
       );
+
+      console.log("[ThemeSelector] Response status:", response.status);
 
       if (!response.ok) throw new Error("Failed to fetch themes");
 
       const data = await response.json();
+      console.log("[ThemeSelector] Response data:", data);
+
       if (data.themes && Array.isArray(data.themes)) {
         setThemes(data.themes);
       } else {
         throw new Error("Invalid response format");
       }
     } catch (err) {
-      console.error("Theme fetch error:", err);
+      console.error("[ThemeSelector] Error:", err);
       setError("Couldn't load suggestions. Try again or enter a custom theme.");
     } finally {
       setLoading(false);
