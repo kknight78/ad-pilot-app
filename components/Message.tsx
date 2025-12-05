@@ -7,16 +7,64 @@ export interface MessageProps {
   content: string;
 }
 
-// Add line breaks after sentences if Claude forgot to format properly
+// Fix formatting issues when Claude doesn't follow instructions
 function formatAssistantContent(content: string): string {
-  // If content already has double newlines (proper formatting), leave it alone
-  if (content.includes("\n\n")) {
-    return content;
+  let result = content;
+
+  // Detect list-like content without markdown dashes
+  // Pattern: Line ending with "?" or ":" followed by lines starting with capital letters
+  // that look like list items (short phrases without ending punctuation)
+  const listPatterns = [
+    // "What would you like to do next?\nStart planning\nCheck rules" -> add dashes
+    /(\?)\n([A-Z][^\n.!?]*)\n([A-Z][^\n.!?]*)/g,
+    // "You could:\nStart planning\nCheck rules" -> add dashes
+    /(:)\n([A-Z][^\n.!?]*)\n([A-Z][^\n.!?]*)/g,
+  ];
+
+  // Check if content looks like a list without dashes
+  const lines = result.split("\n");
+  const hasQuestionOrColon = lines.some(l => l.endsWith("?") || l.endsWith(":"));
+  const hasMultipleShortLines = lines.filter(l =>
+    l.length > 0 &&
+    l.length < 50 &&
+    !l.startsWith("-") &&
+    !l.endsWith(".") &&
+    !l.endsWith("?") &&
+    !l.endsWith(":")
+  ).length >= 2;
+
+  if (hasQuestionOrColon && hasMultipleShortLines) {
+    // Convert lines that look like list items to markdown list
+    let inList = false;
+    const formattedLines = lines.map((line, i) => {
+      // Start of list after ? or :
+      if (line.endsWith("?") || line.endsWith(":")) {
+        inList = true;
+        return line;
+      }
+      // List item: short line, starts with capital, no ending punctuation
+      if (inList && line.length > 0 && line.length < 50 && /^[A-Z]/.test(line) && !line.startsWith("-")) {
+        return `- ${line}`;
+      }
+      // Empty line or regular text ends the list
+      if (line.length === 0 || line.endsWith(".") || line.endsWith("!")) {
+        inList = false;
+      }
+      return line;
+    });
+    result = formattedLines.join("\n");
   }
 
+  // Add blank line before list if not present
+  result = result.replace(/(\?|\:)\n-/g, "$1\n\n-");
+
   // Add double newline after sentence-ending punctuation followed by a space and capital letter
-  // This handles: "First sentence. Second sentence" -> "First sentence.\n\nSecond sentence"
-  return content.replace(/([.!?])\s+(?=[A-Z])/g, "$1\n\n");
+  // But only if there aren't already double newlines
+  if (!result.includes("\n\n")) {
+    result = result.replace(/([.!?])\s+(?=[A-Z])/g, "$1\n\n");
+  }
+
+  return result;
 }
 
 export default function Message({ role, content }: MessageProps) {
