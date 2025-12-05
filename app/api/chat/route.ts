@@ -63,7 +63,9 @@ TEXT FORMATTING (CRITICAL):
 - ALWAYS put a blank line (double newline) between sentences
 - Example: "Great choice!\n\nNow let's pick your topics."
 - NOT: "Great choice! Now let's pick your topics."
-- Use bullet points for lists
+- For lists, use markdown format with each item on its own line:
+  "You could:\n\n- Start planning\n- Check recommendations\n- Review rules"
+- NOT inline bullets: "You could: • this • that • other"
 - Keep each thought on its own line
 
 YOU DO:
