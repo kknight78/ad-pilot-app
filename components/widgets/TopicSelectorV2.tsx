@@ -184,22 +184,23 @@ export function TopicSelectorV2({ numberOfTopics = 2, onSelect, onContinue }: To
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Add your own topic
           </label>
-          <div className="flex gap-2">
+          <div className="flex flex-col md:flex-row gap-2">
             <input
               type="text"
               value={customInput}
               onChange={(e) => setCustomInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="e.g., What to check before buying a used car"
+              placeholder="e.g., What to check before buying"
               disabled={!canSelectMore}
-              className="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+              className="flex-1 min-w-0 px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
             />
             <Button
               onClick={handleAddCustom}
               disabled={!customInput.trim() || !canSelectMore}
-              className="px-4"
+              className="px-4 shrink-0"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 mr-1 md:mr-0" />
+              <span className="md:hidden">Add</span>
             </Button>
           </div>
         </div>
@@ -239,14 +240,14 @@ export function TopicSelectorV2({ numberOfTopics = 2, onSelect, onContinue }: To
               onChange={() => setSuggestionMode("guided")}
               className="w-4 h-4 mt-1 text-blue-600 focus:ring-blue-500"
             />
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <span className="font-medium text-gray-700">Give me topics about...</span>
               {suggestionMode === "guided" && (
                 <input
                   type="text"
                   value={guidedInput}
                   onChange={(e) => setGuidedInput(e.target.value)}
-                  placeholder="e.g., winter driving, first-time buyers, credit"
+                  placeholder="e.g., winter driving, credit"
                   className="w-full mt-2 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={(e) => e.stopPropagation()}
                 />

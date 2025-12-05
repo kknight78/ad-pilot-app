@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -414,6 +414,17 @@ function VideoUsageTracker({ usage, onUpgrade }: { usage: VideoUsage; onUpgrade?
   );
 }
 
+// Scroll indicator for tables
+function ScrollIndicator({ showHint }: { showHint: boolean }) {
+  if (!showHint) return null;
+
+  return (
+    <div className="md:hidden flex items-center justify-center gap-1 py-1.5 text-xs text-gray-400 bg-gray-50 border-b border-gray-100">
+      <span>← Swipe to see more →</span>
+    </div>
+  );
+}
+
 function PlatformSection({
   plan,
   platformIndex,
@@ -428,8 +439,24 @@ function PlatformSection({
   onAddAd?: (platformIndex: number) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(true);
+  const [canScroll, setCanScroll] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const config = platformConfig[plan.platform];
   const isOrganic = plan.subtotal === 0;
+
+  // Check if table is scrollable
+  useEffect(() => {
+    const checkScroll = () => {
+      if (scrollRef.current) {
+        const { scrollWidth, clientWidth } = scrollRef.current;
+        setCanScroll(scrollWidth > clientWidth);
+      }
+    };
+
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, [isExpanded]);
 
   return (
     <div className={`border rounded-lg overflow-hidden ${config.borderColor}`}>
@@ -462,8 +489,10 @@ function PlatformSection({
 
       {/* Table Content */}
       {isExpanded && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <>
+          <ScrollIndicator showHint={canScroll} />
+          <div ref={scrollRef} className="overflow-x-auto">
+            <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b">
                 <th className="text-left py-2 px-3 font-medium text-gray-500">
@@ -550,6 +579,7 @@ function PlatformSection({
             </Button>
           </div>
         </div>
+        </>
       )}
     </div>
   );

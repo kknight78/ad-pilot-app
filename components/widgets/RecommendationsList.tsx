@@ -66,27 +66,27 @@ function RecommendationCard({
   onAction?: (id: string, actionLabel: string, title: string) => void;
 }) {
   return (
-    <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
-      {/* Title row with emoji and action button */}
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-lg">{recommendation.icon}</span>
-          <h4 className="font-medium text-gray-900">{recommendation.title}</h4>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onAction?.(recommendation.id, recommendation.actionLabel, recommendation.title)}
-          className="text-xs shrink-0"
-        >
-          {recommendation.actionLabel}
-        </Button>
+    <div className="p-3 md:p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+      {/* Title row with emoji */}
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-lg">{recommendation.icon}</span>
+        <h4 className="font-medium text-gray-900">{recommendation.title}</h4>
       </div>
 
       {/* Description */}
-      <p className="text-sm text-gray-600 leading-relaxed">
+      <p className="text-sm text-gray-600 leading-relaxed mb-3">
         {recommendation.description}
       </p>
+
+      {/* Action button - full width on mobile */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => onAction?.(recommendation.id, recommendation.actionLabel, recommendation.title)}
+        className="text-xs w-full md:w-auto"
+      >
+        {recommendation.actionLabel}
+      </Button>
     </div>
   );
 }

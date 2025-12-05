@@ -229,26 +229,26 @@ function PlatformSection({
       {/* Platform Header */}
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+        className="w-full flex items-center justify-between gap-2 p-2 md:p-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           {isActive ? (
-            <ChevronDown className="w-4 h-4 text-gray-500" />
+            <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-gray-500" />
+            <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />
           )}
-          <span className="text-lg">{config.icon}</span>
-          <span className="font-medium text-gray-900">{config.name}</span>
+          <span className="text-base md:text-lg shrink-0">{config.icon}</span>
+          <span className="font-medium text-gray-900 truncate">{config.name}</span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {isComplete ? (
-            <Badge className="bg-green-100 text-green-700">
+            <Badge className="bg-green-100 text-green-700 whitespace-nowrap">
               <Check className="w-3 h-3 mr-1" />
               Done
             </Badge>
           ) : (
-            <span className="text-sm text-gray-500">
-              {approvedCount} of {scripts.length} approved
+            <span className="text-xs md:text-sm text-gray-500 whitespace-nowrap">
+              {approvedCount}/{scripts.length}
             </span>
           )}
         </div>
@@ -256,22 +256,22 @@ function PlatformSection({
 
       {/* Expanded Content */}
       {isActive && currentScript && (
-        <div className="p-4 space-y-4 bg-white">
+        <div className="p-3 md:p-4 space-y-3 md:space-y-4 bg-white">
           {/* Script Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-gray-900">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="font-semibold text-gray-900 text-sm md:text-base">
                 {currentScript.template} — {currentScript.theme}
               </p>
-              <div className="flex items-center gap-2 mt-1">
-                <User className="w-4 h-4 text-gray-400" />
-                <span className="text-sm text-gray-600">{currentScript.avatar}</span>
+              <div className="flex items-center gap-1.5 md:gap-2 mt-1">
+                <User className="w-3.5 h-3.5 md:w-4 md:h-4 text-gray-400 shrink-0" />
+                <span className="text-xs md:text-sm text-gray-600">{currentScript.avatar}</span>
                 <span className="text-gray-300">•</span>
-                <span className="text-sm text-gray-600">{currentScript.length}</span>
+                <span className="text-xs md:text-sm text-gray-600">{currentScript.length}</span>
               </div>
             </div>
-            <div className="text-sm text-gray-500">
-              {currentIndex + 1} of {scripts.length}
+            <div className="text-xs md:text-sm text-gray-500 whitespace-nowrap shrink-0">
+              {currentIndex + 1}/{scripts.length}
             </div>
           </div>
 
@@ -295,29 +295,28 @@ function PlatformSection({
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-2 pt-2">
+          <div className="flex flex-col md:flex-row gap-2 pt-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => onRegenerate(currentScript.id)}
+              className="w-full md:w-auto"
             >
               <RefreshCw className="w-4 h-4 mr-1" />
               Regenerate
             </Button>
 
-            <div className="flex-1" />
-
             {!isCurrentApproved ? (
               <Button
                 size="sm"
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 w-full md:w-auto md:ml-auto"
                 onClick={() => onApprove(currentScript.id, platform)}
               >
                 <Check className="w-4 h-4 mr-1" />
                 {isLastInPlatform ? "Approve" : "Approve & Next"}
               </Button>
             ) : !isLastInPlatform ? (
-              <Button size="sm" onClick={onNext}>
+              <Button size="sm" onClick={onNext} className="w-full md:w-auto md:ml-auto">
                 Next
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
@@ -453,20 +452,20 @@ export function ScriptApprovalCards({
   return (
     <Card className="w-full max-w-lg">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-amber-100 rounded-lg">
-              <FileText className="w-5 h-5 text-amber-600" />
+            <div className="p-1.5 md:p-2 bg-amber-100 rounded-lg shrink-0">
+              <FileText className="w-4 h-4 md:w-5 md:h-5 text-amber-600" />
             </div>
-            <div>
-              <CardTitle className="text-lg">Script Approval</CardTitle>
-              <p className="text-sm text-gray-500">
-                {totalCount} scripts to review
+            <div className="min-w-0">
+              <CardTitle className="text-base md:text-lg">Script Approval</CardTitle>
+              <p className="text-xs md:text-sm text-gray-500">
+                {totalCount} scripts
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-gray-500 whitespace-nowrap">
               {pendingCount} pending
             </span>
             {!allApproved && (
@@ -474,7 +473,7 @@ export function ScriptApprovalCards({
                 size="sm"
                 variant="outline"
                 onClick={handleApproveAll}
-                className="text-xs"
+                className="text-xs whitespace-nowrap"
               >
                 <CheckCheck className="w-3 h-3 mr-1" />
                 Approve All

@@ -283,7 +283,7 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const latestUserMessageRef = useRef<HTMLDivElement>(null);
 
   // Flow state for tracking conversation progress
@@ -423,13 +423,6 @@ export default function Chat() {
     await sendMessage(userMessage);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit(e);
-    }
-  };
-
   return (
     <div className="flex flex-col h-[calc(100dvh-56px)] md:h-[calc(100dvh-72px)]">
       {/* Messages area */}
@@ -482,32 +475,31 @@ export default function Chat() {
       </div>
 
       {/* Input area */}
-      <div className="border-t border-gray-200 bg-white p-4">
+      <div className="border-t border-gray-200 bg-white p-2 md:p-4">
         <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
-          <div className="flex gap-3 items-end">
-            <div className="flex-1 relative">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Type your message..."
-                rows={1}
-                className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 pr-12 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                style={{
-                  minHeight: "48px",
-                  maxHeight: "200px",
-                }}
-                disabled={isLoading}
-              />
-            </div>
+          <div className="relative">
+            <input
+              ref={inputRef}
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+              placeholder="Type your message..."
+              className="w-full rounded-full border border-gray-300 px-4 py-2.5 pr-12 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
+              disabled={isLoading}
+            />
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-xl px-5 py-3 font-medium transition-colors flex items-center gap-2"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-full p-2 transition-colors"
             >
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -519,12 +511,8 @@ export default function Chat() {
                   d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
                 />
               </svg>
-              Send
             </button>
           </div>
-          <p className="text-xs text-gray-400 mt-2 text-center">
-            Press Enter to send, Shift+Enter for new line
-          </p>
         </form>
       </div>
     </div>

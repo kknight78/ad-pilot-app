@@ -418,7 +418,7 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
               <Badge variant="secondary" className="text-xs">Top 6</Badge>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
               {suggestedVehicles.map((vehicle, index) => {
                 const isOld = vehicle.daysOnLot >= 60;
                 const isWinterReady = ["AWD", "4WD"].includes(vehicle.driveType || "");
@@ -427,30 +427,30 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
                 return (
                   <div
                     key={vehicle.id}
-                    className="p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    className="p-2 md:p-3 bg-gray-50 rounded-lg border border-gray-200"
                   >
                     {/* Row 1: Number + Year Make Model */}
                     <div className="text-sm font-medium text-gray-900">
                       {index + 1}. {vehicle.year} {vehicle.make} {vehicle.model}
                     </div>
 
-                    {/* Row 2: VIN */}
-                    <div className="text-xs text-gray-400 font-mono mt-1">
+                    {/* Row 2: VIN - truncated on mobile */}
+                    <div className="text-xs text-gray-400 font-mono mt-1 truncate">
                       {vehicle.vin || "VIN unavailable"}
                     </div>
 
                     {/* Row 3: Urgency text (red) */}
                     {(isOld || isHighMileage) && (
-                      <div className="flex flex-wrap gap-3 mt-2">
-                        {isOld && <UrgencyText>{vehicle.daysOnLot} days</UrgencyText>}
+                      <div className="flex flex-wrap gap-2 md:gap-3 mt-2">
+                        {isOld && <UrgencyText>{vehicle.daysOnLot}d</UrgencyText>}
                         {isHighMileage && <UrgencyText>{Math.round(vehicle.mileage / 1000)}k mi</UrgencyText>}
                       </div>
                     )}
 
                     {/* Row 4: Positive text (green) */}
                     {isWinterReady && (
-                      <div className="flex flex-wrap gap-3 mt-1">
-                        <PositiveText>{vehicle.driveType} · Winter ready</PositiveText>
+                      <div className="flex flex-wrap gap-2 md:gap-3 mt-1">
+                        <PositiveText>{vehicle.driveType}</PositiveText>
                       </div>
                     )}
                   </div>
@@ -478,15 +478,15 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
                   {/* Platform Header */}
                   <button
                     onClick={() => togglePlatform(platform)}
-                    className={`w-full flex items-center justify-between p-3 ${config.headerBg} hover:opacity-90 transition-opacity`}
+                    className={`w-full flex items-center justify-between p-2 md:p-3 ${config.headerBg} hover:opacity-90 transition-opacity`}
                   >
                     <div className="flex items-center gap-2">
                       <PlatformIcon platform={platform as keyof typeof platformConfig} />
-                      <span className={`font-semibold ${config.headerText}`}>{config.name}</span>
+                      <span className={`font-semibold text-sm md:text-base ${config.headerText}`}>{config.name}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`text-sm ${config.headerText} opacity-90`}>
-                        {platformSlots.length} {platformSlots.length === 1 ? "ad" : "ads"} need vehicles
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <span className={`text-xs md:text-sm ${config.headerText} opacity-90 whitespace-nowrap`}>
+                        {platformSlots.length} ads
                       </span>
                       {isExpanded ? (
                         <ChevronUp className={`w-4 h-4 ${config.headerText}`} />
@@ -504,18 +504,18 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
                         const isComplete = slotSelections.length >= slot.vehicleCount;
 
                         return (
-                          <div key={slot.id} className="p-3 bg-white">
+                          <div key={slot.id} className="p-2 md:p-3 bg-white">
                             {/* Ad info row */}
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-lg">{getThemeEmoji(slot.themeTopic)}</span>
-                                <div>
-                                  <span className="text-sm font-medium text-gray-900">{slot.themeTopic}</span>
-                                  <span className="text-xs text-gray-500 ml-2">• {slot.template}</span>
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-base md:text-lg shrink-0">{getThemeEmoji(slot.themeTopic)}</span>
+                                <div className="min-w-0">
+                                  <span className="text-sm font-medium text-gray-900 truncate block">{slot.themeTopic}</span>
+                                  <span className="text-xs text-gray-500">{slot.template}</span>
                                 </div>
                               </div>
-                              <Badge variant={isComplete ? "default" : "secondary"} className="text-xs">
-                                {slotSelections.length} / {slot.vehicleCount}
+                              <Badge variant={isComplete ? "default" : "secondary"} className="text-xs whitespace-nowrap shrink-0">
+                                {slotSelections.length}/{slot.vehicleCount}
                               </Badge>
                             </div>
 

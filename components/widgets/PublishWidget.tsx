@@ -298,24 +298,24 @@ export function PublishWidget({
     <>
       <Card className="w-full max-w-lg">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Film className="w-5 h-5 text-purple-600" />
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="p-1.5 md:p-2 bg-purple-100 rounded-lg shrink-0">
+                <Film className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
               </div>
-              <div>
-                <CardTitle className="text-lg">Your Video is Ready!</CardTitle>
-                <p className="text-sm text-gray-900 font-medium">
+              <div className="min-w-0">
+                <CardTitle className="text-base md:text-lg">Video Ready!</CardTitle>
+                <p className="text-xs md:text-sm text-gray-900 font-medium truncate">
                   {videoTitle} — {videoTheme}
                 </p>
                 <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                  <Calendar className="w-3 h-3" />
-                  Runs {runDates}
+                  <Calendar className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{runDates}</span>
                 </p>
               </div>
             </div>
-            <span className="text-sm text-gray-500 font-medium">
-              {currentVideo} of {totalVideos}
+            <span className="text-xs md:text-sm text-gray-500 font-medium whitespace-nowrap shrink-0">
+              {currentVideo}/{totalVideos}
             </span>
           </div>
         </CardHeader>
@@ -405,16 +405,17 @@ export function PublishWidget({
               </div>
 
               {/* Action Buttons */}
-              <div className="flex gap-2">
+              <div className="flex flex-col md:flex-row gap-2">
                 <Button
                   variant="outline"
                   onClick={handleSaveForLater}
+                  className="w-full md:w-auto"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   Save for Later
                 </Button>
                 <Button
-                  className="flex-1"
+                  className="w-full md:flex-1"
                   onClick={handlePublish}
                   disabled={selectedCount === 0 || isPublishing}
                 >
@@ -423,7 +424,7 @@ export function PublishWidget({
                   ) : (
                     <>
                       <Check className="w-4 h-4 mr-2" />
-                      Approve for Publish ({selectedCount})
+                      Approve ({selectedCount})
                     </>
                   )}
                 </Button>
