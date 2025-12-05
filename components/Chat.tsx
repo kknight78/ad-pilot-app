@@ -20,6 +20,7 @@ import {
   AdPlanWidget,
   ScriptApprovalCards,
   GenerationProgress,
+  PublishWidget,
   RecommendationsList,
   GuidanceRulesCard,
   AvatarPhotoCapture,
@@ -170,11 +171,23 @@ function WidgetRenderer({
       );
 
     case "publish_widget":
-      // TODO: Create PublishWidget component
       return (
-        <div className="p-4 bg-gray-100 rounded-lg text-gray-600">
-          Publish widget coming soon...
-        </div>
+        <PublishWidget
+          onPublish={(platforms) => {
+            console.log("Published to:", platforms);
+          }}
+          onSaveForLater={() => {
+            onSendMessage("I'll save this video for later");
+          }}
+          onNext={() => {
+            // When all videos are done
+            onStateUpdate({
+              currentStep: "wrap_up",
+              completedSteps: [...flowState.completedSteps, "publish_widget"] as GoldenPathStep[],
+            });
+            onSendMessage("I've approved all the videos for publishing!");
+          }}
+        />
       );
 
     case "recommendations":

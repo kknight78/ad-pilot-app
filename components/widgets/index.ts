@@ -76,3 +76,4 @@ export { ScriptApprovalCards } from "./ScriptApprovalCards";
 export { GenerationProgress } from "./GenerationProgress";
 export { AvatarPhotoCapture } from "./AvatarPhotoCapture";
 export { InvoiceWidget } from "./InvoiceWidget";
+export { PublishWidget } from "./PublishWidget";

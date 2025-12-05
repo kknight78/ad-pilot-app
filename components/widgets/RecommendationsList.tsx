@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, Camera, RefreshCw, Youtube, X } from "lucide-react";
+import { Lightbulb, Camera, RefreshCw, Youtube } from "lucide-react";
 
 export interface Recommendation {
   id: string;
@@ -97,17 +96,12 @@ export function RecommendationsList({
   onDismiss,
   onAction,
 }: RecommendationsListProps) {
-  const [dismissed, setDismissed] = useState(false);
-
-  if (dismissed) {
-    return null;
-  }
-
   const includedRecs = recommendations.filter((r) => r.category === "included");
   const levelupRecs = recommendations.filter((r) => r.category === "levelup");
 
   const handleDismiss = () => {
-    setDismissed(true);
+    // Don't hide the widget - just notify the parent
+    // The widget stays visible in the chat history
     onDismiss?.();
   };
 
