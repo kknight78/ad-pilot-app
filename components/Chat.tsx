@@ -313,13 +313,20 @@ export default function Chat() {
     });
   }, []);
 
+  // Track previous step to detect actual navigation (not initial load)
+  const prevStepRef = useRef<string | null>(null);
+
   // Scroll to bottom when flow state changes (e.g., when navigating to avatar widget)
+  // Skip on initial load - only scroll when step actually changes
   useEffect(() => {
-    // Small delay to let the new widget render
-    const timer = setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 100);
-    return () => clearTimeout(timer);
+    if (prevStepRef.current !== null && prevStepRef.current !== flowState.currentStep) {
+      // Small delay to let the new widget render
+      const timer = setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+    prevStepRef.current = flowState.currentStep;
   }, [flowState.currentStep]);
 
   const sendMessage = useCallback(
