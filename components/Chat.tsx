@@ -3,29 +3,21 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Message from "./Message";
 import TypingIndicator from "./TypingIndicator";
-import { WidgetData } from "@/lib/tools";
+import { WidgetData } from "@/lib/tools-v2";
 import {
-  VideoPreviewCard,
-  GuidanceRulesCard,
-  InventoryGrid,
-  ContentCalendar,
-  PerformanceDashboard,
-  RecommendationsList,
-  AdPlanWidget,
-  ProgressIndicator,
-  ActionButtons,
   // V2 widgets with real backend integration
+  PerformanceDashboard,
   ThemeSelectorV2,
   TopicSelectorV2,
   VehicleSelectorV2,
-  type GuidanceRule,
-  type Vehicle,
-  type ScheduledPost,
-  type PlatformData,
-  type TopContent,
-  type Recommendation,
-  type AdPlanData,
-  type ProgressItem,
+  AdPlanWidget,
+  ScriptApprovalCards,
+  GenerationProgress,
+  RecommendationsList,
+  GuidanceRulesCard,
+  AvatarPhotoCapture,
+  InvoiceWidget,
+  ActionButtons,
   type ActionButton,
 } from "./widgets";
 
@@ -37,7 +29,7 @@ interface ChatMessage {
 
 // Time-based greeting for welcome message (client-side only)
 function getGreeting(): string {
-  if (typeof window === "undefined") return "Hey"; // Server-side fallback
+  if (typeof window === "undefined") return "Hey";
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
   if (hour < 17) return "Good afternoon";
@@ -47,85 +39,13 @@ function getGreeting(): string {
 // Static initial message to avoid hydration mismatch
 const INITIAL_WELCOME = "Hey, Shad! Here's how last week went:";
 
-// Initial performance data for welcome screen
-const initialPerformanceData = {
-  dateRange: "Nov 25 - Dec 1, 2024",
-  totalViews: 45200,
-  totalLeads: 127,
-  totalSpend: 1250,
-  viewsTrend: 12,
-  leadsTrend: 8,
-  platforms: [
-    {
-      platform: "Facebook",
-      views: 22500,
-      leads: 68,
-      spend: 550,
-      cpl: 8.09,
-      trend: 15,
-    },
-    {
-      platform: "TikTok",
-      views: 18200,
-      leads: 42,
-      spend: 400,
-      cpl: 9.52,
-      trend: 22,
-    },
-    {
-      platform: "Instagram",
-      views: 4500,
-      leads: 17,
-      spend: 300,
-      cpl: 17.65,
-      trend: -5,
-    },
-    {
-      platform: "YouTube",
-      views: 3200,
-      leads: 2,
-      spend: 0,
-      cpl: 0,
-      trend: 45,
-    },
-  ],
-  topContent: [
-    {
-      title: "2024 Malibu Spotlight",
-      platform: "Facebook",
-      views: 8500,
-      leads: 24,
-      featured: true,
-    },
-    {
-      title: "Weekend Flash Sale",
-      platform: "TikTok",
-      views: 6200,
-      leads: 18,
-    },
-    {
-      title: "Customer Testimonial - Johnson Family",
-      platform: "Facebook",
-      views: 4100,
-      leads: 12,
-    },
-  ],
-};
-
-// Initial welcome widget
-const welcomeWidget: WidgetData = {
-  type: "performance_dashboard",
-  data: initialPerformanceData,
-};
-
-// Welcome action buttons (Email is inside the widget, so no pill needed)
+// Welcome action buttons
 const welcomeActionButtons: ActionButton[] = [
-  { label: "💡 Show recommendations", message: "Show me recommendations based on this data", variant: "primary" },
-  { label: "📋 Plan this week", message: "Let's plan this week's content", variant: "secondary" },
+  { label: "Show recommendations", message: "Show me recommendations based on this data", variant: "primary" },
+  { label: "Plan this week", message: "Let's plan this week's content", variant: "secondary" },
 ];
 
-
-// Widget renderer component with callbacks
+// Widget renderer — maps widget types to V2 components
 function WidgetRenderer({
   widget,
   onSendMessage,
@@ -134,79 +54,11 @@ function WidgetRenderer({
   onSendMessage: (message: string) => void;
 }) {
   switch (widget.type) {
-    case "guidance_rules": {
-      const data = widget.data as { rules: GuidanceRule[]; clientName: string };
-      return <GuidanceRulesCard customRules={data.rules} />;
-    }
-    case "video_preview": {
-      const data = widget.data as {
-        title: string;
-        hook: string;
-        script?: string;
-        duration: string;
-        status: "preview" | "generating" | "ready";
-      };
-      return (
-        <VideoPreviewCard
-          title={data.title}
-          hook={data.hook}
-          script={data.script}
-          duration={data.duration}
-          status={data.status}
-        />
-      );
-    }
-    case "inventory": {
-      const data = widget.data as { vehicles: Vehicle[] };
-      return <InventoryGrid vehicles={data.vehicles} />;
-    }
-    case "content_calendar": {
-      const data = widget.data as { posts: ScheduledPost[] };
-      return <ContentCalendar posts={data.posts} />;
-    }
-    case "performance_dashboard": {
-      const data = widget.data as {
-        dateRange: string;
-        totalViews: number;
-        totalLeads: number;
-        totalSpend: number;
-        viewsTrend: number;
-        leadsTrend: number;
-        platforms: PlatformData[];
-        topContent: TopContent[];
-      };
-      // Convert old format to new WeekData format
-      const weekData = [{
-        startDate: data.dateRange.split(" - ")[0] || "Nov 25",
-        endDate: data.dateRange.split(" - ")[1]?.replace(", 2024", "") || "Dec 1",
-        totalViews: data.totalViews,
-        totalLeads: data.totalLeads,
-        totalSpend: data.totalSpend,
-        spendDelta: 0,
-        viewsTrend: data.viewsTrend,
-        leadsTrend: data.leadsTrend,
-        cplTrend: 0,
-        platforms: data.platforms,
-        topContent: data.topContent,
-        adjustments: [],
-      }];
-      return <PerformanceDashboard weeks={weekData} />;
-    }
-    case "recommendations": {
-      // Use the new self-contained RecommendationsList (expert-curated, 2-3 items)
-      return (
-        <RecommendationsList
-          onDismiss={() => onSendMessage("Dismiss recommendation")}
-          onAction={(id) => onSendMessage(`Take action on recommendation ${id}`)}
-        />
-      );
-    }
-    case "ad_plan": {
-      const data = widget.data as AdPlanData;
-      return <AdPlanWidget data={data} />;
-    }
-    case "theme_selector": {
-      // V2 widget with 3-option flow: Choose for me / Specific / Inspire me
+    case "performance_dashboard":
+      // Self-contained widget — fetches its own data
+      return <PerformanceDashboard />;
+
+    case "theme_selector":
       return (
         <ThemeSelectorV2
           onContinue={(theme) => {
@@ -218,9 +70,8 @@ function WidgetRenderer({
           }}
         />
       );
-    }
-    case "topic_selector": {
-      // V2 widget with multi-select and real backend integration
+
+    case "topic_selector":
       return (
         <TopicSelectorV2
           onContinue={(topics) => {
@@ -229,9 +80,12 @@ function WidgetRenderer({
           }}
         />
       );
-    }
-    case "vehicle_selector": {
-      // V2 widget with real inventory integration
+
+    case "ad_plan":
+      // Self-contained widget — fetches its own data
+      return <AdPlanWidget />;
+
+    case "vehicle_selector":
       return (
         <VehicleSelectorV2
           onContinue={(selections) => {
@@ -240,30 +94,51 @@ function WidgetRenderer({
           }}
         />
       );
-    }
-    case "progress_indicator": {
-      const data = widget.data as {
-        items: ProgressItem[];
-        percentComplete: number;
-        estimatedMinutesLeft: number;
-      };
+
+    case "script_approval":
       return (
-        <ProgressIndicator
-          items={data.items}
-          percentComplete={data.percentComplete}
-          estimatedMinutesLeft={data.estimatedMinutesLeft}
+        <ScriptApprovalCards
+          onApprove={(id) => console.log("Approved script:", id)}
+          onComplete={() => onSendMessage("I've approved all scripts - ready to generate")}
         />
       );
-    }
-    case "action_buttons": {
-      const data = widget.data as { buttons: ActionButton[] };
+
+    case "generation_progress":
       return (
-        <ActionButtons
-          buttons={data.buttons}
-          onAction={onSendMessage}
+        <GenerationProgress
+          onPreviewAll={() => onSendMessage("Videos are ready!")}
         />
       );
-    }
+
+    case "publish_widget":
+      // TODO: Create PublishWidget component
+      return (
+        <div className="p-4 bg-gray-100 rounded-lg text-gray-600">
+          Publish widget coming soon...
+        </div>
+      );
+
+    case "recommendations":
+      return (
+        <RecommendationsList
+          onDismiss={() => onSendMessage("Dismiss recommendation")}
+          onAction={(id) => onSendMessage(`Take action on recommendation ${id}`)}
+        />
+      );
+
+    case "guidance_rules":
+      return <GuidanceRulesCard />;
+
+    case "avatar_photo":
+      return (
+        <AvatarPhotoCapture
+          onCapture={(imageData, avatarName) => onSendMessage(`I've uploaded a new avatar photo: ${avatarName}`)}
+        />
+      );
+
+    case "billing":
+      return <InvoiceWidget />;
+
     default:
       return null;
   }
@@ -271,7 +146,11 @@ function WidgetRenderer({
 
 export default function Chat() {
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "assistant", content: INITIAL_WELCOME, widgets: [welcomeWidget] },
+    {
+      role: "assistant",
+      content: INITIAL_WELCOME,
+      widgets: [{ type: "performance_dashboard" }]
+    },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -341,7 +220,7 @@ export default function Chat() {
                 try {
                   const parsed = JSON.parse(data);
 
-                  // Handle widget data - accumulate widgets, don't replace
+                  // Handle widget data
                   if (parsed.widget) {
                     currentWidgets = [...currentWidgets, parsed.widget];
                     setMessages((prev) => {
