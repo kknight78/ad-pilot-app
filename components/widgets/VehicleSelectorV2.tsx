@@ -110,7 +110,8 @@ const platformConfig = {
 };
 
 // Theme emoji mapping
-const getThemeEmoji = (theme: string): string => {
+const getThemeEmoji = (theme: string | undefined | null): string => {
+  if (!theme) return "📌";
   const lowerTheme = theme.toLowerCase();
   if (lowerTheme.includes("holiday") || lowerTheme.includes("christmas")) return "🎄";
   if (lowerTheme.includes("winter") || lowerTheme.includes("cold") || lowerTheme.includes("snow")) return "❄️";

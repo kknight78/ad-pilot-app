@@ -120,9 +120,8 @@ const welcomeWidget: WidgetData = {
   data: initialPerformanceData,
 };
 
-// Welcome action buttons
+// Welcome action buttons (Email is inside the widget, so no pill needed)
 const welcomeActionButtons: ActionButton[] = [
-  { label: "📧 Email me this report", message: "Email me the performance report", variant: "secondary" },
   { label: "💡 Show recommendations", message: "Show me recommendations based on this data", variant: "primary" },
   { label: "📋 Plan this week", message: "Let's plan this week's content", variant: "secondary" },
 ];

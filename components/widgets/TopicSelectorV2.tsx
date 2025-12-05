@@ -29,7 +29,8 @@ interface TopicSelectorV2Props {
 type SuggestionMode = "lucky" | "guided";
 
 // Emoji mapping based on topic keywords
-const getEmojiForTopic = (title: string): string => {
+const getEmojiForTopic = (title: string | undefined | null): string => {
+  if (!title) return "💡";
   const lowerTitle = title.toLowerCase();
   if (lowerTitle.includes("winter") || lowerTitle.includes("cold") || lowerTitle.includes("snow")) return "❄️";
   if (lowerTitle.includes("credit") || lowerTitle.includes("financing") || lowerTitle.includes("loan")) return "💳";
