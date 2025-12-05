@@ -5,6 +5,13 @@ import Message from "./Message";
 import TypingIndicator from "./TypingIndicator";
 import { WidgetData } from "@/lib/tools-v2";
 import {
+  ConversationState,
+  initialFlowState,
+  GoldenPathStep,
+  isDetourStep,
+  isGoldenPathStep,
+} from "@/types/flowState";
+import {
   // V2 widgets with real backend integration
   PerformanceDashboard,
   ThemeSelectorV2,
@@ -49,9 +56,13 @@ const welcomeActionButtons: ActionButton[] = [
 function WidgetRenderer({
   widget,
   onSendMessage,
+  flowState,
+  onStateUpdate,
 }: {
   widget: WidgetData;
   onSendMessage: (message: string) => void;
+  flowState: ConversationState;
+  onStateUpdate: (update: Partial<ConversationState>) => void;
 }) {
   switch (widget.type) {
     case "performance_dashboard":
@@ -62,6 +73,13 @@ function WidgetRenderer({
       return (
         <ThemeSelectorV2
           onContinue={(theme) => {
+            // Update state - move to topic_selector (or ad_plan if no educational)
+            onStateUpdate({
+              currentStep: "topic_selector",
+              completedSteps: [...flowState.completedSteps, "theme_selector"] as GoldenPathStep[],
+              selections: { ...flowState.selections, theme: theme || "general" },
+            });
+            // Send message for Claude
             if (theme) {
               onSendMessage(`I chose the "${theme}" theme`);
             } else {
@@ -75,6 +93,13 @@ function WidgetRenderer({
       return (
         <TopicSelectorV2
           onContinue={(topics) => {
+            // Update state
+            onStateUpdate({
+              currentStep: "ad_plan",
+              completedSteps: [...flowState.completedSteps, "topic_selector"] as GoldenPathStep[],
+              selections: { ...flowState.selections, topics },
+            });
+            // Send message
             const topicNames = topics.join(" and ");
             onSendMessage(`I chose these topics: ${topicNames}`);
           }}
@@ -83,13 +108,33 @@ function WidgetRenderer({
 
     case "ad_plan":
       // Self-contained widget — fetches its own data
+      // TODO: Add onConfirm callback to AdPlanWidget to update state
       return <AdPlanWidget />;
 
     case "vehicle_selector":
       return (
         <VehicleSelectorV2
           onContinue={(selections) => {
+            // Extract VINs from Vehicle objects for state storage
+            const vehicleAssignments: Record<string, string[]> = {};
+            for (const [adId, vehicles] of Object.entries(selections)) {
+              vehicleAssignments[adId] = vehicles
+                .map((v) => v.vin)
+                .filter((vin): vin is string => vin !== undefined);
+            }
             const totalVehicles = Object.values(selections).flat().length;
+
+            // Update state
+            onStateUpdate({
+              currentStep: "script_approval",
+              completedSteps: [...flowState.completedSteps, "vehicle_selector"] as GoldenPathStep[],
+              selections: {
+                ...flowState.selections,
+                vehicleAssignments,
+                vehicleCount: totalVehicles,
+              },
+            });
+            // Send message
             onSendMessage(`I've confirmed ${totalVehicles} vehicles for the ads`);
           }}
         />
@@ -99,14 +144,28 @@ function WidgetRenderer({
       return (
         <ScriptApprovalCards
           onApprove={(id) => console.log("Approved script:", id)}
-          onComplete={() => onSendMessage("I've approved all scripts - ready to generate")}
+          onComplete={() => {
+            // Update state
+            onStateUpdate({
+              currentStep: "generation_progress",
+              completedSteps: [...flowState.completedSteps, "script_approval"] as GoldenPathStep[],
+            });
+            onSendMessage("I've approved all scripts - ready to generate");
+          }}
         />
       );
 
     case "generation_progress":
       return (
         <GenerationProgress
-          onPreviewAll={() => onSendMessage("Videos are ready!")}
+          onPreviewAll={() => {
+            // Update state
+            onStateUpdate({
+              currentStep: "publish_widget",
+              completedSteps: [...flowState.completedSteps, "generation_progress"] as GoldenPathStep[],
+            });
+            onSendMessage("Videos are ready!");
+          }}
         />
       );
 
@@ -121,8 +180,31 @@ function WidgetRenderer({
     case "recommendations":
       return (
         <RecommendationsList
-          onDismiss={() => onSendMessage("I'll skip the recommendations for now")}
-          onAction={(_id, actionLabel, title) => onSendMessage(`I want to "${actionLabel}" for the "${title}" recommendation`)}
+          onDismiss={() => {
+            // Return from detour if we were on one
+            if (flowState.detourStack.length > 0) {
+              const returnTo = flowState.detourStack[flowState.detourStack.length - 1];
+              onStateUpdate({
+                currentStep: returnTo,
+                detourStack: flowState.detourStack.slice(0, -1),
+              });
+            }
+            onSendMessage("I'll skip the recommendations for now");
+          }}
+          onAction={(_id, actionLabel, title) => {
+            // Handle specific recommendation actions
+            if (actionLabel === "Create New Avatar") {
+              // Push current step to detour stack before going to avatar
+              const currentAsGolden = isGoldenPathStep(flowState.currentStep)
+                ? flowState.currentStep
+                : flowState.detourStack[flowState.detourStack.length - 1] || "performance_dashboard";
+              onStateUpdate({
+                currentStep: "avatar_photo",
+                detourStack: [...flowState.detourStack, currentAsGolden],
+              });
+            }
+            onSendMessage(`I want to "${actionLabel}" for the "${title}" recommendation`);
+          }}
         />
       );
 
@@ -132,7 +214,15 @@ function WidgetRenderer({
     case "avatar_photo":
       return (
         <AvatarPhotoCapture
-          onCapture={(imageData, avatarName) => onSendMessage(`I've uploaded a new avatar photo: ${avatarName}`)}
+          onCapture={(_imageData, avatarName) => {
+            // Return from detour
+            const returnTo = flowState.detourStack[flowState.detourStack.length - 1] || "performance_dashboard";
+            onStateUpdate({
+              currentStep: returnTo,
+              detourStack: flowState.detourStack.slice(0, -1),
+            });
+            onSendMessage(`I've uploaded a new avatar photo: ${avatarName}`);
+          }}
         />
       );
 
@@ -158,6 +248,22 @@ export default function Chat() {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const latestUserMessageRef = useRef<HTMLDivElement>(null);
+
+  // Flow state for tracking conversation progress
+  const [flowState, setFlowState] = useState<ConversationState>(initialFlowState);
+
+  // Helper for state updates - merges updates properly
+  const updateFlowState = useCallback((update: Partial<ConversationState>) => {
+    setFlowState((prev) => ({
+      ...prev,
+      ...update,
+      selections: update.selections
+        ? { ...prev.selections, ...update.selections }
+        : prev.selections,
+      completedSteps: update.completedSteps || prev.completedSteps,
+      detourStack: update.detourStack !== undefined ? update.detourStack : prev.detourStack,
+    }));
+  }, []);
 
   // Update greeting client-side to avoid hydration mismatch
   useEffect(() => {
@@ -189,6 +295,7 @@ export default function Chat() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             messages: [...messages, { role: "user", content: userMessage }],
+            flowState, // Include flow state for Claude's context
           }),
         });
 
@@ -267,7 +374,7 @@ export default function Chat() {
         inputRef.current?.focus();
       }
     },
-    [messages, isLoading]
+    [messages, isLoading, flowState]
   );
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -309,6 +416,8 @@ export default function Chat() {
                   <WidgetRenderer
                     widget={widget}
                     onSendMessage={sendMessage}
+                    flowState={flowState}
+                    onStateUpdate={updateFlowState}
                   />
                 </div>
               ))}

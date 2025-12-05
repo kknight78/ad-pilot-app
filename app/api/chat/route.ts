@@ -290,12 +290,42 @@ interface Message {
   content: string;
 }
 
+interface FlowState {
+  currentStep: string;
+  completedSteps: string[];
+  selections: {
+    theme?: string;
+    topics?: string[];
+    vehicleAssignments?: Record<string, string[]>;
+    approvedScripts?: string[];
+    approvedVideos?: string[];
+  };
+  detourStack: string[];
+}
+
 export async function POST(req: Request) {
   try {
-    const { messages } = (await req.json()) as { messages: Message[] };
+    const { messages, flowState } = (await req.json()) as {
+      messages: Message[];
+      flowState?: FlowState;
+    };
 
     // Build context string with current state
     const timeOfDay = getTimeOfDay();
+
+    // Build flow state block for Claude's context
+    const stateBlock = flowState
+      ? `
+[[CURRENT FLOW STATE]]
+Current Step: ${flowState.currentStep}
+Completed Steps: ${flowState.completedSteps.join(", ") || "none yet"}
+Theme: ${flowState.selections.theme || "not selected"}
+Topics: ${flowState.selections.topics?.join(", ") || "not selected"}
+Return To (after detour): ${flowState.detourStack[flowState.detourStack.length - 1] || "n/a"}
+[[/CURRENT FLOW STATE]]
+`
+      : "";
+
     const contextBlock = `
 [[client:Capitol Car Credit]]
 [[location:Central Illinois (Rantoul, Champaign-Urbana, Danville)]]
@@ -303,7 +333,7 @@ export async function POST(req: Request) {
 [[time:${timeOfDay}]]
 [[avatars:Shad, Gary, Lisa, Kelly, Hannah]]
 [[has_educational:true]]
-`;
+${stateBlock}`;
 
     const fullSystemPrompt = SYSTEM_PROMPT + "\n\nCURRENT CONTEXT:\n" + contextBlock;
 
