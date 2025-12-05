@@ -45,10 +45,7 @@ export function AvatarPhotoCapture({
       });
       setStream(mediaStream);
       setMode("camera");
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-      }
+      // Note: stream will be assigned to video element via useEffect below
     } catch (err) {
       console.error("Camera error:", err);
       setError("Could not access camera. Please check permissions or try uploading instead.");
@@ -134,6 +131,19 @@ export function AvatarPhotoCapture({
     setError(null);
     setMode("select");
   };
+
+  // Assign stream to video element when both are available
+  useEffect(() => {
+    if (mode === "camera" && stream) {
+      // Small delay to ensure DOM is ready
+      const timer = setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [mode, stream]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -260,6 +270,10 @@ export function AvatarPhotoCapture({
                     autoPlay
                     playsInline
                     muted
+                    onLoadedMetadata={(e) => {
+                      // Ensure video plays when metadata is loaded
+                      (e.target as HTMLVideoElement).play().catch(console.error);
+                    }}
                     className="w-full h-full object-cover"
                   />
 
