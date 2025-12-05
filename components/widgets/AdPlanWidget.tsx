@@ -17,6 +17,14 @@ import {
   Lightbulb,
   ArrowUpRight,
   X,
+  TreePine,
+  Snowflake,
+  Users,
+  PiggyBank,
+  ShieldCheck,
+  Sun,
+  Pin,
+  LucideIcon,
 } from "lucide-react";
 
 export interface AdPlanItem {
@@ -138,17 +146,17 @@ const platformConfig = {
   },
 };
 
-// Theme emoji mapping
-const getThemeEmoji = (theme: string | undefined | null): string => {
-  if (!theme) return "📌";
+// Theme icon mapping - returns Lucide icon component
+const getThemeIcon = (theme: string | undefined | null): LucideIcon => {
+  if (!theme) return Pin;
   const lowerTheme = theme.toLowerCase();
-  if (lowerTheme.includes("holiday") || lowerTheme.includes("christmas")) return "🎄";
-  if (lowerTheme.includes("winter") || lowerTheme.includes("cold") || lowerTheme.includes("snow")) return "❄️";
-  if (lowerTheme.includes("family")) return "👨‍👩‍👧‍👦";
-  if (lowerTheme.includes("budget") || lowerTheme.includes("save")) return "💰";
-  if (lowerTheme.includes("safety") || lowerTheme.includes("tire")) return "🛡️";
-  if (lowerTheme.includes("summer") || lowerTheme.includes("road trip")) return "☀️";
-  return "📌";
+  if (lowerTheme.includes("holiday") || lowerTheme.includes("christmas")) return TreePine;
+  if (lowerTheme.includes("winter") || lowerTheme.includes("cold") || lowerTheme.includes("snow")) return Snowflake;
+  if (lowerTheme.includes("family")) return Users;
+  if (lowerTheme.includes("budget") || lowerTheme.includes("save")) return PiggyBank;
+  if (lowerTheme.includes("safety") || lowerTheme.includes("tire")) return ShieldCheck;
+  if (lowerTheme.includes("summer") || lowerTheme.includes("road trip")) return Sun;
+  return Pin;
 };
 
 // Dropdown options for edit modal
@@ -528,8 +536,15 @@ function PlatformSection({
                   className="border-b last:border-0 hover:bg-gray-50"
                 >
                   <td className="py-2 px-3 font-medium text-gray-800">
-                    <span className="mr-1">{getThemeEmoji(item.themeTopic)}</span>
-                    {item.themeTopic}
+                    {(() => {
+                      const ThemeIcon = getThemeIcon(item.themeTopic);
+                      return (
+                        <span className="inline-flex items-center gap-1.5">
+                          <ThemeIcon className="w-4 h-4 text-blue-600 shrink-0" />
+                          {item.themeTopic}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="py-2 px-3 text-gray-600">{item.template}</td>
                   <td className="py-2 px-3 text-gray-600">

@@ -202,7 +202,7 @@ function WidgetRenderer({
       return (
         <RecommendationsList
           onDismiss={() => {
-            // Return from detour if we were on one
+            // Return from detour if we were on one - SILENT action (no user bubble)
             if (flowState.detourStack.length > 0) {
               const returnTo = flowState.detourStack[flowState.detourStack.length - 1];
               onStateUpdate({
@@ -210,10 +210,9 @@ function WidgetRenderer({
                 detourStack: flowState.detourStack.slice(0, -1),
               });
             }
-            onSendMessage("I'll skip the recommendations for now");
           }}
-          onAction={(_id, actionLabel, title) => {
-            // Handle specific recommendation actions
+          onAction={(_id, actionLabel) => {
+            // Handle specific recommendation actions - SILENT (no user bubble)
             if (actionLabel === "Create New Avatar") {
               // Push current step to detour stack before going to avatar
               const currentAsGolden = isGoldenPathStep(flowState.currentStep)
@@ -224,7 +223,7 @@ function WidgetRenderer({
                 detourStack: [...flowState.detourStack, currentAsGolden],
               });
             }
-            onSendMessage(`I want to "${actionLabel}" for the "${title}" recommendation`);
+            // Other actions could navigate to different widgets or show info
           }}
         />
       );
@@ -235,14 +234,14 @@ function WidgetRenderer({
     case "avatar_photo":
       return (
         <AvatarPhotoCapture
-          onCapture={(_imageData, avatarName) => {
-            // Return from detour
+          onCapture={(_imageData, _avatarName) => {
+            // Return from detour - SILENT action (no user bubble)
+            // The success message is already shown in the widget
             const returnTo = flowState.detourStack[flowState.detourStack.length - 1] || "performance_dashboard";
             onStateUpdate({
               currentStep: returnTo,
               detourStack: flowState.detourStack.slice(0, -1),
             });
-            onSendMessage(`I've uploaded a new avatar photo: ${avatarName}`);
           }}
         />
       );

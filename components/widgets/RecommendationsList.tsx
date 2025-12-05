@@ -2,17 +2,32 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Lightbulb, Camera, RefreshCw, Youtube } from "lucide-react";
+import {
+  Lightbulb,
+  Sparkles,
+  PauseCircle,
+  Youtube,
+  TrendingUp,
+  Gift,
+  LucideIcon,
+} from "lucide-react";
 
 export interface Recommendation {
   id: string;
   category: "included" | "levelup";
-  icon: string; // emoji
+  icon: "sparkles" | "pause" | "youtube"; // Lucide icon key
   title: string;
   description: string;
   actionLabel: string;
   onAction?: () => void;
 }
+
+// Icon mapping for recommendation items
+const iconMap: Record<string, LucideIcon> = {
+  sparkles: Sparkles,
+  pause: PauseCircle,
+  youtube: Youtube,
+};
 
 export interface RecommendationsListProps {
   recommendations?: Recommendation[];
@@ -25,7 +40,7 @@ const demoRecommendations: Recommendation[] = [
   {
     id: "1",
     category: "included",
-    icon: "📸",
+    icon: "sparkles",
     title: "Freshen Up Your Look",
     description:
       "Ad fatigue is real — viewers tune out familiar faces. Throw on an Illini tee or winter sweater and we'll create a new avatar. You have 4 photo sessions included this month (0 used).",
@@ -34,7 +49,7 @@ const demoRecommendations: Recommendation[] = [
   {
     id: "2",
     category: "included",
-    icon: "🔄",
+    icon: "pause",
     title: "Rest Your Multi-Car Template",
     description:
       "You've run it 47 times! Swap it out for 2-3 months and it'll feel fresh again.",
@@ -43,20 +58,13 @@ const demoRecommendations: Recommendation[] = [
   {
     id: "3",
     category: "levelup",
-    icon: "📺",
+    icon: "youtube",
     title: "Expand to YouTube Shorts",
     description:
       "Your TikToks are crushing it — same content, whole new audience.",
     actionLabel: "Learn More",
   },
 ];
-
-// Icon mapping for Lucide icons (used for section headers)
-const iconComponents = {
-  camera: Camera,
-  refresh: RefreshCw,
-  youtube: Youtube,
-};
 
 function RecommendationCard({
   recommendation,
@@ -65,11 +73,13 @@ function RecommendationCard({
   recommendation: Recommendation;
   onAction?: (id: string, actionLabel: string, title: string) => void;
 }) {
+  const IconComponent = iconMap[recommendation.icon] || Sparkles;
+
   return (
     <div className="p-3 md:p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
-      {/* Title row with emoji */}
+      {/* Title row with Lucide icon */}
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-lg">{recommendation.icon}</span>
+        <IconComponent className="w-5 h-5 text-blue-600 shrink-0" />
         <h4 className="font-medium text-gray-900">{recommendation.title}</h4>
       </div>
 
@@ -125,9 +135,12 @@ export function RecommendationsList({
         {/* INCLUDED WITH YOUR PLAN */}
         {includedRecs.length > 0 && (
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Included with your plan
-            </h3>
+            <div className="flex items-center gap-1.5">
+              <Gift className="w-4 h-4 text-gray-400" />
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Included with your plan
+              </h3>
+            </div>
             <div className="space-y-3">
               {includedRecs.map((rec) => (
                 <RecommendationCard
@@ -143,9 +156,12 @@ export function RecommendationsList({
         {/* LEVEL UP */}
         {levelupRecs.length > 0 && (
           <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              Level Up
-            </h3>
+            <div className="flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4 text-gray-400" />
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Level Up
+              </h3>
+            </div>
             <div className="space-y-3">
               {levelupRecs.map((rec) => (
                 <RecommendationCard

@@ -14,6 +14,11 @@ import {
   User,
   Loader2,
   Video,
+  Music2,
+  Facebook,
+  Youtube,
+  Camera,
+  LucideIcon,
 } from "lucide-react";
 
 type Platform = "tiktok" | "facebook" | "youtube" | "instagram";
@@ -43,11 +48,11 @@ interface ScriptApprovalCardsProps {
   onComplete?: () => void;
 }
 
-const platformConfig: Record<Platform, { name: string; icon: string; color: string }> = {
-  tiktok: { name: "TikTok", icon: "🎵", color: "bg-black text-white" },
-  facebook: { name: "Facebook", icon: "📘", color: "bg-blue-600 text-white" },
-  youtube: { name: "YouTube", icon: "📺", color: "bg-red-600 text-white" },
-  instagram: { name: "Instagram", icon: "📸", color: "bg-gradient-to-r from-purple-500 to-pink-500 text-white" },
+const platformConfig: Record<Platform, { name: string; Icon: LucideIcon; bgColor: string; iconColor: string }> = {
+  tiktok: { name: "TikTok", Icon: Music2, bgColor: "bg-gray-900", iconColor: "text-white" },
+  facebook: { name: "Facebook", Icon: Facebook, bgColor: "bg-blue-600", iconColor: "text-white" },
+  youtube: { name: "YouTube", Icon: Youtube, bgColor: "bg-red-600", iconColor: "text-white" },
+  instagram: { name: "Instagram", Icon: Camera, bgColor: "bg-gradient-to-r from-purple-500 to-pink-500", iconColor: "text-white" },
 };
 
 // Demo scripts organized by platform
@@ -239,7 +244,9 @@ function PlatformSection({
           ) : (
             <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />
           )}
-          <span className="text-base md:text-lg shrink-0">{config.icon}</span>
+          <div className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${config.bgColor}`}>
+            <config.Icon className={`w-3.5 h-3.5 ${config.iconColor}`} />
+          </div>
           <span className="font-medium text-gray-900 truncate">{config.name}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
