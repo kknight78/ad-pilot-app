@@ -11,25 +11,20 @@ import {
   ContentCalendar,
   PerformanceDashboard,
   RecommendationsList,
-  SuggestionCards,
   AdPlanWidget,
-  ThemeSelector,
-  TopicSelector,
-  VehicleSelector,
   ProgressIndicator,
   ActionButtons,
+  // V2 widgets with real backend integration
+  ThemeSelectorV2,
+  TopicSelectorV2,
+  VehicleSelectorV2,
   type GuidanceRule,
   type Vehicle,
   type ScheduledPost,
   type PlatformData,
   type TopContent,
   type Recommendation,
-  type Suggestion,
   type AdPlanData,
-  type Theme,
-  type Topic,
-  type VehicleOption,
-  type AdSlot,
   type ProgressItem,
   type ActionButton,
 } from "./widgets";
@@ -201,15 +196,12 @@ function WidgetRenderer({
       return <PerformanceDashboard weeks={weekData} />;
     }
     case "recommendations": {
-      const data = widget.data as {
-        recommendations: Recommendation[];
-        suggestions: Suggestion[];
-      };
+      // Use the new self-contained RecommendationsList (expert-curated, 2-3 items)
       return (
-        <div className="space-y-4">
-          <RecommendationsList recommendations={data.recommendations} />
-          <SuggestionCards suggestions={data.suggestions} />
-        </div>
+        <RecommendationsList
+          onDismiss={() => onSendMessage("Dismiss recommendation")}
+          onAction={(id) => onSendMessage(`Take action on recommendation ${id}`)}
+        />
       );
     }
     case "ad_plan": {
@@ -217,63 +209,37 @@ function WidgetRenderer({
       return <AdPlanWidget data={data} />;
     }
     case "theme_selector": {
-      const data = widget.data as { themes: Theme[] };
+      // V2 widget with 3-option flow: Choose for me / Specific / Inspire me
       return (
-        <ThemeSelector
-          themes={data.themes}
-          onContinue={(selectedThemes) => {
-            if (selectedThemes.length > 0) {
-              onSendMessage(`I chose the "${selectedThemes[0].name}" theme`);
+        <ThemeSelectorV2
+          onContinue={(theme) => {
+            if (theme) {
+              onSendMessage(`I chose the "${theme}" theme`);
+            } else {
+              onSendMessage("Choose a theme for me - keep it general");
             }
-          }}
-          onSkip={() => {
-            onSendMessage("No theme - keep it general");
-          }}
-          onRequestMore={() => {
-            onSendMessage("Show me more theme options");
           }}
         />
       );
     }
     case "topic_selector": {
-      const data = widget.data as { topics: Topic[]; numberOfTopics: number };
+      // V2 widget with multi-select and real backend integration
       return (
-        <TopicSelector
-          topics={data.topics}
-          numberOfTopics={data.numberOfTopics}
-          onContinue={(selectedTopics) => {
-            const topicNames = selectedTopics.map((t) => t.title).join(" and ");
+        <TopicSelectorV2
+          onContinue={(topics) => {
+            const topicNames = topics.join(" and ");
             onSendMessage(`I chose these topics: ${topicNames}`);
-          }}
-          onRequestMore={() => {
-            onSendMessage("Show me more topic options");
-          }}
-          onCustomInput={(customTopic) => {
-            onSendMessage(`I want to do a topic about: ${customTopic}`);
-          }}
-          onSubjectArea={(subject) => {
-            onSendMessage(`Generate topics about: ${subject}`);
           }}
         />
       );
     }
     case "vehicle_selector": {
-      const data = widget.data as { vehicles: VehicleOption[]; adSlots: AdSlot[] };
+      // V2 widget with real inventory integration
       return (
-        <VehicleSelector
-          vehicles={data.vehicles}
-          adSlots={data.adSlots}
-          onConfirm={(assignments) => {
-            const vehicleCount = assignments.reduce(
-              (sum, slot) => sum + slot.vehicleIds.length,
-              0
-            );
-            onSendMessage(
-              `I've confirmed the vehicle selections (${vehicleCount} vehicles across ${assignments.length} ad slots)`
-            );
-          }}
-          onReset={() => {
-            onSendMessage("Reset vehicle selections to suggestions");
+        <VehicleSelectorV2
+          onContinue={(selections) => {
+            const totalVehicles = Object.values(selections).flat().length;
+            onSendMessage(`I've confirmed ${totalVehicles} vehicles for the ads`);
           }}
         />
       );
