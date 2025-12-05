@@ -18,7 +18,7 @@ export interface Recommendation {
 export interface RecommendationsListProps {
   recommendations?: Recommendation[];
   onDismiss?: () => void;
-  onAction?: (id: string) => void;
+  onAction?: (id: string, actionLabel: string, title: string) => void;
 }
 
 // Demo data with curated recommendations
@@ -64,7 +64,7 @@ function RecommendationCard({
   onAction,
 }: {
   recommendation: Recommendation;
-  onAction?: (id: string) => void;
+  onAction?: (id: string, actionLabel: string, title: string) => void;
 }) {
   return (
     <div className="p-4 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
@@ -77,7 +77,7 @@ function RecommendationCard({
         <Button
           variant="outline"
           size="sm"
-          onClick={() => onAction?.(recommendation.id)}
+          onClick={() => onAction?.(recommendation.id, recommendation.actionLabel, recommendation.title)}
           className="text-xs shrink-0"
         >
           {recommendation.actionLabel}

@@ -121,8 +121,8 @@ function WidgetRenderer({
     case "recommendations":
       return (
         <RecommendationsList
-          onDismiss={() => onSendMessage("Dismiss recommendation")}
-          onAction={(id) => onSendMessage(`Take action on recommendation ${id}`)}
+          onDismiss={() => onSendMessage("I'll skip the recommendations for now")}
+          onAction={(_id, actionLabel, title) => onSendMessage(`I want to "${actionLabel}" for the "${title}" recommendation`)}
         />
       );
 
