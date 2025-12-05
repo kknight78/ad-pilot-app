@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Share, Plus } from "lucide-react";
+import { X, Share, Plus, Check } from "lucide-react";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -13,6 +13,7 @@ export function InstallPrompt() {
   const [isIOS, setIsIOS] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
     // Check if already installed as PWA
@@ -59,7 +60,9 @@ export function InstallPrompt() {
       await deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === "accepted") {
-        setShowPrompt(false);
+        setInstalled(true);
+        // Auto-hide after 5 seconds
+        setTimeout(() => setShowPrompt(false), 5000);
       }
       setDeferredPrompt(null);
     }
@@ -74,12 +77,14 @@ export function InstallPrompt() {
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gray-900 text-white shadow-2xl border-t border-gray-700 animate-slide-up">
-      <button
-        onClick={handleDismiss}
-        className="absolute top-2 right-2 p-1 text-gray-400 hover:text-white"
-      >
-        <X className="w-5 h-5" />
-      </button>
+      {!installed && (
+        <button
+          onClick={handleDismiss}
+          className="absolute top-2 right-2 p-1 text-gray-400 hover:text-white"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      )}
 
       <div className="flex items-start gap-3">
         {/* Icon */}
@@ -92,24 +97,38 @@ export function InstallPrompt() {
         </div>
 
         <div className="flex-1 min-w-0">
-          <h3 className="font-semibold text-base">Install Ad Pilot</h3>
-
-          {isIOS ? (
-            <p className="text-sm text-gray-300 mt-1">
-              Tap <Share className="w-4 h-4 inline-block mx-1" /> then{" "}
-              <span className="whitespace-nowrap">&quot;Add to Home Screen&quot;</span>
-            </p>
+          {installed ? (
+            <>
+              <h3 className="font-semibold text-base flex items-center gap-2">
+                <Check className="w-5 h-5 text-green-400" />
+                App Installed!
+              </h3>
+              <p className="text-sm text-gray-300 mt-1">
+                Look for Ad Pilot on your home screen
+              </p>
+            </>
           ) : (
             <>
-              <p className="text-sm text-gray-300 mt-1">
-                Get quick access from your home screen
-              </p>
-              <button
-                onClick={handleInstall}
-                className="mt-2 px-4 py-1.5 bg-blue-500 hover:bg-blue-600 rounded-lg text-sm font-medium transition-colors"
-              >
-                Install App
-              </button>
+              <h3 className="font-semibold text-base">Install Ad Pilot</h3>
+
+              {isIOS ? (
+                <p className="text-sm text-gray-300 mt-1">
+                  Tap <Share className="w-4 h-4 inline-block mx-1" /> then{" "}
+                  <span className="whitespace-nowrap">&quot;Add to Home Screen&quot;</span>
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-300 mt-1">
+                    Get quick access from your home screen
+                  </p>
+                  <button
+                    onClick={handleInstall}
+                    className="mt-2 px-4 py-1.5 bg-blue-500 hover:bg-blue-600 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Install App
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>
