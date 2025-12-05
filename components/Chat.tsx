@@ -74,18 +74,12 @@ function WidgetRenderer({
       return (
         <ThemeSelectorV2
           onContinue={(theme) => {
-            // Update state - move to topic_selector (or ad_plan if no educational)
+            // Update state - move to topic_selector (silent, no user bubble)
             onStateUpdate({
               currentStep: "topic_selector",
               completedSteps: [...flowState.completedSteps, "theme_selector"] as GoldenPathStep[],
               selections: { ...flowState.selections, theme: theme || "general" },
             });
-            // Send message for Claude
-            if (theme) {
-              onSendMessage(`I chose the "${theme}" theme`);
-            } else {
-              onSendMessage("Choose a theme for me - keep it general");
-            }
           }}
         />
       );
@@ -94,15 +88,12 @@ function WidgetRenderer({
       return (
         <TopicSelectorV2
           onContinue={(topics) => {
-            // Update state
+            // Update state (silent, no user bubble)
             onStateUpdate({
               currentStep: "ad_plan",
               completedSteps: [...flowState.completedSteps, "topic_selector"] as GoldenPathStep[],
               selections: { ...flowState.selections, topics },
             });
-            // Send message
-            const topicNames = topics.join(" and ");
-            onSendMessage(`I chose these topics: ${topicNames}`);
           }}
         />
       );
@@ -111,11 +102,11 @@ function WidgetRenderer({
       return (
         <AdPlanWidget
           onConfirm={() => {
+            // Update state (silent, no user bubble)
             onStateUpdate({
               currentStep: "vehicle_selector",
               completedSteps: [...flowState.completedSteps, "ad_plan"] as GoldenPathStep[],
             });
-            onSendMessage("I've confirmed the content plan - let's pick vehicles");
           }}
         />
       );
@@ -133,7 +124,7 @@ function WidgetRenderer({
             }
             const totalVehicles = Object.values(selections).flat().length;
 
-            // Update state
+            // Update state (silent, no user bubble)
             onStateUpdate({
               currentStep: "script_approval",
               completedSteps: [...flowState.completedSteps, "vehicle_selector"] as GoldenPathStep[],
@@ -143,8 +134,6 @@ function WidgetRenderer({
                 vehicleCount: totalVehicles,
               },
             });
-            // Send message
-            onSendMessage(`I've confirmed ${totalVehicles} vehicles for the ads`);
           }}
         />
       );
@@ -154,12 +143,11 @@ function WidgetRenderer({
         <ScriptApprovalCards
           onApprove={(id) => console.log("Approved script:", id)}
           onComplete={() => {
-            // Update state
+            // Update state (silent, no user bubble)
             onStateUpdate({
               currentStep: "generation_progress",
               completedSteps: [...flowState.completedSteps, "script_approval"] as GoldenPathStep[],
             });
-            onSendMessage("I've approved all scripts - ready to generate");
           }}
         />
       );
@@ -168,12 +156,11 @@ function WidgetRenderer({
       return (
         <GenerationProgress
           onPreviewAll={() => {
-            // Update state
+            // Update state (silent, no user bubble)
             onStateUpdate({
               currentStep: "publish_widget",
               completedSteps: [...flowState.completedSteps, "generation_progress"] as GoldenPathStep[],
             });
-            onSendMessage("Videos are ready!");
           }}
         />
       );
@@ -185,15 +172,15 @@ function WidgetRenderer({
             console.log("Published to:", platforms);
           }}
           onSaveForLater={() => {
-            onSendMessage("I'll save this video for later");
+            // Silent action - no user bubble
+            console.log("Saved for later");
           }}
           onNext={() => {
-            // When all videos are done
+            // Update state (silent, no user bubble)
             onStateUpdate({
               currentStep: "wrap_up",
               completedSteps: [...flowState.completedSteps, "publish_widget"] as GoldenPathStep[],
             });
-            onSendMessage("I've approved all the videos for publishing!");
           }}
         />
       );
