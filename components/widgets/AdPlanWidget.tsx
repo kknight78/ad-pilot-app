@@ -670,30 +670,27 @@ export function AdPlanWidget({
       <Card className="w-full max-w-4xl">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <CardTitle className="text-lg">
-                  This Week&apos;s Content Plan
-                </CardTitle>
-                <p className="text-sm text-gray-500">{localData.dateRange}</p>
+            <div>
+              <CardTitle className="text-lg">
+                This Week&apos;s Content Plan
+              </CardTitle>
+              <p className="text-sm text-gray-500">{localData.dateRange}</p>
+              {/* Strategy Badges */}
+              <div className="flex flex-wrap gap-2 mt-2">
+                {localData.strategyBadges.map((badge, index) => (
+                  <Badge
+                    key={index}
+                    variant="secondary"
+                    className="bg-green-50 text-green-700 border-green-200"
+                  >
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    {badge}
+                  </Badge>
+                ))}
               </div>
             </div>
-
-            {/* Strategy Badges */}
-            <div className="flex flex-wrap gap-2">
-              {localData.strategyBadges.map((badge, index) => (
-                <Badge
-                  key={index}
-                  variant="secondary"
-                  className="bg-green-50 text-green-700 border-green-200"
-                >
-                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                  {badge}
-                </Badge>
-              ))}
+            <div className="p-2 bg-blue-100 rounded-lg shrink-0">
+              <Calendar className="w-5 h-5 text-blue-600" />
             </div>
           </div>
         </CardHeader>

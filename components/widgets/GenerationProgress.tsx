@@ -270,15 +270,15 @@ export function GenerationProgress({
     <Card className="w-full max-w-lg">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Film className="w-5 h-5 text-blue-600" />
-            </div>
+          <div>
             <CardTitle className="text-lg">Generating Videos</CardTitle>
+            <p className="text-sm text-gray-500">
+              {doneCount} of {totalCount} complete
+            </p>
           </div>
-          <span className="text-gray-500 text-sm font-medium">
-            {doneCount} of {totalCount}
-          </span>
+          <div className="p-2 bg-blue-100 rounded-lg shrink-0">
+            <Film className="w-5 h-5 text-blue-600" />
+          </div>
         </div>
       </CardHeader>
 

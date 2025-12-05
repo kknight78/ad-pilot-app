@@ -12,8 +12,6 @@ import {
   ChevronDown,
   CheckCheck,
   User,
-  Loader2,
-  Video,
   Music2,
   Facebook,
   Youtube,
@@ -371,8 +369,6 @@ export function ScriptApprovalCards({
     instagram: 0,
   });
   const [activePlatform, setActivePlatform] = useState<Platform | null>("tiktok");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationComplete, setGenerationComplete] = useState(false);
 
   // Group scripts by platform
   const platformOrder: Platform[] = ["tiktok", "facebook", "youtube", "instagram"];
@@ -463,67 +459,33 @@ export function ScriptApprovalCards({
   return (
     <Card className="w-full max-w-lg">
       <CardHeader className="pb-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 md:p-2 bg-amber-100 rounded-lg shrink-0">
-              <FileText className="w-4 h-4 md:w-5 md:h-5 text-amber-600" />
-            </div>
-            <div className="min-w-0">
-              <CardTitle className="text-base md:text-lg">Script Approval</CardTitle>
-              <p className="text-xs md:text-sm text-gray-500">
-                {totalCount} scripts
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500 whitespace-nowrap">
-              {pendingCount} pending
-            </span>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <CardTitle className="text-base md:text-lg">Script Approval</CardTitle>
+            <p className="text-xs md:text-sm text-gray-500">
+              {totalCount} scripts • {pendingCount} pending
+            </p>
             {!allApproved && (
               <Button
                 size="sm"
                 variant="outline"
                 onClick={handleApproveAll}
-                className="text-xs whitespace-nowrap"
+                className="text-xs whitespace-nowrap mt-2"
               >
                 <CheckCheck className="w-3 h-3 mr-1" />
                 Approve All
               </Button>
             )}
           </div>
+          <div className="p-1.5 md:p-2 bg-amber-100 rounded-lg shrink-0">
+            <FileText className="w-4 h-4 md:w-5 md:h-5 text-amber-600" />
+          </div>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-3">
-        {/* Generation Complete State */}
-        {generationComplete ? (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Video className="w-8 h-8 text-purple-600" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Videos Generating!
-            </h3>
-            <p className="text-gray-600 mb-2">
-              {totalCount} videos are being created now.
-            </p>
-            <p className="text-sm text-gray-500">
-              This usually takes 5-10 minutes. We&apos;ll show your videos for review when they&apos;re ready!
-            </p>
-          </div>
-        ) : isGenerating ? (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Starting Video Generation...
-            </h3>
-            <p className="text-gray-600">
-              Grab a coffee while we work our magic!
-            </p>
-          </div>
-        ) : allApproved ? (
+        {/* All Approved State - show button to continue */}
+        {allApproved ? (
           <div className="text-center py-8">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-8 h-8 text-green-600" />
@@ -534,15 +496,7 @@ export function ScriptApprovalCards({
             <p className="text-gray-600 mb-6">
               {totalCount} scripts ready for video generation
             </p>
-            <Button onClick={() => {
-              setIsGenerating(true);
-              onComplete?.();
-              // Simulate generation starting then complete
-              setTimeout(() => {
-                setIsGenerating(false);
-                setGenerationComplete(true);
-              }, 2000);
-            }}>
+            <Button onClick={() => onComplete?.()}>
               Generate Videos
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>

@@ -6,13 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Film,
-  Play,
-  Pause,
   Check,
   Pencil,
   X,
   Calendar,
   Save,
+  Music2,
+  Facebook,
+  Youtube,
+  Camera,
+  LucideIcon,
 } from "lucide-react";
 
 type Platform = "tiktok" | "facebook" | "instagram" | "youtube";
@@ -35,28 +38,36 @@ interface PublishWidgetProps {
   onNext?: () => void;
 }
 
-const platformConfig: Record<Platform, { name: string; icon: string; tips: string; charLimit: number }> = {
+const platformConfig: Record<Platform, { name: string; Icon: LucideIcon; bgColor: string; iconColor: string; tips: string; charLimit: number }> = {
   tiktok: {
     name: "TikTok",
-    icon: "🎵",
+    Icon: Music2,
+    bgColor: "bg-black",
+    iconColor: "text-white",
     tips: "Keep it short, use trending hashtags, no links (say \"link in bio\")",
     charLimit: 300,
   },
   facebook: {
     name: "Facebook",
-    icon: "📘",
+    Icon: Facebook,
+    bgColor: "bg-blue-600",
+    iconColor: "text-white",
     tips: "Conversational tone, fewer hashtags, include a link to your website",
     charLimit: 500,
   },
   instagram: {
     name: "Instagram",
-    icon: "📸",
+    Icon: Camera,
+    bgColor: "bg-pink-500",
+    iconColor: "text-white",
     tips: "Medium length, hashtags OK, no clickable links (say \"link in bio\")",
     charLimit: 400,
   },
   youtube: {
     name: "YouTube",
-    icon: "📺",
+    Icon: Youtube,
+    bgColor: "bg-red-600",
+    iconColor: "text-white",
     tips: "SEO-friendly title and description, links OK in description",
     charLimit: 500,
   },
@@ -206,7 +217,9 @@ function PlatformRow({
         {/* Platform info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span>{config.icon}</span>
+            <div className={`w-5 h-5 rounded flex items-center justify-center ${config.bgColor}`}>
+              <config.Icon className={`w-3 h-3 ${config.iconColor}`} />
+            </div>
             <span className="font-medium text-gray-900">{config.name}</span>
           </div>
           <p className="text-sm text-gray-600 line-clamp-2">
@@ -238,22 +251,10 @@ export function PublishWidget({
   onNext,
 }: PublishWidgetProps) {
   const [platforms, setPlatforms] = useState(initialPlatforms);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [editingPlatform, setEditingPlatform] = useState<Platform | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [published, setPublished] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  // Control video playback
-  useEffect(() => {
-    if (videoRef.current) {
-      if (isPlaying) {
-        videoRef.current.play();
-      } else {
-        videoRef.current.pause();
-      }
-    }
-  }, [isPlaying]);
 
   const selectedPlatforms = platforms.filter((p) => p.enabled);
   const selectedCount = selectedPlatforms.length;
@@ -334,11 +335,14 @@ export function PublishWidget({
                 Your video will be published to:
               </p>
               <div className="flex justify-center gap-2 mb-6">
-                {selectedPlatforms.map((p) => (
-                  <span key={p.platform} className="text-2xl">
-                    {platformConfig[p.platform].icon}
-                  </span>
-                ))}
+                {selectedPlatforms.map((p) => {
+                  const config = platformConfig[p.platform];
+                  return (
+                    <div key={p.platform} className={`w-8 h-8 rounded-lg flex items-center justify-center ${config.bgColor}`}>
+                      <config.Icon className={`w-5 h-5 ${config.iconColor}`} />
+                    </div>
+                  );
+                })}
               </div>
               {currentVideo < totalVideos ? (
                 <Button onClick={handleNextVideo}>
@@ -352,34 +356,21 @@ export function PublishWidget({
             </div>
           ) : (
             <>
-              {/* Video Player - Vertical 9:16 aspect ratio */}
+              {/* Video Player - Vertical 9:16 aspect ratio with native controls */}
               <div className="flex justify-center">
                 <div className="relative w-48 bg-gray-900 rounded-lg overflow-hidden" style={{ aspectRatio: '9/16' }}>
-                  {/* Actual video */}
+                  {/* Actual video with native controls for audio */}
                   <video
                     ref={videoRef}
                     className="absolute inset-0 w-full h-full object-cover"
                     src="https://res.cloudinary.com/dtpqxuwby/video/upload/v1763688792/facebook_2025-11-20_test.mp4"
                     playsInline
-                    muted
                     loop
-                    onClick={() => setIsPlaying(!isPlaying)}
+                    controls
                   />
 
-                  {/* Play/Pause overlay */}
-                  {!isPlaying && (
-                    <button
-                      onClick={() => setIsPlaying(true)}
-                      className="absolute inset-0 flex items-center justify-center bg-black/30"
-                    >
-                      <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
-                        <Play className="w-6 h-6 text-white ml-0.5" />
-                      </div>
-                    </button>
-                  )}
-
-                  {/* Video title overlay */}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+                  {/* Video title overlay - positioned above controls */}
+                  <div className="absolute bottom-10 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3 pointer-events-none">
                     <p className="text-white text-xs font-medium">
                       {videoTitle} — {videoTheme}
                     </p>

@@ -118,15 +118,15 @@ export function RecommendationsList({
   return (
     <Card className="w-full max-w-lg">
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-amber-100 rounded-lg">
-            <Lightbulb className="w-5 h-5 text-amber-600" />
-          </div>
+        <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-lg">Recommendations</CardTitle>
             <p className="text-sm text-gray-500">
               Ways to improve your video performance
             </p>
+          </div>
+          <div className="p-2 bg-amber-100 rounded-lg shrink-0">
+            <Lightbulb className="w-5 h-5 text-amber-600" />
           </div>
         </div>
       </CardHeader>

@@ -20,7 +20,35 @@ import {
   AlertTriangle,
   Clock,
   Car,
+  Music2,
+  Facebook,
+  Youtube,
+  Camera,
+  LucideIcon,
 } from "lucide-react";
+
+// Platform icon configuration
+const platformIcons: Record<string, { Icon: LucideIcon; bgColor: string; iconColor: string }> = {
+  TikTok: { Icon: Music2, bgColor: "bg-black", iconColor: "text-white" },
+  Facebook: { Icon: Facebook, bgColor: "bg-blue-600", iconColor: "text-white" },
+  YouTube: { Icon: Youtube, bgColor: "bg-red-600", iconColor: "text-white" },
+  Instagram: { Icon: Camera, bgColor: "bg-pink-500", iconColor: "text-white" },
+};
+
+function PlatformIcon({ platform }: { platform: string }) {
+  const config = platformIcons[platform];
+  if (!config) return <span className="text-gray-600">{platform}</span>;
+
+  const { Icon, bgColor, iconColor } = config;
+  return (
+    <div className="flex items-center gap-2">
+      <div className={`w-5 h-5 rounded flex items-center justify-center ${bgColor}`}>
+        <Icon className={`w-3 h-3 ${iconColor}`} />
+      </div>
+      <span className="text-gray-900">{platform}</span>
+    </div>
+  );
+}
 
 export interface PlatformData {
   platform: string;
@@ -264,33 +292,32 @@ export function PerformanceDashboard({
   return (
     <Card className="w-full max-w-2xl">
       <CardHeader className="pb-3 px-3 md:px-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 md:p-2 bg-blue-100 rounded-lg">
-              <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
-            </div>
+        <div className="flex items-start justify-between gap-2">
+          <div>
             <CardTitle className="text-base md:text-lg">Last Week&apos;s Performance</CardTitle>
+            {/* Week Navigation */}
+            <div className="flex items-center gap-1 md:gap-2 mt-1">
+              <button
+                onClick={goToPreviousWeek}
+                disabled={!canGoBack}
+                className={`p-1 rounded hover:bg-gray-100 ${!canGoBack ? "opacity-30 cursor-not-allowed" : ""}`}
+              >
+                <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
+              </button>
+              <span className="text-xs md:text-sm text-gray-600 whitespace-nowrap">
+                {currentWeek.startDate} - {currentWeek.endDate}
+              </span>
+              <button
+                onClick={goToNextWeek}
+                disabled={!canGoForward}
+                className={`p-1 rounded hover:bg-gray-100 ${!canGoForward ? "opacity-30 cursor-not-allowed" : ""}`}
+              >
+                <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
+              </button>
+            </div>
           </div>
-
-          {/* Week Navigation */}
-          <div className="flex items-center gap-1 md:gap-2">
-            <button
-              onClick={goToPreviousWeek}
-              disabled={!canGoBack}
-              className={`p-1 rounded hover:bg-gray-100 ${!canGoBack ? "opacity-30 cursor-not-allowed" : ""}`}
-            >
-              <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
-            </button>
-            <span className="text-xs md:text-sm text-gray-600 whitespace-nowrap">
-              {currentWeek.startDate} - {currentWeek.endDate}
-            </span>
-            <button
-              onClick={goToNextWeek}
-              disabled={!canGoForward}
-              className={`p-1 rounded hover:bg-gray-100 ${!canGoForward ? "opacity-30 cursor-not-allowed" : ""}`}
-            >
-              <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
-            </button>
+          <div className="p-1.5 md:p-2 bg-blue-100 rounded-lg shrink-0">
+            <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
           </div>
         </div>
       </CardHeader>
@@ -361,7 +388,9 @@ export function PerformanceDashboard({
               <tbody>
                 {currentWeek.platforms.map((p) => (
                   <tr key={p.platform} className="border-b border-gray-100 last:border-0">
-                    <td className="py-2 px-1 font-medium">{p.platform}</td>
+                    <td className="py-2 px-1 font-medium">
+                      <PlatformIcon platform={p.platform} />
+                    </td>
                     <td className="text-right py-2 px-1 text-gray-600">{formatNumber(p.views)}</td>
                     <td className="text-right py-2 px-1 text-gray-600">{p.leads}</td>
                     <td className="text-right py-2 px-1 text-gray-600">{formatCurrency(p.spend)}</td>

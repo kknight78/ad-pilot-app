@@ -107,15 +107,15 @@ export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) 
   return (
     <Card className="w-full max-w-xl">
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-purple-100 rounded-lg">
-            <Palette className="w-5 h-5 text-purple-600" />
-          </div>
+        <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-lg">Weekly Theme</CardTitle>
             <p className="text-sm text-gray-500">
               Sets the tone for your ads
             </p>
+          </div>
+          <div className="p-2 bg-purple-100 rounded-lg shrink-0">
+            <Palette className="w-5 h-5 text-purple-600" />
           </div>
         </div>
       </CardHeader>

@@ -157,15 +157,15 @@ export function AvatarPhotoCapture({
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <div className="p-2 bg-purple-100 rounded-lg shrink-0">
-            <Camera className="w-5 h-5 text-purple-600" />
-          </div>
+        <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-lg">Add Avatar Photo</CardTitle>
             <p className="text-sm text-gray-500">
               New look for {presenterName}
             </p>
+          </div>
+          <div className="p-2 bg-purple-100 rounded-lg shrink-0">
+            <Camera className="w-5 h-5 text-purple-600" />
           </div>
         </div>
       </CardHeader>
@@ -302,21 +302,19 @@ export function AvatarPhotoCapture({
             {/* Preview mode */}
             {mode === "preview" && capturedImage && (
               <div className="space-y-4">
-                {/* Avatar Name Input (if not already filled) */}
-                {!avatarName && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Avatar Name
-                    </label>
-                    <input
-                      type="text"
-                      value={avatarName}
-                      onChange={(e) => setAvatarName(e.target.value)}
-                      placeholder="e.g., Winter Shad, Casual Gary"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    />
-                  </div>
-                )}
+                {/* Avatar Name Input - always show in preview if not filled from select mode */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Avatar Name
+                  </label>
+                  <input
+                    type="text"
+                    value={avatarName}
+                    onChange={(e) => setAvatarName(e.target.value)}
+                    placeholder="e.g., Winter Shad, Casual Gary"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </div>
 
                 <div className="relative aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}

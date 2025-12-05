@@ -109,19 +109,6 @@ const platformConfig = {
   },
 };
 
-// Theme emoji mapping
-const getThemeEmoji = (theme: string | undefined | null): string => {
-  if (!theme) return "📌";
-  const lowerTheme = theme.toLowerCase();
-  if (lowerTheme.includes("holiday") || lowerTheme.includes("christmas")) return "🎄";
-  if (lowerTheme.includes("winter") || lowerTheme.includes("cold") || lowerTheme.includes("snow")) return "❄️";
-  if (lowerTheme.includes("family")) return "👨‍👩‍👧‍👦";
-  if (lowerTheme.includes("budget") || lowerTheme.includes("save")) return "💰";
-  if (lowerTheme.includes("safety") || lowerTheme.includes("tire")) return "🛡️";
-  if (lowerTheme.includes("summer") || lowerTheme.includes("road trip")) return "☀️";
-  return "📌";
-};
-
 // Text-only chip components (no backgrounds)
 function UrgencyText({ children }: { children: React.ReactNode }) {
   return (
@@ -397,15 +384,15 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
     <>
       <Card className="w-full max-w-3xl">
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Car className="w-5 h-5 text-green-600" />
-            </div>
+          <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-lg">Select Vehicles for Your Ads</CardTitle>
               <p className="text-sm text-gray-500">
                 Choose vehicles for each ad in your plan
               </p>
+            </div>
+            <div className="p-2 bg-green-100 rounded-lg shrink-0">
+              <Car className="w-5 h-5 text-green-600" />
             </div>
           </div>
         </CardHeader>
@@ -413,9 +400,16 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
         <CardContent className="space-y-6">
           {/* === SUGGESTED PRIORITIES SECTION === */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-gray-700">Suggested Priorities</span>
-              <Badge variant="secondary" className="text-xs">Top 6</Badge>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-gray-700">Suggested Priorities</span>
+                <Badge variant="secondary" className="text-xs">Top 6</Badge>
+              </div>
+              {/* Legend */}
+              <div className="flex items-center gap-3 text-xs text-gray-500">
+                <span><span className="text-red-600">‼️</span> = Days on lot / High miles</span>
+                <span><span className="text-green-600">✅</span> = Winter ready</span>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
@@ -427,32 +421,39 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
                 return (
                   <div
                     key={vehicle.id}
-                    className="p-2 md:p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    className="p-2 md:p-3 bg-gray-50 rounded-lg border border-gray-200 flex gap-3"
                   >
-                    {/* Row 1: Number + Year Make Model */}
-                    <div className="text-sm font-medium text-gray-900">
-                      {index + 1}. {vehicle.year} {vehicle.make} {vehicle.model}
+                    {/* Thumbnail - desktop only */}
+                    <div className="hidden md:flex w-16 h-16 bg-gray-200 rounded-lg items-center justify-center shrink-0">
+                      <Car className="w-8 h-8 text-gray-400" />
                     </div>
 
-                    {/* Row 2: VIN - truncated on mobile */}
-                    <div className="text-xs text-gray-400 font-mono mt-1 truncate">
-                      {vehicle.vin || "VIN unavailable"}
+                    <div className="flex-1 min-w-0">
+                      {/* Row 1: Number + Year Make Model */}
+                      <div className="text-sm font-medium text-gray-900">
+                        {index + 1}. {vehicle.year} {vehicle.make} {vehicle.model}
+                      </div>
+
+                      {/* Row 2: VIN - truncated on mobile */}
+                      <div className="text-xs text-gray-400 font-mono mt-1 truncate">
+                        {vehicle.vin || "VIN unavailable"}
+                      </div>
+
+                      {/* Row 3: Urgency text (red) */}
+                      {(isOld || isHighMileage) && (
+                        <div className="flex flex-wrap gap-2 md:gap-3 mt-2">
+                          {isOld && <UrgencyText>{vehicle.daysOnLot}d</UrgencyText>}
+                          {isHighMileage && <UrgencyText>{Math.round(vehicle.mileage / 1000)}k mi</UrgencyText>}
+                        </div>
+                      )}
+
+                      {/* Row 4: Positive text (green) */}
+                      {isWinterReady && (
+                        <div className="flex flex-wrap gap-2 md:gap-3 mt-1">
+                          <PositiveText>{vehicle.driveType}</PositiveText>
+                        </div>
+                      )}
                     </div>
-
-                    {/* Row 3: Urgency text (red) */}
-                    {(isOld || isHighMileage) && (
-                      <div className="flex flex-wrap gap-2 md:gap-3 mt-2">
-                        {isOld && <UrgencyText>{vehicle.daysOnLot}d</UrgencyText>}
-                        {isHighMileage && <UrgencyText>{Math.round(vehicle.mileage / 1000)}k mi</UrgencyText>}
-                      </div>
-                    )}
-
-                    {/* Row 4: Positive text (green) */}
-                    {isWinterReady && (
-                      <div className="flex flex-wrap gap-2 md:gap-3 mt-1">
-                        <PositiveText>{vehicle.driveType}</PositiveText>
-                      </div>
-                    )}
                   </div>
                 );
               })}
@@ -507,12 +508,9 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
                           <div key={slot.id} className="p-2 md:p-3 bg-white">
                             {/* Ad info row */}
                             <div className="flex items-center justify-between gap-2 mb-2">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <span className="text-base md:text-lg shrink-0">{getThemeEmoji(slot.themeTopic)}</span>
-                                <div className="min-w-0">
-                                  <span className="text-sm font-medium text-gray-900 truncate block">{slot.themeTopic}</span>
-                                  <span className="text-xs text-gray-500">{slot.template}</span>
-                                </div>
+                              <div className="min-w-0">
+                                <span className="text-sm font-medium text-gray-900 truncate block">{slot.themeTopic}</span>
+                                <span className="text-xs text-gray-500">{slot.template}</span>
                               </div>
                               <Badge variant={isComplete ? "default" : "secondary"} className="text-xs whitespace-nowrap shrink-0">
                                 {slotSelections.length}/{slot.vehicleCount}

@@ -76,7 +76,8 @@ export function InstallPrompt() {
   if (!showPrompt || isStandalone) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gray-900 text-white shadow-2xl border-t border-gray-700 animate-slide-up">
+    // Only show on mobile devices (hidden on md and up)
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-4 bg-gray-900 text-white shadow-2xl border-t border-gray-700 animate-slide-up">
       {!installed && (
         <button
           onClick={handleDismiss}
