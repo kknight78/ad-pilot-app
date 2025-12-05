@@ -157,24 +157,42 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  // Start with auto-scroll OFF so initial content shows from top
-  const shouldAutoScrollRef = useRef(false);
+  // Track if user has scrolled away from bottom (to pause auto-scroll)
+  const userScrolledUpRef = useRef(false);
+  const lastScrollTopRef = useRef(0);
   const hasUserInteractedRef = useRef(false);
 
-  // Handle scroll events to detect if user scrolled up
+  // Check if currently near bottom
+  const isNearBottom = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return true;
+    const threshold = 150; // pixels from bottom
+    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+  }, []);
+
+  // Handle scroll events - detect if user manually scrolled UP
   const handleScroll = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
-    const threshold = 100; // pixels from bottom
-    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
-    shouldAutoScrollRef.current = isNearBottom;
-  }, []);
+
+    const currentScrollTop = container.scrollTop;
+    // User scrolled up (not down, and not at bottom)
+    if (currentScrollTop < lastScrollTopRef.current && !isNearBottom()) {
+      userScrolledUpRef.current = true;
+    }
+    // User scrolled back to bottom
+    if (isNearBottom()) {
+      userScrolledUpRef.current = false;
+    }
+    lastScrollTopRef.current = currentScrollTop;
+  }, [isNearBottom]);
 
   const scrollToBottom = useCallback(() => {
-    // Only auto-scroll after user has interacted (sent a message)
-    if (shouldAutoScrollRef.current && hasUserInteractedRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Don't scroll if: initial load OR user has scrolled up to read
+    if (!hasUserInteractedRef.current || userScrolledUpRef.current) {
+      return;
     }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   // Update greeting client-side to avoid hydration mismatch
@@ -197,9 +215,9 @@ export default function Chat() {
     async (userMessage: string) => {
       if (!userMessage.trim() || isLoading) return;
 
-      // When user sends a message, enable auto-scroll
+      // When user sends a message, enable auto-scroll and reset "scrolled up" flag
       hasUserInteractedRef.current = true;
-      shouldAutoScrollRef.current = true;
+      userScrolledUpRef.current = false;
       setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
       setIsLoading(true);
 
