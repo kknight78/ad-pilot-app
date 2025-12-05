@@ -250,15 +250,15 @@ export function PerformanceDashboard({
           </div>
 
           {/* Week Navigation */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
             <button
               onClick={goToPreviousWeek}
               disabled={!canGoBack}
               className={`p-1 rounded hover:bg-gray-100 ${!canGoBack ? "opacity-30 cursor-not-allowed" : ""}`}
             >
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
+              <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
             </button>
-            <span className="text-sm text-gray-600 min-w-[120px] text-center">
+            <span className="text-xs md:text-sm text-gray-600 min-w-[90px] md:min-w-[120px] text-center">
               {currentWeek.startDate} - {currentWeek.endDate}
             </span>
             <button
@@ -266,13 +266,13 @@ export function PerformanceDashboard({
               disabled={!canGoForward}
               className={`p-1 rounded hover:bg-gray-100 ${!canGoForward ? "opacity-30 cursor-not-allowed" : ""}`}
             >
-              <ChevronRight className="w-5 h-5 text-gray-600" />
+              <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
             </button>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-5">
+      <CardContent className="space-y-4 md:space-y-5 px-3 md:px-6">
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {/* Views */}
@@ -425,24 +425,24 @@ export function PerformanceDashboard({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-4 border-t">
+          <div className="flex items-center gap-3 md:gap-4">
             <button
               onClick={onEmailReport}
-              className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+              className="flex items-center gap-1 text-xs md:text-sm text-gray-500 hover:text-gray-700"
             >
               <Mail className="w-4 h-4" />
-              Email Report
+              Email
             </button>
             <button
               onClick={onDownloadPDF}
-              className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
+              className="flex items-center gap-1 text-xs md:text-sm text-gray-500 hover:text-gray-700"
             >
               <FileText className="w-4 h-4" />
-              Download PDF
+              PDF
             </button>
           </div>
-          <Button variant="outline" size="sm" onClick={onViewPlan}>
+          <Button variant="outline" size="sm" onClick={onViewPlan} className="w-full md:w-auto">
             View This Week&apos;s Plan
             <ArrowRight className="w-4 h-4 ml-1" />
           </Button>

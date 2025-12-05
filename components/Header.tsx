@@ -6,12 +6,12 @@ interface HeaderProps {
 
 export default function Header({ clientName }: HeaderProps) {
   return (
-    <header className="bg-gray-900 text-white px-6 py-4 flex items-center gap-3 shadow-lg">
+    <header className="bg-gray-900 text-white px-4 py-2 md:px-6 md:py-4 flex items-center gap-2 md:gap-3 shadow-lg">
       {/* Ad Pilot Logo - Blue Diamond */}
-      <div className="flex items-center justify-center w-10 h-10">
+      <div className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10">
         <svg
           viewBox="0 0 40 40"
-          className="w-10 h-10"
+          className="w-8 h-8 md:w-10 md:h-10"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
@@ -38,11 +38,11 @@ export default function Header({ clientName }: HeaderProps) {
 
       {/* Title */}
       <div className="flex flex-col">
-        <h1 className="text-xl font-bold tracking-tight">
+        <h1 className="text-base md:text-xl font-bold tracking-tight">
           Ad Pilot
           <span className="text-primary-400 font-normal"> for {clientName}</span>
         </h1>
-        <p className="text-xs text-gray-400">Reach your community — where they are.</p>
+        <p className="text-xs text-gray-400 hidden md:block">Reach your community — where they are.</p>
       </div>
     </header>
   );

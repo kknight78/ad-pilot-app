@@ -431,11 +431,11 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-72px)]">
+    <div className="flex flex-col h-[calc(100dvh-56px)] md:h-[calc(100dvh-72px)]">
       {/* Messages area */}
       <div
         ref={messagesContainerRef}
-        className="flex-1 overflow-y-auto p-6 chat-scrollbar bg-gray-50"
+        className="flex-1 overflow-y-auto p-3 md:p-6 chat-scrollbar bg-gray-50"
       >
         <div className="max-w-3xl mx-auto">
           {messages.map((message, index) => {
