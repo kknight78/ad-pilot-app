@@ -12,6 +12,8 @@ import {
   ChevronDown,
   CheckCheck,
   User,
+  Loader2,
+  Video,
 } from "lucide-react";
 
 type Platform = "tiktok" | "facebook" | "youtube" | "instagram";
@@ -362,6 +364,8 @@ export function ScriptApprovalCards({
     instagram: 0,
   });
   const [activePlatform, setActivePlatform] = useState<Platform | null>("tiktok");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationComplete, setGenerationComplete] = useState(false);
 
   // Group scripts by platform
   const platformOrder: Platform[] = ["tiktok", "facebook", "youtube", "instagram"];
@@ -484,8 +488,35 @@ export function ScriptApprovalCards({
       </CardHeader>
 
       <CardContent className="space-y-3">
-        {/* All Complete State */}
-        {allApproved ? (
+        {/* Generation Complete State */}
+        {generationComplete ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Video className="w-8 h-8 text-purple-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Videos Generating!
+            </h3>
+            <p className="text-gray-600 mb-2">
+              {totalCount} videos are being created now.
+            </p>
+            <p className="text-sm text-gray-500">
+              This usually takes 5-10 minutes. We&apos;ll show your videos for review when they&apos;re ready!
+            </p>
+          </div>
+        ) : isGenerating ? (
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Starting Video Generation...
+            </h3>
+            <p className="text-gray-600">
+              Grab a coffee while we work our magic!
+            </p>
+          </div>
+        ) : allApproved ? (
           <div className="text-center py-8">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-8 h-8 text-green-600" />
@@ -496,7 +527,15 @@ export function ScriptApprovalCards({
             <p className="text-gray-600 mb-6">
               {totalCount} scripts ready for video generation
             </p>
-            <Button onClick={onComplete}>
+            <Button onClick={() => {
+              setIsGenerating(true);
+              onComplete?.();
+              // Simulate generation starting then complete
+              setTimeout(() => {
+                setIsGenerating(false);
+                setGenerationComplete(true);
+              }, 2000);
+            }}>
               Generate Videos
               <ChevronRight className="w-4 h-4 ml-1" />
             </Button>

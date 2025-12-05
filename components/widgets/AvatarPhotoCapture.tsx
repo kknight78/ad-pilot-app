@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Camera,
   Upload,
@@ -148,19 +147,16 @@ export function AvatarPhotoCapture({
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Camera className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <CardTitle className="text-lg">Add Avatar Photo</CardTitle>
-              <p className="text-sm text-gray-500">
-                New look for {presenterName}
-              </p>
-            </div>
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-purple-100 rounded-lg shrink-0">
+            <Camera className="w-5 h-5 text-purple-600" />
           </div>
-          <Badge variant="secondary">Avatar Setup</Badge>
+          <div>
+            <CardTitle className="text-lg">Add Avatar Photo</CardTitle>
+            <p className="text-sm text-gray-500">
+              New look for {presenterName}
+            </p>
+          </div>
         </div>
       </CardHeader>
 
@@ -174,12 +170,9 @@ export function AvatarPhotoCapture({
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
               Photo Uploaded!
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600">
               We&apos;re training your new avatar now. &quot;{avatarName}&quot; should be available in your avatar selector within 24 hours — we&apos;ll notify you when it&apos;s ready!
             </p>
-            <Button onClick={handleReset}>
-              Got it
-            </Button>
           </div>
         )}
 
@@ -212,20 +205,14 @@ export function AvatarPhotoCapture({
 
                 {/* Preview placeholder with guide */}
                 <div className="relative aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center justify-center p-4">
                     <div className="text-center">
-                      <div className="w-32 h-40 mx-auto border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center mb-3">
-                        <User className="w-16 h-16 text-gray-300" />
+                      <div className="w-28 h-36 md:w-32 md:h-40 mx-auto border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center mb-2">
+                        <User className="w-12 h-12 md:w-16 md:h-16 text-gray-300" />
+                        <p className="text-xs text-gray-400 mt-1 px-2">Position guide</p>
                       </div>
                       <p className="text-sm text-gray-500">Shoulders up, centered</p>
                       <p className="text-xs text-gray-400">Plain background preferred</p>
-                    </div>
-                  </div>
-
-                  {/* Guide overlay */}
-                  <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
-                      Position guide
                     </div>
                   </div>
                 </div>
@@ -285,12 +272,12 @@ export function AvatarPhotoCapture({
                   </div>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={() => { stopCamera(); setMode("select"); }}>
+                <div className="flex flex-col md:flex-row gap-2">
+                  <Button variant="outline" onClick={() => { stopCamera(); setMode("select"); }} className="w-full md:w-auto">
                     <X className="w-4 h-4 mr-1" />
                     Cancel
                   </Button>
-                  <Button className="flex-1" onClick={capturePhoto}>
+                  <Button className="w-full md:flex-1" onClick={capturePhoto}>
                     <Camera className="w-4 h-4 mr-2" />
                     Capture Photo
                   </Button>

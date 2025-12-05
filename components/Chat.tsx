@@ -314,6 +314,15 @@ export default function Chat() {
     });
   }, []);
 
+  // Scroll to bottom when flow state changes (e.g., when navigating to avatar widget)
+  useEffect(() => {
+    // Small delay to let the new widget render
+    const timer = setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [flowState.currentStep]);
+
   const sendMessage = useCallback(
     async (userMessage: string) => {
       if (!userMessage.trim() || isLoading) return;

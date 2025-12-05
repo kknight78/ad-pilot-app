@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   BarChart3,
   Eye,
@@ -18,7 +17,6 @@ import {
   ChevronUp,
   Mail,
   FileText,
-  ArrowRight,
   AlertTriangle,
   Clock,
   Car,
@@ -64,7 +62,6 @@ export interface WeekData {
 
 export interface PerformanceDashboardProps {
   weeks?: WeekData[];
-  onViewPlan?: () => void;
   onEmailReport?: () => void;
   onDownloadPDF?: () => void;
 }
@@ -215,16 +212,42 @@ function AdjustmentIcon({ icon }: { icon: Adjustment["icon"] }) {
   }
 }
 
+// Scroll indicator for tables
+function ScrollIndicator({ showHint }: { showHint: boolean }) {
+  if (!showHint) return null;
+
+  return (
+    <div className="md:hidden flex items-center justify-center gap-1 py-1.5 text-xs text-gray-400 bg-gray-50 border-b border-gray-100">
+      <span>← Swipe to see more →</span>
+    </div>
+  );
+}
+
 export function PerformanceDashboard({
   weeks = demoWeeks,
-  onViewPlan,
   onEmailReport,
   onDownloadPDF,
 }: PerformanceDashboardProps) {
   const [currentWeekIndex, setCurrentWeekIndex] = useState(0);
   const [showAdjustments, setShowAdjustments] = useState(false);
+  const [canScroll, setCanScroll] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const currentWeek = weeks[currentWeekIndex];
+
+  // Check if table is scrollable
+  useEffect(() => {
+    const checkScroll = () => {
+      if (scrollRef.current) {
+        const { scrollWidth, clientWidth } = scrollRef.current;
+        setCanScroll(scrollWidth > clientWidth);
+      }
+    };
+
+    checkScroll();
+    window.addEventListener("resize", checkScroll);
+    return () => window.removeEventListener("resize", checkScroll);
+  }, [currentWeekIndex]);
   const costPerLead = currentWeek.totalLeads > 0 ? currentWeek.totalSpend / currentWeek.totalLeads : 0;
 
   const canGoBack = currentWeekIndex < weeks.length - 1;
@@ -322,7 +345,8 @@ export function PerformanceDashboard({
         {/* Platform Breakdown */}
         <div>
           <h4 className="text-sm font-medium text-gray-700 mb-2">Platform Breakdown</h4>
-          <div className="overflow-x-auto">
+          <ScrollIndicator showHint={canScroll} />
+          <div ref={scrollRef} className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -370,9 +394,9 @@ export function PerformanceDashboard({
                     </Badge>
                   </div>
                 </div>
-                <div className="text-right text-xs text-gray-500">
-                  <span>{formatNumber(content.views)} views</span>
-                  {content.leads > 0 && <span className="ml-2">{content.leads} leads</span>}
+                <div className="text-right text-xs text-gray-500 shrink-0">
+                  <div>{formatNumber(content.views)} views</div>
+                  {content.leads > 0 && <div>{content.leads} leads</div>}
                 </div>
               </div>
             ))}
@@ -425,27 +449,21 @@ export function PerformanceDashboard({
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pt-4 border-t">
-          <div className="flex items-center gap-3 md:gap-4">
-            <button
-              onClick={onEmailReport}
-              className="flex items-center gap-1 text-xs md:text-sm text-gray-500 hover:text-gray-700"
-            >
-              <Mail className="w-4 h-4" />
-              Email
-            </button>
-            <button
-              onClick={onDownloadPDF}
-              className="flex items-center gap-1 text-xs md:text-sm text-gray-500 hover:text-gray-700"
-            >
-              <FileText className="w-4 h-4" />
-              PDF
-            </button>
-          </div>
-          <Button variant="outline" size="sm" onClick={onViewPlan} className="w-full md:w-auto">
-            View This Week&apos;s Plan
-            <ArrowRight className="w-4 h-4 ml-1" />
-          </Button>
+        <div className="flex items-center justify-center gap-4 pt-4 border-t">
+          <button
+            onClick={onEmailReport}
+            className="flex items-center gap-1 text-xs md:text-sm text-gray-500 hover:text-gray-700"
+          >
+            <Mail className="w-4 h-4" />
+            Email Report
+          </button>
+          <button
+            onClick={onDownloadPDF}
+            className="flex items-center gap-1 text-xs md:text-sm text-gray-500 hover:text-gray-700"
+          >
+            <FileText className="w-4 h-4" />
+            Download PDF
+          </button>
         </div>
       </CardContent>
     </Card>

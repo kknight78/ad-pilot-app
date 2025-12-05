@@ -65,7 +65,6 @@ export default function GalleryPage() {
       case "performance":
         return (
           <PerformanceDashboard
-            onViewPlan={() => console.log("View plan")}
             onEmailReport={() => console.log("Email report")}
             onDownloadPDF={() => console.log("Download PDF")}
           />

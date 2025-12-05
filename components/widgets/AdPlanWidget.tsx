@@ -467,18 +467,21 @@ function PlatformSection({
       >
         <div className="flex items-center gap-2">
           <PlatformIcon platform={plan.platform} />
-          <span className={`font-semibold ${config.headerText}`}>{config.name}</span>
-          {isOrganic && (
-            <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
-              Organic
-            </Badge>
-          )}
+          <div className="text-left">
+            <div className="flex items-center gap-2">
+              <span className={`font-semibold ${config.headerText}`}>{config.name}</span>
+              {isOrganic && (
+                <Badge variant="secondary" className="text-xs bg-white/20 text-white border-white/30">
+                  Organic
+                </Badge>
+              )}
+            </div>
+            <span className={`text-xs ${config.headerText} opacity-80`}>
+              {plan.items.length} {plan.items.length === 1 ? "ad" : "ads"} • {isOrganic ? "Free" : `$${plan.subtotal}`}
+            </span>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className={`text-sm ${config.headerText} opacity-90`}>
-            {plan.items.length} {plan.items.length === 1 ? "ad" : "ads"} •{" "}
-            {isOrganic ? "Free" : `$${plan.subtotal}`}
-          </span>
+        <div className="flex items-center">
           {isExpanded ? (
             <ChevronUp className={`w-4 h-4 ${config.headerText}`} />
           ) : (
@@ -565,8 +568,9 @@ function PlatformSection({
               ))}
             </tbody>
           </table>
+          </div>
 
-          {/* Add Ad Button */}
+          {/* Add Ad Button - Outside scroll area so it stays visible */}
           <div className="p-2 border-t bg-gray-50">
             <Button
               variant="ghost"
@@ -578,7 +582,6 @@ function PlatformSection({
               Add Ad
             </Button>
           </div>
-        </div>
         </>
       )}
     </div>
