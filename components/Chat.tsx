@@ -59,11 +59,13 @@ function WidgetRenderer({
   onSendMessage,
   flowState,
   onStateUpdate,
+  onAddAssistantMessage,
 }: {
   widget: WidgetData;
   onSendMessage: (message: string) => void;
   flowState: ConversationState;
   onStateUpdate: (update: Partial<ConversationState>) => void;
+  onAddAssistantMessage: (content: string, widgets: WidgetData[]) => void;
 }) {
   switch (widget.type) {
     case "performance_dashboard":
@@ -80,6 +82,8 @@ function WidgetRenderer({
               completedSteps: [...flowState.completedSteps, "theme_selector"] as GoldenPathStep[],
               selections: { ...flowState.selections, theme: theme || "general" },
             });
+            // Add assistant message with next widget
+            onAddAssistantMessage("Great choice! Now let's pick your topics:", [{ type: "topic_selector" }]);
           }}
         />
       );
@@ -94,6 +98,8 @@ function WidgetRenderer({
               completedSteps: [...flowState.completedSteps, "topic_selector"] as GoldenPathStep[],
               selections: { ...flowState.selections, topics },
             });
+            // Add assistant message with next widget
+            onAddAssistantMessage("Here's your ad plan for the week:", [{ type: "ad_plan" }]);
           }}
         />
       );
@@ -107,6 +113,8 @@ function WidgetRenderer({
               currentStep: "vehicle_selector",
               completedSteps: [...flowState.completedSteps, "ad_plan"] as GoldenPathStep[],
             });
+            // Add assistant message with next widget
+            onAddAssistantMessage("Now let's assign vehicles to each ad:", [{ type: "vehicle_selector" }]);
           }}
         />
       );
@@ -134,6 +142,8 @@ function WidgetRenderer({
                 vehicleCount: totalVehicles,
               },
             });
+            // Add assistant message with next widget
+            onAddAssistantMessage("Here are the scripts for your approval:", [{ type: "script_approval" }]);
           }}
         />
       );
@@ -148,6 +158,8 @@ function WidgetRenderer({
               currentStep: "generation_progress",
               completedSteps: [...flowState.completedSteps, "script_approval"] as GoldenPathStep[],
             });
+            // Add assistant message with next widget
+            onAddAssistantMessage("Generating your videos now...", [{ type: "generation_progress" }]);
           }}
         />
       );
@@ -161,6 +173,8 @@ function WidgetRenderer({
               currentStep: "publish_widget",
               completedSteps: [...flowState.completedSteps, "generation_progress"] as GoldenPathStep[],
             });
+            // Add assistant message with next widget
+            onAddAssistantMessage("Your videos are ready! Choose where to publish:", [{ type: "publish_widget" }]);
           }}
         />
       );
@@ -181,6 +195,8 @@ function WidgetRenderer({
               currentStep: "wrap_up",
               completedSteps: [...flowState.completedSteps, "publish_widget"] as GoldenPathStep[],
             });
+            // Add assistant message for wrap up
+            onAddAssistantMessage("All done! Your content is scheduled. Anything else you'd like to work on?", []);
           }}
         />
       );
@@ -196,6 +212,12 @@ function WidgetRenderer({
                 currentStep: returnTo,
                 detourStack: flowState.detourStack.slice(0, -1),
               });
+              // Add message - only include widget if returnTo has a corresponding widget (not wrap_up)
+              if (returnTo !== "wrap_up") {
+                onAddAssistantMessage("Back to where we were! What would you like to do next?", [{ type: returnTo as WidgetData["type"] }]);
+              } else {
+                onAddAssistantMessage("All done! Anything else you'd like to work on?", []);
+              }
             }
           }}
           onAction={(_id, actionLabel) => {
@@ -209,6 +231,8 @@ function WidgetRenderer({
                 currentStep: "avatar_photo",
                 detourStack: [...flowState.detourStack, currentAsGolden],
               });
+              // Add assistant message with avatar widget
+              onAddAssistantMessage("Let's create a new avatar for you:", [{ type: "avatar_photo" }]);
             }
             // Other actions could navigate to different widgets or show info
           }}
@@ -229,6 +253,12 @@ function WidgetRenderer({
               currentStep: returnTo,
               detourStack: flowState.detourStack.slice(0, -1),
             });
+            // Add message when returning from avatar capture - only include widget if not wrap_up
+            if (returnTo !== "wrap_up") {
+              onAddAssistantMessage("Avatar submitted! Returning to where we were:", [{ type: returnTo as WidgetData["type"] }]);
+            } else {
+              onAddAssistantMessage("Avatar submitted! All done. Anything else you'd like to work on?", []);
+            }
           }}
         />
       );
@@ -286,6 +316,15 @@ export default function Chat() {
       completedSteps: update.completedSteps || prev.completedSteps,
       detourStack: update.detourStack !== undefined ? update.detourStack : prev.detourStack,
     }));
+  }, []);
+
+  // Helper to add assistant messages with widgets (for silent navigation)
+  const addAssistantMessage = useCallback((content: string, widgets: WidgetData[]) => {
+    setMessages(prev => [...prev, {
+      role: "assistant" as const,
+      content,
+      widgets: widgets.length > 0 ? widgets : undefined,
+    }]);
   }, []);
 
   // Update greeting client-side to avoid hydration mismatch
@@ -450,6 +489,7 @@ export default function Chat() {
                     onSendMessage={sendMessage}
                     flowState={flowState}
                     onStateUpdate={updateFlowState}
+                    onAddAssistantMessage={addAssistantMessage}
                   />
                 </div>
               ))}
