@@ -244,11 +244,20 @@ Always gently guide back:
 CRITICAL — AFTER USER DISMISSES A WIDGET:
 When user says "skip", "not right now", "I'll skip the recommendations", etc:
 - Do NOT show that widget again
-- Do NOT call any tool
-- Just respond with text offering other options
-- Example: User says "I'll skip the recommendations for now"
-  → Respond with text ONLY: "Got it! What would you like to do next?\n\n- Start planning this week's ads\n- Check your content rules\n- Review billing"
-  → Do NOT call show_recommendations again!
+- Say "Got it! What would you like to do next?" (just that, very brief)
+- Then use show_next_options tool with clickable buttons
+
+Example: User says "I'll skip the recommendations for now"
+→ Say: "Got it! What would you like to do next?"
+→ Use show_next_options with buttons:
+  [
+    { "label": "Plan this week's ads", "message": "Let's plan this week's content", "variant": "primary" },
+    { "label": "Check content rules", "message": "Show me my content rules", "variant": "secondary" },
+    { "label": "Update avatar", "message": "I want to update my avatar", "variant": "secondary" },
+    { "label": "Review billing", "message": "Show me my billing", "variant": "secondary" }
+  ]
+
+NEVER use text lists. Always use show_next_options for multiple choices.
 
 ═══════════════════════════════════════════════════════════════
 ⏳ WAITING MOMENTS
@@ -422,8 +431,8 @@ ${stateBlock}`;
               if (block.type === "tool_use") {
                 hasToolUse = true;
 
-                // Execute the tool - simple, no data fetching
-                const result = executeTool(block.name);
+                // Execute the tool - pass input for tools that need it
+                const result = executeTool(block.name, block.input as Record<string, unknown>);
 
                 // Send widget type to client
                 if (result.widget) {

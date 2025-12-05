@@ -250,6 +250,22 @@ function WidgetRenderer({
     case "billing":
       return <InvoiceWidget />;
 
+    case "action_buttons":
+      // Dynamic action buttons from Claude
+      if (widget.buttons && widget.buttons.length > 0) {
+        return (
+          <ActionButtons
+            buttons={widget.buttons.map(b => ({
+              label: b.label,
+              message: b.message,
+              variant: b.variant as "primary" | "secondary" | undefined,
+            }))}
+            onAction={onSendMessage}
+          />
+        );
+      }
+      return null;
+
     default:
       return null;
   }

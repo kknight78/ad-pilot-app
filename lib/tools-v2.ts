@@ -29,10 +29,18 @@ export type WidgetType =
   | "recommendations"
   | "guidance_rules"
   | "avatar_photo"
-  | "billing";
+  | "billing"
+  | "action_buttons";
+
+export interface ActionButtonData {
+  label: string;
+  message: string;
+  variant?: "primary" | "secondary";
+}
 
 export interface WidgetData {
   type: WidgetType;
+  buttons?: ActionButtonData[]; // For action_buttons widget
 }
 
 export interface ToolResult {
@@ -101,6 +109,29 @@ export const tools: Tool[] = [
     description: "Show invoice and billing information. Use when user asks about their bill, invoice, payment, or billing.",
     input_schema: { type: "object", properties: {}, required: [] },
   },
+  {
+    name: "show_next_options",
+    description: "Show clickable action buttons for user to choose their next step. Use when user dismisses recommendations or needs to choose what to do next. Pass the button options.",
+    input_schema: {
+      type: "object",
+      properties: {
+        buttons: {
+          type: "array",
+          description: "Array of button options to show",
+          items: {
+            type: "object",
+            properties: {
+              label: { type: "string", description: "Button text to display" },
+              message: { type: "string", description: "Message to send when clicked" },
+              variant: { type: "string", enum: ["primary", "secondary"], description: "Button style" },
+            },
+            required: ["label", "message"],
+          },
+        },
+      },
+      required: ["buttons"],
+    },
+  },
 ];
 
 // Map tool name to widget type
@@ -117,13 +148,25 @@ const toolToWidget: Record<string, WidgetType> = {
   show_guidance_rules: "guidance_rules",
   show_avatar_photo: "avatar_photo",
   show_billing: "billing",
+  show_next_options: "action_buttons",
 };
 
-// Execute tool — just returns widget type, no data fetching
-export function executeTool(toolName: string): ToolResult {
+// Execute tool — returns widget type and any additional data
+export function executeTool(toolName: string, input?: Record<string, unknown>): ToolResult {
   const widgetType = toolToWidget[toolName];
   if (!widgetType) {
     throw new Error(`Unknown tool: ${toolName}`);
   }
+
+  // Handle action_buttons with passed data
+  if (toolName === "show_next_options" && input?.buttons) {
+    return {
+      widget: {
+        type: widgetType,
+        buttons: input.buttons as ActionButtonData[],
+      },
+    };
+  }
+
   return { widget: { type: widgetType } };
 }
