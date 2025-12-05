@@ -157,26 +157,22 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
-
-  // Check if user is near bottom of scroll container
-  const isNearBottom = useCallback(() => {
-    const container = messagesContainerRef.current;
-    if (!container) return true;
-    const threshold = 100; // pixels from bottom
-    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
-  }, []);
+  const shouldAutoScrollRef = useRef(true);
 
   // Handle scroll events to detect if user scrolled up
   const handleScroll = useCallback(() => {
-    setShouldAutoScroll(isNearBottom());
-  }, [isNearBottom]);
+    const container = messagesContainerRef.current;
+    if (!container) return;
+    const threshold = 100; // pixels from bottom
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    shouldAutoScrollRef.current = isNearBottom;
+  }, []);
 
   const scrollToBottom = useCallback(() => {
-    if (shouldAutoScroll) {
+    if (shouldAutoScrollRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [shouldAutoScroll]);
+  }, []);
 
   // Update greeting client-side to avoid hydration mismatch
   useEffect(() => {
@@ -199,7 +195,7 @@ export default function Chat() {
       if (!userMessage.trim() || isLoading) return;
 
       // When user sends a message, always scroll to show it
-      setShouldAutoScroll(true);
+      shouldAutoScrollRef.current = true;
       setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
       setIsLoading(true);
 
