@@ -59,6 +59,13 @@ matters: their message, their brand, their community.
 - Simple language, no jargon
 - Light humor, never forced
 
+TEXT FORMATTING (CRITICAL):
+- ALWAYS put a blank line (double newline) between sentences
+- Example: "Great choice!\n\nNow let's pick your topics."
+- NOT: "Great choice! Now let's pick your topics."
+- Use bullet points for lists
+- Keep each thought on its own line
+
 YOU DO:
 - Celebrate wins genuinely
 - Deliver bad news gently + honestly
@@ -175,6 +182,9 @@ ANYTIME TOOLS (off the golden path):
 3. Text must be 1-2 sentences MAX before a widget
 4. Let the widget do the work — don't repeat its contents
 5. After widget interaction, acknowledge briefly + move to NEXT step
+6. NEVER add text AFTER calling a tool — the widget speaks for itself
+   - GOOD: "Here are some recommendations:" [show_recommendations] (stop)
+   - BAD: "Here are some recommendations:" [show_recommendations] "These are based on..."
 
 WHEN USER COMPLETES A WIDGET:
 The user's message tells you what they chose. Move FORWARD, not backward.
@@ -290,6 +300,8 @@ interface Message {
   content: string;
 }
 
+type AnthropicMessage = Anthropic.MessageParam;
+
 interface FlowState {
   currentStep: string;
   completedSteps: string[];
@@ -338,7 +350,7 @@ ${stateBlock}`;
     const fullSystemPrompt = SYSTEM_PROMPT + "\n\nCURRENT CONTEXT:\n" + contextBlock;
 
     // Convert messages to Anthropic format
-    const anthropicMessages = messages
+    const anthropicMessages: AnthropicMessage[] = messages
       .filter((m: Message) => m.role === "user" || m.role === "assistant")
       .map((m: Message) => ({
         role: m.role as "user" | "assistant",
@@ -351,10 +363,11 @@ ${stateBlock}`;
       async start(controller) {
         try {
           let continueLoop = true;
-          let currentMessages = [...anthropicMessages];
+          let currentMessages: AnthropicMessage[] = [...anthropicMessages];
 
           while (continueLoop) {
-            const response = await anthropic.messages.create({
+            // Use streaming API for real-time text output
+            const stream = anthropic.messages.stream({
               model: "claude-sonnet-4-20250514",
               max_tokens: 4096,
               system: fullSystemPrompt,
@@ -362,20 +375,27 @@ ${stateBlock}`;
               tools: tools,
             });
 
-            // Process the response
+            // Process streaming events
             let hasToolUse = false;
             const toolResults: Array<{
               type: "tool_result";
               tool_use_id: string;
               content: string;
             }> = [];
+            const contentBlocks: Anthropic.ContentBlock[] = [];
+
+            // Stream text as it arrives
+            stream.on("text", (text) => {
+              const data = JSON.stringify({ content: text });
+              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            });
+
+            // Wait for the complete response to handle tool use
+            const response = await stream.finalMessage();
 
             for (const block of response.content) {
-              if (block.type === "text") {
-                // Stream text content
-                const data = JSON.stringify({ content: block.text });
-                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-              } else if (block.type === "tool_use") {
+              contentBlocks.push(block);
+              if (block.type === "tool_use") {
                 hasToolUse = true;
 
                 // Execute the tool - simple, no data fetching
@@ -387,27 +407,21 @@ ${stateBlock}`;
                   controller.enqueue(encoder.encode(`data: ${widgetData}\n\n`));
                 }
 
-                // Add tool result for Claude to continue
+                // Add tool result for Claude - instruct to stop after widget
                 toolResults.push({
                   type: "tool_result",
                   tool_use_id: block.id,
-                  content: JSON.stringify({ success: true, widget_shown: result.widget.type }),
+                  content: JSON.stringify({
+                    success: true,
+                    widget_shown: result.widget.type,
+                    instruction: "Widget is now displayed. Do NOT output any more text. End your turn."
+                  }),
                 });
               }
             }
 
-            if (hasToolUse && toolResults.length > 0) {
-              // Add assistant message with tool use
-              currentMessages.push({
-                role: "assistant",
-                content: response.content as unknown as string,
-              });
-              // Add tool results
-              currentMessages.push({
-                role: "user",
-                content: toolResults as unknown as string,
-              });
-            } else {
+            // If we showed a widget, STOP - don't continue the loop for more text
+            if (hasToolUse) {
               continueLoop = false;
             }
 
