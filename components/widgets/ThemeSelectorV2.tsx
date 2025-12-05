@@ -1,15 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   RefreshCw,
-  Lightbulb,
-  Sparkles,
   Palette,
   Loader2,
-  Check,
+  Sparkles,
+  PenLine,
+  Lightbulb,
 } from "lucide-react";
 
 export interface Theme {
@@ -18,58 +18,50 @@ export interface Theme {
 }
 
 interface ThemeSelectorV2Props {
-  onSelect?: (theme: string) => void;
-  onContinue?: (theme: string) => void;
+  onSelect?: (theme: string | null) => void;
+  onContinue?: (theme: string | null) => void;
 }
 
-type SuggestionMode = "lucky" | "guided";
+type ThemeOption = "choose_for_me" | "specific" | "inspire";
 
 export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) {
-  // The main theme input - this is what gets submitted
-  const [themeInput, setThemeInput] = useState("");
-
-  // Track which suggestion was clicked (for highlighting)
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-
-  // Suggestion mode
-  const [suggestionMode, setSuggestionMode] = useState<SuggestionMode>("lucky");
-  const [guidedInput, setGuidedInput] = useState("");
-
-  // What was searched (for header display)
-  const [searchedTopic, setSearchedTopic] = useState("");
-
-  // Suggested themes from backend
+  const [selectedOption, setSelectedOption] = useState<ThemeOption>("choose_for_me");
+  const [specificInput, setSpecificInput] = useState("");
   const [themes, setThemes] = useState<Theme[]>([]);
-
-  // Loading state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasFetchedInspire, setHasFetchedInspire] = useState(false);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-fetch when "Inspire me" is selected
+  useEffect(() => {
+    if (selectedOption === "inspire" && !hasFetchedInspire && themes.length === 0) {
+      fetchThemes();
+      setHasFetchedInspire(true);
+    }
+  }, [selectedOption, hasFetchedInspire, themes.length]);
+
+  // Focus input when "specific" is selected
+  useEffect(() => {
+    if (selectedOption === "specific" && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [selectedOption]);
 
   const fetchThemes = async () => {
     setLoading(true);
     setError(null);
-    setSelectedIndex(null);
 
-    const subject = suggestionMode === "guided" ? guidedInput.trim() : "";
-    setSearchedTopic(subject);
-
-    console.log("[ThemeSelector] Fetching themes...");
-    console.log("[ThemeSelector] Mode:", suggestionMode);
-    console.log("[ThemeSelector] Subject:", subject);
+    console.log("[ThemeSelector] Fetching inspiration themes...");
 
     try {
-      const payload = subject
-        ? { client_id: "ccc", subject }
-        : { client_id: "ccc" };
-
-      console.log("[ThemeSelector] Payload:", payload);
-
       const response = await fetch(
         "https://corsproxy.io/?https://kelly-ads.app.n8n.cloud/webhook/theme-suggest",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({ client_id: "ccc" }),
         }
       );
 
@@ -87,32 +79,30 @@ export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) 
       }
     } catch (err) {
       console.error("[ThemeSelector] Error:", err);
-      setError("Couldn't load suggestions. Try again or enter a custom theme.");
+      setError("Couldn't load ideas. Try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSelectTheme = (theme: Theme, index: number) => {
-    // Populate the input field with the theme name
-    setThemeInput(theme.name);
-    setSelectedIndex(index);
+  const handleSelectSuggestion = (theme: Theme) => {
+    // Switch to "specific" mode and populate input
+    setSelectedOption("specific");
+    setSpecificInput(theme.name);
     onSelect?.(theme.name);
   };
 
   const handleContinue = () => {
-    if (themeInput.trim()) {
-      onContinue?.(themeInput.trim());
+    if (selectedOption === "choose_for_me") {
+      onContinue?.(null);
+    } else if (selectedOption === "specific" && specificInput.trim()) {
+      onContinue?.(specificInput.trim());
     }
   };
 
-  const handleInputChange = (value: string) => {
-    setThemeInput(value);
-    // Clear selection highlight if user manually edits
-    if (selectedIndex !== null && themes[selectedIndex]?.name !== value) {
-      setSelectedIndex(null);
-    }
-  };
+  const canContinue =
+    selectedOption === "choose_for_me" ||
+    (selectedOption === "specific" && specificInput.trim().length > 0);
 
   return (
     <Card className="w-full max-w-xl">
@@ -122,155 +112,178 @@ export function ThemeSelectorV2({ onSelect, onContinue }: ThemeSelectorV2Props) 
             <Palette className="w-5 h-5 text-purple-600" />
           </div>
           <div>
-            <CardTitle className="text-lg">🎨 Choose a Weekly Theme</CardTitle>
+            <CardTitle className="text-lg">🎨 Weekly Theme</CardTitle>
             <p className="text-sm text-gray-500">
-              Sets the tone for your content
+              Sets the tone for your ads
             </p>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-5">
-        {/* Create your own */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Create your own
-          </label>
-          <input
-            type="text"
-            value={themeInput}
-            onChange={(e) => handleInputChange(e.target.value)}
-            placeholder="e.g., Holiday Road Trip Ready"
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-          />
-        </div>
-
-        {/* OR divider */}
-        <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-sm text-gray-400 font-medium">OR LET US HELP</span>
-          <div className="flex-1 h-px bg-gray-200" />
-        </div>
-
-        {/* Suggestion options */}
-        <div className="space-y-3">
-          {/* I'm feeling lucky */}
-          <label className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+      <CardContent className="space-y-4">
+        {/* Option 1: Choose for me */}
+        <label
+          className={`block p-4 border-2 rounded-lg cursor-pointer transition-all ${
+            selectedOption === "choose_for_me"
+              ? "border-purple-500 bg-purple-50"
+              : "border-gray-200 hover:border-gray-300"
+          }`}
+        >
+          <div className="flex items-start gap-3">
             <input
               type="radio"
-              name="suggestionMode"
-              checked={suggestionMode === "lucky"}
-              onChange={() => setSuggestionMode("lucky")}
-              className="w-4 h-4 text-purple-600 focus:ring-purple-500"
-            />
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-500" />
-              <span className="font-medium text-gray-700">I&apos;m feeling lucky</span>
-            </div>
-          </label>
-
-          {/* Give me themes about... */}
-          <label className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-            <input
-              type="radio"
-              name="suggestionMode"
-              checked={suggestionMode === "guided"}
-              onChange={() => setSuggestionMode("guided")}
-              className="w-4 h-4 mt-1 text-purple-600 focus:ring-purple-500"
+              name="themeOption"
+              checked={selectedOption === "choose_for_me"}
+              onChange={() => setSelectedOption("choose_for_me")}
+              className="w-4 h-4 mt-0.5 text-purple-600 focus:ring-purple-500"
             />
             <div className="flex-1">
-              <span className="font-medium text-gray-700">Give me themes about...</span>
-              {suggestionMode === "guided" && (
-                <input
-                  type="text"
-                  value={guidedInput}
-                  onChange={(e) => setGuidedInput(e.target.value)}
-                  placeholder="e.g., winter, family, budget"
-                  className="w-full mt-2 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              )}
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-500" />
+                <span className="font-medium text-gray-900">Choose for me</span>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                We&apos;ll create solid, can&apos;t-miss ads
+              </p>
+              <p className="text-xs text-gray-400 mt-1 italic">
+                e.g., &quot;You won&apos;t want to miss these deals...&quot;
+              </p>
+            </div>
+          </div>
+        </label>
+
+        {/* Option 2: I have something specific */}
+        <label
+          className={`block p-4 border-2 rounded-lg cursor-pointer transition-all ${
+            selectedOption === "specific"
+              ? "border-purple-500 bg-purple-50"
+              : "border-gray-200 hover:border-gray-300"
+          }`}
+        >
+          <div className="flex items-start gap-3">
+            <input
+              type="radio"
+              name="themeOption"
+              checked={selectedOption === "specific"}
+              onChange={() => setSelectedOption("specific")}
+              className="w-4 h-4 mt-0.5 text-purple-600 focus:ring-purple-500"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <PenLine className="w-4 h-4 text-purple-500" />
+                <span className="font-medium text-gray-900">I have something specific:</span>
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                value={specificInput}
+                onChange={(e) => {
+                  setSpecificInput(e.target.value);
+                  if (selectedOption !== "specific") {
+                    setSelectedOption("specific");
+                  }
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedOption("specific");
+                }}
+                placeholder="e.g., Thanksgiving, Black Friday, Winter"
+                className="w-full mt-2 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+              />
+            </div>
+          </div>
+        </label>
+
+        {/* Option 3: Inspire me */}
+        <div
+          className={`p-4 border-2 rounded-lg transition-all ${
+            selectedOption === "inspire"
+              ? "border-purple-500 bg-purple-50"
+              : "border-gray-200 hover:border-gray-300"
+          }`}
+        >
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="themeOption"
+              checked={selectedOption === "inspire"}
+              onChange={() => setSelectedOption("inspire")}
+              className="w-4 h-4 mt-0.5 text-purple-600 focus:ring-purple-500"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-purple-500" />
+                <span className="font-medium text-gray-900">Inspire me</span>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                Show me some timely ideas
+              </p>
             </div>
           </label>
 
-          {/* Suggest button */}
-          <Button
-            onClick={fetchThemes}
-            disabled={loading || (suggestionMode === "guided" && !guidedInput.trim())}
-            className="w-full bg-purple-600 hover:bg-purple-700"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Lightbulb className="w-4 h-4 mr-2" />
-                Suggest
-              </>
-            )}
-          </Button>
+          {/* Inspiration suggestions */}
+          {selectedOption === "inspire" && (
+            <div className="mt-4 space-y-2">
+              {loading ? (
+                <div className="flex items-center justify-center py-6 text-gray-500">
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  <span>Loading ideas...</span>
+                </div>
+              ) : error ? (
+                <div className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
+                  {error}
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={fetchThemes}
+                    className="ml-2 text-red-600 underline p-0 h-auto"
+                  >
+                    Try again
+                  </Button>
+                </div>
+              ) : themes.length > 0 ? (
+                <>
+                  <div className="space-y-2">
+                    {themes.map((theme, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSelectSuggestion(theme)}
+                        className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-purple-300 hover:bg-white bg-white/50 transition-all flex items-center gap-3"
+                      >
+                        <span className="text-xl">{theme.emoji}</span>
+                        <span className="font-medium text-gray-900">
+                          {theme.name}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setHasFetchedInspire(false);
+                      fetchThemes();
+                    }}
+                    disabled={loading}
+                    className="w-full text-gray-500 hover:text-purple-600 mt-2"
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+                    More ideas
+                  </Button>
+                </>
+              ) : null}
+            </div>
+          )}
         </div>
 
-        {/* Error message */}
-        {error && (
-          <div className="text-sm text-red-600 bg-red-50 px-4 py-2 rounded-lg">
-            {error}
-          </div>
-        )}
-
-        {/* Suggested themes - only shows after clicking Suggest */}
-        {themes.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">
-                {searchedTopic ? `Themes about: ${searchedTopic}` : "Suggestions"}
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={fetchThemes}
-                disabled={loading}
-                className="text-gray-500 hover:text-purple-600"
-              >
-                <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              {themes.map((theme, index) => {
-                const isSelected = selectedIndex === index;
-                return (
-                  <button
-                    key={index}
-                    onClick={() => handleSelectTheme(theme, index)}
-                    className={`w-full text-left p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
-                      isSelected
-                        ? "border-purple-500 bg-purple-50"
-                        : "border-gray-200 hover:border-gray-300 bg-white"
-                    }`}
-                  >
-                    <span className="text-2xl">{theme.emoji}</span>
-                    <span className="font-medium text-gray-900 flex-1">
-                      {theme.name}
-                    </span>
-                    {isSelected && (
-                      <Check className="w-5 h-5 text-purple-500" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Continue button - only show when there's input */}
-        {themeInput.trim() && (
-          <Button className="w-full" onClick={handleContinue}>
-            Continue with &ldquo;{themeInput.trim()}&rdquo;
-          </Button>
-        )}
+        {/* Continue button */}
+        <Button
+          className="w-full"
+          onClick={handleContinue}
+          disabled={!canContinue}
+        >
+          Continue →
+        </Button>
 
         {/* Footer note */}
         <p className="text-xs text-gray-400 text-center">
