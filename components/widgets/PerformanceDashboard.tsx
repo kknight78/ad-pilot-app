@@ -240,13 +240,13 @@ export function PerformanceDashboard({
 
   return (
     <Card className="w-full max-w-2xl">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+      <CardHeader className="pb-3 px-3 md:px-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <BarChart3 className="w-5 h-5 text-blue-600" />
+            <div className="p-1.5 md:p-2 bg-blue-100 rounded-lg">
+              <BarChart3 className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
             </div>
-            <CardTitle className="text-lg">Last Week&apos;s Performance</CardTitle>
+            <CardTitle className="text-base md:text-lg">Last Week&apos;s Performance</CardTitle>
           </div>
 
           {/* Week Navigation */}
@@ -258,7 +258,7 @@ export function PerformanceDashboard({
             >
               <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-gray-600" />
             </button>
-            <span className="text-xs md:text-sm text-gray-600 min-w-[90px] md:min-w-[120px] text-center">
+            <span className="text-xs md:text-sm text-gray-600 whitespace-nowrap">
               {currentWeek.startDate} - {currentWeek.endDate}
             </span>
             <button

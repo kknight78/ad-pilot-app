@@ -37,8 +37,8 @@ export default function Header({ clientName }: HeaderProps) {
       </div>
 
       {/* Title */}
-      <div className="flex flex-col">
-        <h1 className="text-base md:text-xl font-bold tracking-tight">
+      <div className="flex flex-col min-w-0">
+        <h1 className="text-sm md:text-xl font-bold tracking-tight truncate">
           Ad Pilot
           <span className="text-primary-400 font-normal"> for {clientName}</span>
         </h1>
