@@ -157,7 +157,9 @@ export default function Chat() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const shouldAutoScrollRef = useRef(true);
+  // Start with auto-scroll OFF so initial content shows from top
+  const shouldAutoScrollRef = useRef(false);
+  const hasUserInteractedRef = useRef(false);
 
   // Handle scroll events to detect if user scrolled up
   const handleScroll = useCallback(() => {
@@ -169,7 +171,8 @@ export default function Chat() {
   }, []);
 
   const scrollToBottom = useCallback(() => {
-    if (shouldAutoScrollRef.current) {
+    // Only auto-scroll after user has interacted (sent a message)
+    if (shouldAutoScrollRef.current && hasUserInteractedRef.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, []);
@@ -194,7 +197,8 @@ export default function Chat() {
     async (userMessage: string) => {
       if (!userMessage.trim() || isLoading) return;
 
-      // When user sends a message, always scroll to show it
+      // When user sends a message, enable auto-scroll
+      hasUserInteractedRef.current = true;
       shouldAutoScrollRef.current = true;
       setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
       setIsLoading(true);
