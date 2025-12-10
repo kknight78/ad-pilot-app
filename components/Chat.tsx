@@ -25,6 +25,7 @@ import {
   RecommendationsList,
   GuidanceRulesCard,
   AvatarPhotoCapture,
+  VoiceCapture,
   InvoiceWidget,
   ActionButtons,
 } from "./widgets";
@@ -263,6 +264,37 @@ function WidgetRenderer({
         />
       );
 
+    case "voice_capture":
+      return (
+        <VoiceCapture
+          onCapture={(_audioBlob) => {
+            // Return from detour - SILENT action (no user bubble)
+            const returnTo = flowState.detourStack[flowState.detourStack.length - 1] || "performance_dashboard";
+            onStateUpdate({
+              currentStep: returnTo,
+              detourStack: flowState.detourStack.slice(0, -1),
+            });
+            if (returnTo !== "wrap_up") {
+              onAddAssistantMessage("Voice clone created! Returning to where we were:", [{ type: returnTo as WidgetData["type"] }]);
+            } else {
+              onAddAssistantMessage("Voice clone created! All done. Anything else you'd like to work on?", []);
+            }
+          }}
+          onSkip={() => {
+            const returnTo = flowState.detourStack[flowState.detourStack.length - 1] || "performance_dashboard";
+            onStateUpdate({
+              currentStep: returnTo,
+              detourStack: flowState.detourStack.slice(0, -1),
+            });
+            if (returnTo !== "wrap_up") {
+              onAddAssistantMessage("No problem! You can record your voice anytime. Returning to where we were:", [{ type: returnTo as WidgetData["type"] }]);
+            } else {
+              onAddAssistantMessage("No problem! You can record your voice anytime. Anything else you'd like to work on?", []);
+            }
+          }}
+        />
+      );
+
     case "billing":
       return <InvoiceWidget />;
 
@@ -358,6 +390,20 @@ export default function Chat() {
   const sendMessage = useCallback(
     async (userMessage: string) => {
       if (!userMessage.trim() || isLoading) return;
+
+      // Quick triggers for widgets (for testing/demo)
+      const lowerMessage = userMessage.toLowerCase().trim();
+      if (lowerMessage === "voice" || lowerMessage === "record voice" || lowerMessage === "voice clone") {
+        setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
+        // Push current step to detour stack
+        setFlowState((prev) => ({
+          ...prev,
+          detourStack: [...prev.detourStack, prev.currentStep],
+          currentStep: "voice_capture",
+        }));
+        addAssistantMessage("Let's record your voice for your AI clone:", [{ type: "voice_capture" }]);
+        return;
+      }
 
       setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
 

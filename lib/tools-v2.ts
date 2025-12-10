@@ -29,6 +29,7 @@ export type WidgetType =
   | "recommendations"
   | "guidance_rules"
   | "avatar_photo"
+  | "voice_capture"
   | "billing"
   | "action_buttons";
 

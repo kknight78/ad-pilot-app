@@ -13,6 +13,7 @@ export type DetourStep =
   | "recommendations"
   | "guidance_rules"
   | "avatar_photo"
+  | "voice_capture"
   | "billing";
 
 export type FlowStep = GoldenPathStep | DetourStep;
@@ -42,7 +43,7 @@ export interface ConversationState {
   currentStep: FlowStep;
   completedSteps: GoldenPathStep[];
   selections: FlowSelections;
-  detourStack: GoldenPathStep[];
+  detourStack: FlowStep[];
 }
 
 export const initialFlowState: ConversationState = {
@@ -74,6 +75,7 @@ export function isDetourStep(step: FlowStep): step is DetourStep {
     "recommendations",
     "guidance_rules",
     "avatar_photo",
+    "voice_capture",
     "billing",
   ];
   return detourSteps.includes(step as DetourStep);
