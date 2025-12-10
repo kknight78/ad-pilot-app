@@ -199,15 +199,11 @@ export function AvatarPhotoCapture({
   // Voice recording functions
   const startRecording = useCallback(async () => {
     setError(null);
-
-    // Check permission first
-    if (micPermission !== "granted") {
-      const granted = await requestMicPermission();
-      if (!granted) return;
-    }
+    setVoiceMode("permission");
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setMicPermission("granted");
       setAudioStream(stream);
 
       const mediaRecorder = new MediaRecorder(stream);
@@ -247,9 +243,10 @@ export function AvatarPhotoCapture({
     } catch (err) {
       console.error("Microphone error:", err);
       setMicPermission("denied");
+      setVoiceMode("idle");
       setError("Microphone access is required to record your voice. Please allow microphone access in your browser settings, or use the 'Upload Audio File' option instead.");
     }
-  }, [micPermission, requestMicPermission]);
+  }, []);
 
   const stopRecording = useCallback(() => {
     if (timerRef.current) {
