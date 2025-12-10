@@ -69,6 +69,7 @@ export function AvatarPhotoCapture({
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const stopRecordingRef = useRef<() => void>(() => {});
 
   // Generate script with business name
   const voiceScript = DEFAULT_VOICE_SCRIPT.replace(/Capitol Car Credit/g, businessName);
@@ -237,7 +238,7 @@ export function AvatarPhotoCapture({
           const next = prev + 1;
           // Auto-stop at max
           if (next >= MAX_RECORDING_SECONDS) {
-            stopRecording();
+            stopRecordingRef.current();
           }
           return next;
         });
@@ -268,6 +269,9 @@ export function AvatarPhotoCapture({
       return null;
     });
   }, []);
+
+  // Keep ref in sync with latest stopRecording function
+  stopRecordingRef.current = stopRecording;
 
   const handleReRecord = () => {
     if (audioUrl) {
