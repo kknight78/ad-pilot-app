@@ -260,11 +260,14 @@ export function AvatarPhotoCapture({
       mediaRecorderRef.current.stop();
     }
 
-    if (audioStream) {
-      audioStream.getTracks().forEach(track => track.stop());
-      setAudioStream(null);
-    }
-  }, [audioStream]);
+    // Use functional update to get current stream state and clean it up
+    setAudioStream((currentStream) => {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+      return null;
+    });
+  }, []);
 
   const handleReRecord = () => {
     if (audioUrl) {
