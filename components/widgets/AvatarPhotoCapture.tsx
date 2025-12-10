@@ -12,39 +12,20 @@ import {
   User,
   AlertCircle,
   Loader2,
-  Mic,
-  Square,
-  Play,
-  Pause,
-  FileAudio,
 } from "lucide-react";
 
 interface AvatarPhotoCaptureProps {
-  onCapture?: (imageData: string, avatarName: string, audioBlob?: Blob) => void;
-  onUpload?: (file: File, avatarName: string, audioBlob?: Blob) => void;
+  onCapture?: (imageData: string, avatarName: string) => void;
+  onUpload?: (file: File, avatarName: string) => void;
   presenterName?: string;
-  businessName?: string;
-  hasExistingVoice?: boolean;
 }
-
-// Default voice recording script (~60-70 seconds at natural pace)
-const DEFAULT_VOICE_SCRIPT = `Welcome to Capitol Car Credit, where we treat you like family. Right now we've got incredible deals on sedans, SUVs, and trucks. Whether you're looking for a reliable daily driver or something with a little more power, we've got you covered.
-
-What makes us different? We work with everyone — good credit, bad credit, no credit, we'll find a way to get you driving. Our team takes the time to understand your situation and find the right vehicle at the right price.
-
-Stop by today and ask for Shad — mention you saw us online and we'll take care of you. That's Capitol Car Credit in Rantoul. See you soon!`;
-
-const MIN_RECORDING_SECONDS = 30;
-const MAX_RECORDING_SECONDS = 120;
 
 export function AvatarPhotoCapture({
   onCapture,
   onUpload,
   presenterName = "Shad",
-  businessName = "Capitol Car Credit",
-  hasExistingVoice = false,
 }: AvatarPhotoCaptureProps) {
-  const [mode, setMode] = useState<"select" | "camera" | "upload" | "preview" | "voice" | "voice_choice" | "voice_success" | "confirmed">("select");
+  const [mode, setMode] = useState<"select" | "camera" | "preview" | "confirmed">("select");
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -52,27 +33,9 @@ export function AvatarPhotoCapture({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [avatarName, setAvatarName] = useState("");
 
-  // Voice recording state
-  const [voiceMode, setVoiceMode] = useState<"idle" | "permission" | "recording" | "review">("idle");
-  const [micPermission, setMicPermission] = useState<"unknown" | "granted" | "denied" | "prompt">("unknown");
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioStream, setAudioStream] = useState<MediaStream | null>(null);
-
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const audioFileInputRef = useRef<HTMLInputElement>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
-  const stopRecordingRef = useRef<() => void>(() => {});
-
-  // Generate script with business name
-  const voiceScript = DEFAULT_VOICE_SCRIPT.replace(/Capitol Car Credit/g, businessName);
 
   const startCamera = useCallback(async () => {
     setError(null);
@@ -82,7 +45,6 @@ export function AvatarPhotoCapture({
       });
       setStream(mediaStream);
       setMode("camera");
-      // Note: stream will be assigned to video element via useEffect below
     } catch (err) {
       console.error("Camera error:", err);
       setError("Could not access camera. Please check permissions or try uploading instead.");
@@ -142,195 +104,15 @@ export function AvatarPhotoCapture({
     setMode("select");
   };
 
-  // Proceed from photo to voice step
-  const handlePhotoConfirm = () => {
+  const handleSubmit = async () => {
     if (!avatarName.trim()) {
       setError("Please enter an avatar name");
       return;
     }
     setError(null);
-
-    // If user has existing voice, show choice screen
-    if (hasExistingVoice) {
-      setMode("voice_choice");
-    } else {
-      // No existing voice, go directly to voice recording
-      setMode("voice");
-    }
-  };
-
-  // Check microphone permission status
-  const checkMicPermission = useCallback(async () => {
-    try {
-      // Check if permissions API is available
-      if (navigator.permissions && navigator.permissions.query) {
-        const result = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-        setMicPermission(result.state as "granted" | "denied" | "prompt");
-        return result.state;
-      }
-      // Fallback: assume prompt is needed
-      return "prompt";
-    } catch {
-      // Some browsers don't support querying microphone permission
-      return "prompt";
-    }
-  }, []);
-
-  // Request microphone permission
-  const requestMicPermission = useCallback(async () => {
-    setError(null);
-    setVoiceMode("permission");
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Permission granted - stop the test stream
-      stream.getTracks().forEach(track => track.stop());
-      setMicPermission("granted");
-      setVoiceMode("idle");
-      return true;
-    } catch (err) {
-      console.error("Microphone permission error:", err);
-      setMicPermission("denied");
-      setError("Microphone access was denied. Please enable microphone access in your browser settings, or use the 'Upload Audio File' option instead.");
-      setVoiceMode("idle");
-      return false;
-    }
-  }, []);
-
-  // Voice recording functions
-  const startRecording = useCallback(async () => {
-    setError(null);
-    setVoiceMode("permission");
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setMicPermission("granted");
-      setAudioStream(stream);
-
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        setAudioBlob(blob);
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
-        setVoiceMode("review");
-      };
-
-      mediaRecorder.start();
-      setVoiceMode("recording");
-      setRecordingSeconds(0);
-
-      // Start timer
-      timerRef.current = setInterval(() => {
-        setRecordingSeconds((prev) => {
-          const next = prev + 1;
-          // Auto-stop at max
-          if (next >= MAX_RECORDING_SECONDS) {
-            stopRecordingRef.current();
-          }
-          return next;
-        });
-      }, 1000);
-
-    } catch (err) {
-      console.error("Microphone error:", err);
-      setMicPermission("denied");
-      setVoiceMode("idle");
-      setError("Microphone access is required to record your voice. Please allow microphone access in your browser settings, or use the 'Upload Audio File' option instead.");
-    }
-  }, []);
-
-  const stopRecording = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
-      mediaRecorderRef.current.stop();
-    }
-
-    // Use functional update to get current stream state and clean it up
-    setAudioStream((currentStream) => {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-      }
-      return null;
-    });
-  }, []);
-
-  // Keep ref in sync with latest stopRecording function
-  stopRecordingRef.current = stopRecording;
-
-  const handleReRecord = () => {
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-    }
-    setAudioBlob(null);
-    setAudioUrl(null);
-    setRecordingSeconds(0);
-    setVoiceMode("idle");
-    setIsPlaying(false);
-  };
-
-  const handleAudioFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const validTypes = ['audio/mpeg', 'audio/wav', 'audio/webm', 'audio/mp3', 'audio/x-m4a', 'audio/mp4'];
-      if (!validTypes.some(t => file.type.includes(t.split('/')[1]))) {
-        setError("Please select an audio file (MP3, WAV, M4A, or WebM)");
-        return;
-      }
-      if (file.size > 25 * 1024 * 1024) {
-        setError("Audio file must be less than 25MB");
-        return;
-      }
-
-      setAudioBlob(file);
-      const url = URL.createObjectURL(file);
-      setAudioUrl(url);
-      setVoiceMode("review");
-      setRecordingSeconds(0); // Will show file duration when played
-    }
-  };
-
-  const togglePlayback = () => {
-    if (!audioPlayerRef.current || !audioUrl) return;
-
-    if (isPlaying) {
-      audioPlayerRef.current.pause();
-    } else {
-      audioPlayerRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  // Final submit with voice
-  const handleFinalSubmit = async () => {
     setIsSubmitting(true);
+
     // Simulate upload delay
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-
-    if (uploadedFile) {
-      onUpload?.(uploadedFile, avatarName, audioBlob || undefined);
-    } else if (capturedImage) {
-      onCapture?.(capturedImage, avatarName, audioBlob || undefined);
-    }
-    setIsSubmitting(false);
-    setMode("confirmed");
-  };
-
-  // Skip voice and use existing
-  const handleUseExistingVoice = async () => {
-    setIsSubmitting(true);
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     if (uploadedFile) {
@@ -338,45 +120,14 @@ export function AvatarPhotoCapture({
     } else if (capturedImage) {
       onCapture?.(capturedImage, avatarName);
     }
+
     setIsSubmitting(false);
     setMode("confirmed");
   };
 
-  // Format seconds as M:SS
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const handleReset = () => {
-    setCapturedImage(null);
-    setUploadedFile(null);
-    setAvatarName("");
-    setError(null);
-    setMode("select");
-    // Reset voice state
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-    }
-    setAudioBlob(null);
-    setAudioUrl(null);
-    setVoiceMode("idle");
-    setRecordingSeconds(0);
-    setIsPlaying(false);
-  };
-
-  // Check mic permission when entering voice mode
-  useEffect(() => {
-    if (mode === "voice" && micPermission === "unknown") {
-      checkMicPermission();
-    }
-  }, [mode, micPermission, checkMicPermission]);
-
   // Assign stream to video element when both are available
   useEffect(() => {
     if (mode === "camera" && stream) {
-      // Small delay to ensure DOM is ready
       const timer = setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
@@ -392,17 +143,9 @@ export function AvatarPhotoCapture({
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
-      if (audioStream) {
-        audioStream.getTracks().forEach((track) => track.stop());
-      }
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
     };
-  }, [stream, audioStream, audioUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <Card className="w-full max-w-md">
@@ -428,12 +171,10 @@ export function AvatarPhotoCapture({
               <Check className="w-8 h-8 text-green-600" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {audioBlob ? "Photo & Voice Uploaded!" : "Photo Uploaded!"}
+              Photo Uploaded!
             </h3>
             <p className="text-gray-600">
-              {audioBlob
-                ? `We're training your new avatar and voice clone now. "${avatarName}" should be available within 24 hours — we'll notify you when it's ready!`
-                : `We're training your new avatar now. "${avatarName}" should be available in your avatar selector within 24 hours — we'll notify you when it's ready!`}
+              We&apos;re training your new avatar now. &quot;{avatarName}&quot; should be available in your avatar selector within 24 hours — we&apos;ll notify you when it&apos;s ready!
             </p>
           </div>
         )}
@@ -523,7 +264,6 @@ export function AvatarPhotoCapture({
                     playsInline
                     muted
                     onLoadedMetadata={(e) => {
-                      // Ensure video plays when metadata is loaded
                       (e.target as HTMLVideoElement).play().catch(console.error);
                     }}
                     className="w-full h-full object-cover"
@@ -554,7 +294,7 @@ export function AvatarPhotoCapture({
             {/* Preview mode */}
             {mode === "preview" && capturedImage && (
               <div className="space-y-4">
-                {/* Avatar Name Input - always show in preview if not filled from select mode */}
+                {/* Avatar Name Input */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Avatar Name
@@ -588,39 +328,7 @@ export function AvatarPhotoCapture({
                     <RefreshCw className="w-4 h-4 mr-1" />
                     Retake
                   </Button>
-                  <Button className="flex-1" onClick={handlePhotoConfirm}>
-                    <Mic className="w-4 h-4 mr-2" />
-                    Next: Record Voice
-                  </Button>
-                </div>
-
-                <p className="text-xs text-gray-400 text-center">
-                  Photos used only for AI avatar training.
-                </p>
-              </div>
-            )}
-
-            {/* Voice choice mode - for users with existing voice */}
-            {mode === "voice_choice" && (
-              <div className="space-y-4">
-                <div className="text-center py-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Mic className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Voice for {avatarName}
-                  </h3>
-                  <p className="text-sm text-gray-600">
-                    You already have a voice clone. Would you like to use it or record a new one?
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Button
-                    className="w-full h-12"
-                    onClick={handleUseExistingVoice}
-                    disabled={isSubmitting}
-                  >
+                  <Button className="flex-1" onClick={handleSubmit} disabled={isSubmitting}>
                     {isSubmitting ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -629,215 +337,15 @@ export function AvatarPhotoCapture({
                     ) : (
                       <>
                         <Check className="w-4 h-4 mr-2" />
-                        Use Existing Voice
+                        Create Avatar
                       </>
                     )}
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full h-12"
-                    onClick={() => setMode("voice")}
-                    disabled={isSubmitting}
-                  >
-                    <Mic className="w-4 h-4 mr-2" />
-                    Record New Voice
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Voice recording mode */}
-            {mode === "voice" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-1.5 bg-purple-100 rounded-lg">
-                    <Mic className="w-4 h-4 text-purple-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900">Record Your Voice</h3>
-                    <p className="text-xs text-gray-500">New voice for {avatarName}</p>
-                  </div>
                 </div>
 
-                {/* Script to read */}
-                <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                  <p className="text-xs font-medium text-gray-500 mb-2">Read this script aloud:</p>
-                  <p className="text-sm text-gray-700 leading-relaxed">&quot;{voiceScript}&quot;</p>
-                </div>
-
-                {/* Tips */}
-                <div className="text-xs text-gray-500 space-y-1">
-                  <p className="font-medium">Tips for best results:</p>
-                  <ul className="list-disc list-inside space-y-0.5 text-gray-400">
-                    <li>Find a quiet space with minimal background noise</li>
-                    <li>Position yourself 6-12 inches from your microphone</li>
-                    <li>Speak naturally, like you&apos;re talking to a customer</li>
-                    <li>Read at a steady, conversational pace</li>
-                  </ul>
-                </div>
-
-                {/* Recording interface */}
-                <div className="bg-gray-100 rounded-xl p-4">
-                  {voiceMode === "permission" && (
-                    <div className="text-center py-4">
-                      <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                        <Mic className="w-6 h-6 text-purple-600 animate-pulse" />
-                      </div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">Microphone Access Needed</p>
-                      <p className="text-xs text-gray-500">Please allow microphone access when prompted by your browser</p>
-                    </div>
-                  )}
-
-                  {voiceMode === "idle" && (
-                    <div className="text-center py-4">
-                      <div className="text-2xl font-mono text-gray-400 mb-2">0:00</div>
-                      <p className="text-xs text-gray-500">Ready to record</p>
-                    </div>
-                  )}
-
-                  {voiceMode === "recording" && (
-                    <div className="text-center py-4">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                        <span className="text-2xl font-mono text-gray-900">{formatTime(recordingSeconds)}</span>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {recordingSeconds < MIN_RECORDING_SECONDS
-                          ? `Keep going... (min ${MIN_RECORDING_SECONDS}s)`
-                          : "Recording..."}
-                      </p>
-                    </div>
-                  )}
-
-                  {voiceMode === "review" && (
-                    <div className="text-center py-4">
-                      <div className="flex items-center justify-center gap-3 mb-2">
-                        <button
-                          onClick={togglePlayback}
-                          className="w-10 h-10 bg-purple-500 hover:bg-purple-600 text-white rounded-full flex items-center justify-center transition-colors"
-                        >
-                          {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-                        </button>
-                        <span className="text-2xl font-mono text-gray-900">{formatTime(recordingSeconds)}</span>
-                      </div>
-                      <p className="text-xs text-green-600 font-medium">Recording complete!</p>
-                      {/* Hidden audio element for playback */}
-                      <audio
-                        ref={audioPlayerRef}
-                        src={audioUrl || undefined}
-                        onEnded={() => setIsPlaying(false)}
-                        onTimeUpdate={(e) => {
-                          const audio = e.target as HTMLAudioElement;
-                          if (audio.duration && !isNaN(audio.duration)) {
-                            setRecordingSeconds(Math.floor(audio.duration));
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Action buttons based on voice mode */}
-                {voiceMode === "idle" && (
-                  <div className="space-y-2">
-                    <Button className="w-full h-12" onClick={startRecording}>
-                      <Mic className="w-5 h-5 mr-2" />
-                      Start Recording
-                    </Button>
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-gray-200" />
-                      </div>
-                      <div className="relative flex justify-center text-xs">
-                        <span className="bg-white px-2 text-gray-400">OR</span>
-                      </div>
-                    </div>
-                    <Button
-                      variant="outline"
-                      className="w-full h-12"
-                      onClick={() => audioFileInputRef.current?.click()}
-                    >
-                      <FileAudio className="w-5 h-5 mr-2" />
-                      Upload Audio File
-                    </Button>
-                    <input
-                      ref={audioFileInputRef}
-                      type="file"
-                      accept="audio/*"
-                      onChange={handleAudioFileSelect}
-                      className="hidden"
-                    />
-                  </div>
-                )}
-
-                {voiceMode === "recording" && (
-                  <Button
-                    className="w-full h-12 bg-red-500 hover:bg-red-600"
-                    onClick={stopRecording}
-                    disabled={recordingSeconds < MIN_RECORDING_SECONDS}
-                  >
-                    <Square className="w-5 h-5 mr-2" />
-                    {recordingSeconds < MIN_RECORDING_SECONDS
-                      ? `Recording... (${MIN_RECORDING_SECONDS - recordingSeconds}s left)`
-                      : "Stop Recording"}
-                  </Button>
-                )}
-
-                {voiceMode === "review" && (
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleReRecord}>
-                      <RefreshCw className="w-4 h-4 mr-1" />
-                      Re-record
-                    </Button>
-                    <Button className="flex-1" onClick={() => setMode("voice_success")}>
-                      <Check className="w-4 h-4 mr-2" />
-                      Use This Recording
-                    </Button>
-                  </div>
-                )}
-
-                {/* Back button */}
-                <Button
-                  variant="ghost"
-                  className="w-full text-gray-500"
-                  onClick={() => setMode("preview")}
-                  disabled={voiceMode === "recording"}
-                >
-                  <X className="w-4 h-4 mr-1" />
-                  Back to Photo
-                </Button>
-              </div>
-            )}
-
-            {/* Voice success screen */}
-            {mode === "voice_success" && (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Check className="w-8 h-8 text-green-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Voice Captured!
-                </h3>
-                <p className="text-gray-600 mb-6">
-                  Your AI voice clone will be ready in about 5 minutes.
+                <p className="text-xs text-gray-400 text-center">
+                  Photos used only for AI avatar training.
                 </p>
-                <Button
-                  className="w-full h-12"
-                  onClick={handleFinalSubmit}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Creating Avatar...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="w-4 h-4 mr-2" />
-                      Done
-                    </>
-                  )}
-                </Button>
               </div>
             )}
           </>

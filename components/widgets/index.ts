@@ -75,5 +75,6 @@ export { VehicleSelectorV2 } from "./VehicleSelectorV2";
 export { ScriptApprovalCards } from "./ScriptApprovalCards";
 export { GenerationProgress } from "./GenerationProgress";
 export { AvatarPhotoCapture } from "./AvatarPhotoCapture";
+export { VoiceCapture } from "./VoiceCapture";
 export { InvoiceWidget } from "./InvoiceWidget";
 export { PublishWidget } from "./PublishWidget";
