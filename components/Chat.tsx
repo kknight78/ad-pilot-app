@@ -493,10 +493,9 @@ export default function Chat() {
                   />
                 </div>
               ))}
-              {/* Show welcome action buttons after performance dashboard on initial load */}
-              {index === 0 &&
-                message.role === "assistant" &&
-                messages.length === 1 &&
+              {/* Show welcome action buttons after performance dashboard when at that step */}
+              {message.role === "assistant" &&
+                index === messages.length - 1 &&
                 flowState.currentStep === "performance_dashboard" &&
                 message.widgets?.some(w => w.type === "performance_dashboard") && (
                   <div className="flex flex-wrap gap-2 my-2 mb-4">
