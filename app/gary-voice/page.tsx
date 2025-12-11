@@ -24,7 +24,13 @@ type RecordingState = "idle" | "recording" | "recorded" | "processing" | "voice_
 type Step = "record" | "test" | "approve";
 
 // The script Gary needs to read
-const RECORDING_SCRIPT = `Hi, I'm Gary Knight from Capitol Car Credit. We've been helping families in Rantoul find reliable, affordable vehicles for over twenty years. Whether you're looking for a fuel-efficient commuter, a family SUV, or a dependable work truck, we've got you covered. Stop by today and let's find the perfect car for you!`;
+const RECORDING_SCRIPT = `Hi, I'm Gary Knight from Capitol Car Credit in Rantoul. We've been helping families in central Illinois find reliable, affordable vehicles for over twenty years.
+
+Whether you're looking for a fuel-efficient commuter to save on gas, a family SUV with room for the kids and all their stuff, or a dependable work truck that can handle anything you throw at it — we've got you covered.
+
+What makes us different? We're not some big corporate dealership. We're your neighbors. We live here, we work here, and we're gonna be here long after you drive off the lot. That means we treat you right, because we're gonna see you at the grocery store.
+
+Stop by today and let's find the perfect car for you. We're right here on Route 45 in Rantoul — you can't miss us!`;
 
 // Suggested test phrases
 const SUGGESTED_PHRASES = [
