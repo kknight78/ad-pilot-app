@@ -57,12 +57,14 @@ export default function GaryVoicePage() {
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
   const [isPlayingGenerated, setIsPlayingGenerated] = useState(false);
   const [customText, setCustomText] = useState("");
+  const [activeScriptIndex, setActiveScriptIndex] = useState<number | null>(null);
 
   // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const generatedAudioRef = useRef<HTMLAudioElement | null>(null);
+  const topRef = useRef<HTMLDivElement | null>(null);
 
   // Cleanup
   useEffect(() => {
@@ -71,6 +73,13 @@ export default function GaryVoicePage() {
       if (generatedAudioUrl) URL.revokeObjectURL(generatedAudioUrl);
     };
   }, [generatedAudioUrl]);
+
+  // Scroll to top when phase changes to test
+  useEffect(() => {
+    if (phase === "test") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [phase]);
 
   // Start recording
   const startRecording = async () => {
@@ -156,11 +165,16 @@ export default function GaryVoicePage() {
   };
 
   // Generate TTS preview with given text
-  const generatePreview = async (text: string) => {
+  const generatePreview = async (text: string, scriptIndex?: number) => {
     if (!text.trim() || !voiceId) return;
 
     setError(null);
     setIsGenerating(true);
+    if (scriptIndex !== undefined) {
+      setActiveScriptIndex(scriptIndex);
+    } else {
+      setActiveScriptIndex(null);
+    }
 
     // Clean up previous audio
     if (generatedAudioUrl) {
@@ -231,6 +245,7 @@ export default function GaryVoicePage() {
     setGeneratedAudioUrl(null);
     setCustomText("");
     setError(null);
+    setActiveScriptIndex(null);
     setPhase("record");
   };
 
@@ -241,13 +256,21 @@ export default function GaryVoicePage() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // Handle audio ended
+  const handleAudioEnded = () => {
+    setIsPlayingGenerated(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       {/* Hidden audio element */}
       <audio
         ref={generatedAudioRef}
-        onEnded={() => setIsPlayingGenerated(false)}
+        onEnded={handleAudioEnded}
       />
+
+      {/* Top ref for scrolling */}
+      <div ref={topRef} />
 
       {/* Header */}
       <header className="bg-white border-b border-gray-100 px-4 py-6">
@@ -277,7 +300,7 @@ export default function GaryVoicePage() {
                 </div>
                 <h2 className="text-xl font-semibold text-gray-900">Record Your Voice</h2>
                 <p className="text-gray-500 text-sm mt-1">
-                  Read the script below naturally, like you&apos;re talking to a customer
+                  Read the script below like you&apos;re filming a commercial
                 </p>
               </div>
 
@@ -403,7 +426,7 @@ export default function GaryVoicePage() {
                 </div>
                 <h2 className="text-xl font-semibold text-gray-900">Voice Clone Ready!</h2>
                 <p className="text-gray-500 text-sm mt-1">
-                  Test your new voice with these scripts or create your own
+                  Tap a script below to hear it in your voice
                 </p>
               </div>
 
@@ -415,49 +438,51 @@ export default function GaryVoicePage() {
                 </div>
               )}
 
-              {/* Audio player - shows when we have audio */}
-              {generatedAudioUrl && (
-                <div className="flex items-center gap-3 bg-blue-50 rounded-xl p-4 border border-blue-200 mb-4">
-                  <button
-                    onClick={toggleGeneratedPlayback}
-                    className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors shrink-0"
-                  >
-                    {isPlayingGenerated ? (
-                      <Pause className="w-5 h-5" />
-                    ) : (
-                      <Play className="w-5 h-5 ml-0.5" />
-                    )}
-                  </button>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-blue-900">Your voice preview</p>
-                    <p className="text-xs text-blue-600">Tap to play again</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Loading state */}
-              {isGenerating && (
-                <div className="flex items-center justify-center gap-3 py-4 mb-4">
-                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
-                  <span className="text-gray-600">Generating preview...</span>
-                </div>
-              )}
-
-              {/* Test script buttons - stacked */}
+              {/* Test script buttons - stacked, with play button inline when active */}
               <div className="space-y-2 mb-4">
                 <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">
-                  Tap a script to hear it in your voice:
+                  Tap a script to hear it:
                 </p>
-                {TEST_SCRIPTS.map((script, i) => (
-                  <button
-                    key={i}
-                    onClick={() => generatePreview(script)}
-                    disabled={isGenerating}
-                    className="w-full text-left p-4 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
-                  >
-                    &ldquo;{script}&rdquo;
-                  </button>
-                ))}
+                {TEST_SCRIPTS.map((script, i) => {
+                  const isActive = activeScriptIndex === i && generatedAudioUrl;
+                  const isLoading = activeScriptIndex === i && isGenerating;
+
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        if (isActive) {
+                          toggleGeneratedPlayback();
+                        } else {
+                          generatePreview(script, i);
+                        }
+                      }}
+                      disabled={isGenerating && activeScriptIndex !== i}
+                      className={`w-full text-left p-4 rounded-xl text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed border flex items-center gap-3 ${
+                        isActive
+                          ? "bg-blue-50 border-blue-300 text-blue-900"
+                          : "bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-700"
+                      }`}
+                    >
+                      {/* Play/Pause button for active script */}
+                      {isActive && (
+                        <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white shrink-0">
+                          {isPlayingGenerated ? (
+                            <Pause className="w-4 h-4" />
+                          ) : (
+                            <Play className="w-4 h-4 ml-0.5" />
+                          )}
+                        </div>
+                      )}
+                      {isLoading && (
+                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
+                          <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                        </div>
+                      )}
+                      <span className="flex-1">&ldquo;{script}&rdquo;</span>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Custom text area */}
@@ -486,10 +511,10 @@ export default function GaryVoicePage() {
                 <Button
                   onClick={saveVoice}
                   size="lg"
-                  className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
+                  className="w-full h-auto min-h-[56px] py-3 text-base bg-green-600 hover:bg-green-700 whitespace-normal"
                 >
-                  <Check className="w-5 h-5 mr-2" />
-                  I&apos;m Happy, Save This Voice
+                  <Check className="w-5 h-5 mr-2 shrink-0" />
+                  <span>I&apos;m Happy, Save This Voice</span>
                 </Button>
                 <Button
                   onClick={redo}
