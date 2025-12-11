@@ -14,7 +14,9 @@ import {
   Loader,
   Camera,
   CreditCard,
-  ChevronLeft
+  ChevronLeft,
+  Music,
+  Gift,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -33,12 +35,16 @@ import { ScriptApprovalCards } from "@/components/widgets/ScriptApprovalCards";
 import { GenerationProgress } from "@/components/widgets/GenerationProgress";
 import { AvatarPhotoCapture } from "@/components/widgets/AvatarPhotoCapture";
 import { InvoiceWidget } from "@/components/widgets/InvoiceWidget";
+import { RecommendationsWidget } from "@/components/widgets/RecommendationsWidget";
+import { MusicWidget } from "@/components/widgets/MusicWidget";
 
 // Demo data removed - widgets now have built-in demo data
 
 const widgets = [
   { id: "performance", name: "Performance Dashboard", icon: BarChart3, status: "working" },
-  { id: "recommendations", name: "Recommendations", icon: Lightbulb, status: "rebuilt" },
+  { id: "get-more", name: "Get More From Ad Pilot", icon: Gift, status: "new" },
+  { id: "music", name: "Pick Your Vibe (Music)", icon: Music, status: "new" },
+  { id: "recommendations", name: "Recommendations (old)", icon: Lightbulb, status: "rebuilt" },
   { id: "guidance", name: "Guidance Rules", icon: Settings, status: "rebuilt" },
   { id: "publish", name: "Publish Widget", icon: Video, status: "new" },
   { id: "adplan", name: "Ad Plan Table", icon: Calendar, status: "working" },
@@ -69,6 +75,10 @@ export default function GalleryPage() {
             onDownloadPDF={() => console.log("Download PDF")}
           />
         );
+      case "get-more":
+        return <RecommendationsWidget />;
+      case "music":
+        return <MusicWidget />;
       case "recommendations":
         return (
           <RecommendationsList

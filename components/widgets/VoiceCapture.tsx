@@ -14,13 +14,19 @@ import {
   Play,
   Pause,
   FileAudio,
+  Volume2,
 } from "lucide-react";
 
+// n8n webhook endpoints
+const N8N_VOICE_CLONE_URL = "https://kelly-ads.app.n8n.cloud/webhook/voice/clone";
+const N8N_VOICE_PREVIEW_URL = "https://kelly-ads.app.n8n.cloud/webhook/voice/preview";
+
 interface VoiceCaptureProps {
-  onCapture?: (audioBlob: Blob) => void;
+  onCapture?: (audioBlob: Blob, voiceId?: string) => void;
   onSkip?: () => void;
   presenterName?: string;
   businessName?: string;
+  clientId?: string; // Short client identifier, e.g., "CCC" for Capitol Car Credit
 }
 
 // Default voice recording script (~60-70 seconds at natural pace)
@@ -38,8 +44,9 @@ export function VoiceCapture({
   onSkip,
   presenterName = "Shad",
   businessName = "Capitol Car Credit",
+  clientId = "CCC",
 }: VoiceCaptureProps) {
-  const [mode, setMode] = useState<"record" | "success" | "confirmed">("record");
+  const [mode, setMode] = useState<"record" | "cloning" | "preview" | "confirmed">("record");
   const [voiceMode, setVoiceMode] = useState<"idle" | "permission" | "recording" | "review">("idle");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -48,11 +55,18 @@ export function VoiceCapture({
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // ElevenLabs voice clone state
+  const [voiceId, setVoiceId] = useState<string | null>(null);
+  const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const [cloningProgress, setCloningProgress] = useState<string>("Uploading audio...");
+
   const audioFileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
   const stopRecordingRef = useRef<() => void>(() => {});
 
   // Generate script with business name and presenter name
@@ -167,18 +181,97 @@ export function VoiceCapture({
     setIsPlaying(!isPlaying);
   };
 
-  const handleUseRecording = () => {
-    setMode("success");
+  // Upload audio to ElevenLabs and create voice clone
+  const handleUseRecording = async () => {
+    if (!audioBlob) return;
+
+    setError(null);
+    setMode("cloning");
+    setCloningProgress("Uploading audio...");
+
+    try {
+      // Create FormData for the audio file
+      const formData = new FormData();
+      formData.append("name", `${presenterName} - ${clientId}`);
+      formData.append("files", audioBlob, "voice-recording.webm");
+      formData.append("remove_background_noise", "true");
+
+      setCloningProgress("Creating voice clone...");
+
+      // Upload to ElevenLabs via n8n webhook
+      const cloneResponse = await fetch(N8N_VOICE_CLONE_URL, {
+        method: "POST",
+        body: formData,
+      });
+
+      const cloneData = await cloneResponse.json();
+
+      if (!cloneData.success || !cloneData.voice_id) {
+        throw new Error(cloneData.error || "Failed to create voice clone");
+      }
+
+      setVoiceId(cloneData.voice_id);
+      setCloningProgress("Generating preview...");
+
+      // Generate a preview with the new voice
+      const previewText = `Hey, it's ${presenterName} from ${businessName}. Your AI voice clone is ready to go!`;
+
+      const previewResponse = await fetch(N8N_VOICE_PREVIEW_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          voice_id: cloneData.voice_id,
+          text: previewText,
+        }),
+      });
+
+      if (!previewResponse.ok) {
+        throw new Error("Failed to generate voice preview");
+      }
+
+      // Get the audio blob from the response
+      const previewBlob = await previewResponse.blob();
+      const previewUrl = URL.createObjectURL(previewBlob);
+      setPreviewAudioUrl(previewUrl);
+      setMode("preview");
+
+    } catch (err) {
+      console.error("Voice clone error:", err);
+      setError(err instanceof Error ? err.message : "Failed to create voice clone. Please try again.");
+      setMode("record");
+      setVoiceMode("review"); // Go back to review state
+    }
+  };
+
+  const togglePreviewPlayback = () => {
+    if (!previewPlayerRef.current || !previewAudioUrl) return;
+
+    if (isPlayingPreview) {
+      previewPlayerRef.current.pause();
+    } else {
+      previewPlayerRef.current.play();
+    }
+    setIsPlayingPreview(!isPlayingPreview);
   };
 
   const handleFinalSubmit = async () => {
     if (!audioBlob) return;
 
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    onCapture?.(audioBlob);
+    onCapture?.(audioBlob, voiceId || undefined);
     setIsSubmitting(false);
     setMode("confirmed");
+  };
+
+  const handleRejectPreview = () => {
+    // Clean up preview audio
+    if (previewAudioUrl) {
+      URL.revokeObjectURL(previewAudioUrl);
+      setPreviewAudioUrl(null);
+    }
+    setVoiceId(null);
+    setMode("record");
+    setVoiceMode("review"); // Go back to review to re-record
   };
 
   const formatTime = (seconds: number) => {
@@ -198,6 +291,9 @@ export function VoiceCapture({
       }
       if (audioUrl) {
         URL.revokeObjectURL(audioUrl);
+      }
+      if (previewAudioUrl) {
+        URL.revokeObjectURL(previewAudioUrl);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -227,43 +323,88 @@ export function VoiceCapture({
               <Check className="w-8 h-8 text-green-600" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Voice Clone Created!
+              Voice Clone Saved!
             </h3>
             <p className="text-gray-600">
-              Your AI voice clone is being trained. It will be available for all your avatars within 5 minutes.
+              Your AI voice clone is ready and will be used for all your avatar videos.
             </p>
           </div>
         )}
 
-        {/* Success screen */}
-        {mode === "success" && (
+        {/* Cloning in progress */}
+        {mode === "cloning" && (
           <div className="text-center py-8">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Check className="w-8 h-8 text-green-600" />
+            <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Loader2 className="w-8 h-8 text-purple-600 animate-spin" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Voice Captured!
+              Creating Your Voice Clone
             </h3>
-            <p className="text-gray-600 mb-6">
-              Your AI voice clone will be ready in about 5 minutes.
+            <p className="text-gray-600">
+              {cloningProgress}
             </p>
-            <Button
-              className="w-full h-12"
-              onClick={handleFinalSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating Voice Clone...
-                </>
-              ) : (
-                <>
-                  <Check className="w-4 h-4 mr-2" />
-                  Done
-                </>
-              )}
-            </Button>
+            <p className="text-xs text-gray-400 mt-4">
+              This usually takes 10-30 seconds...
+            </p>
+          </div>
+        )}
+
+        {/* Preview screen - listen to the AI voice */}
+        {mode === "preview" && (
+          <div className="text-center py-6">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Volume2 className="w-8 h-8 text-green-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Listen to Your AI Voice!
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Here&apos;s a preview of your voice clone. Does it sound like you?
+            </p>
+
+            {/* Preview player */}
+            <div className="bg-gray-100 rounded-xl p-4 mb-4">
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={togglePreviewPlayback}
+                  className="w-12 h-12 bg-purple-500 hover:bg-purple-600 text-white rounded-full flex items-center justify-center transition-colors"
+                >
+                  {isPlayingPreview ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+                </button>
+                <span className="text-sm text-gray-600">
+                  {isPlayingPreview ? "Playing preview..." : "Tap to play"}
+                </span>
+              </div>
+              <audio
+                ref={previewPlayerRef}
+                src={previewAudioUrl || undefined}
+                onEnded={() => setIsPlayingPreview(false)}
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleRejectPreview}>
+                <RefreshCw className="w-4 h-4 mr-1" />
+                Re-record
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleFinalSubmit}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Sounds Great!
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         )}
 

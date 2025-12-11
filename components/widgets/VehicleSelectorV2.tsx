@@ -14,6 +14,11 @@ import {
   ChevronUp,
   Info,
   X,
+  Lightbulb,
+  TrendingUp,
+  DollarSign,
+  Sparkles,
+  Clock,
 } from "lucide-react";
 
 export interface Vehicle {
@@ -36,6 +41,16 @@ export interface AdSlot {
   themeTopic: string;
   template: string;
   vehicleCount: number; // How many vehicles this ad needs
+}
+
+// Recommendation types
+interface VehicleRecommendation {
+  type: "aged" | "performance" | "budget" | "new_arrivals";
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  vehicleIds: string[];
+  actionLabel: string;
 }
 
 interface VehicleSelectorV2Props {
@@ -134,6 +149,92 @@ function PlatformIcon({ platform }: { platform: keyof typeof platformConfig }) {
     >
       {config.icon}
     </span>
+  );
+}
+
+// Generate contextual recommendations based on inventory
+function generateRecommendations(vehicles: Vehicle[]): VehicleRecommendation[] {
+  const recommendations: VehicleRecommendation[] = [];
+
+  // 1. Aged inventory (45+ days on lot)
+  const agedVehicles = vehicles.filter(v => v.daysOnLot >= 45);
+  if (agedVehicles.length > 0) {
+    recommendations.push({
+      type: "aged",
+      icon: <Clock className="w-4 h-4 text-amber-600" />,
+      title: `${agedVehicles.length} vehicles have been on lot 45+ days`,
+      description: "Moving older inventory frees up space and these are priced to sell",
+      vehicleIds: agedVehicles.map(v => v.id),
+      actionLabel: "Show These",
+    });
+  }
+
+  // 2. SUVs/Crossovers perform well (mock performance data)
+  const suvTypes = ["CR-V", "RAV4", "Equinox", "Cherokee", "Outback", "CX-5", "Tucson", "Escape"];
+  const suvs = vehicles.filter(v => suvTypes.some(s => v.model.includes(s)));
+  if (suvs.length >= 3) {
+    recommendations.push({
+      type: "performance",
+      icon: <TrendingUp className="w-4 h-4 text-green-600" />,
+      title: "Your SUV videos get 2x more engagement",
+      description: "Featuring SUVs tends to perform well for your audience",
+      vehicleIds: suvs.map(v => v.id),
+      actionLabel: "Filter to SUVs",
+    });
+  }
+
+  // 3. Budget-friendly options (under $18k)
+  const budgetVehicles = vehicles.filter(v => v.price < 18000);
+  if (budgetVehicles.length >= 3) {
+    recommendations.push({
+      type: "budget",
+      icon: <DollarSign className="w-4 h-4 text-blue-600" />,
+      title: `${budgetVehicles.length} vehicles under $18k`,
+      description: "Budget-friendly content performs well with first-time buyers",
+      vehicleIds: budgetVehicles.map(v => v.id),
+      actionLabel: "Show Budget Picks",
+    });
+  }
+
+  // 4. New arrivals (under 10 days on lot)
+  const newArrivals = vehicles.filter(v => v.daysOnLot <= 10);
+  if (newArrivals.length >= 2) {
+    recommendations.push({
+      type: "new_arrivals",
+      icon: <Sparkles className="w-4 h-4 text-purple-600" />,
+      title: `${newArrivals.length} new arrivals this week`,
+      description: "Fresh inventory gets attention — great for 'just in' content",
+      vehicleIds: newArrivals.map(v => v.id),
+      actionLabel: "Show New Arrivals",
+    });
+  }
+
+  // Return top 2-3 most relevant recommendations
+  return recommendations.slice(0, 3);
+}
+
+// Recommendation card component (purple = AI-powered suggestions)
+function RecommendationCard({
+  recommendation,
+  onAction,
+}: {
+  recommendation: VehicleRecommendation;
+  onAction: (vehicleIds: string[]) => void;
+}) {
+  return (
+    <div className="flex items-start gap-3 p-3 bg-purple-50/50 border border-purple-100 rounded-lg">
+      <div className="mt-0.5">{recommendation.icon}</div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900">{recommendation.title}</p>
+        <p className="text-xs text-gray-600 mt-0.5">{recommendation.description}</p>
+      </div>
+      <button
+        onClick={() => onAction(recommendation.vehicleIds)}
+        className="shrink-0 text-xs font-medium text-purple-700 hover:text-purple-800 bg-purple-100 hover:bg-purple-200 px-2.5 py-1.5 rounded-md transition-colors"
+      >
+        {recommendation.actionLabel}
+      </button>
+    </div>
   );
 }
 
@@ -259,6 +360,9 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
   const [modalOpen, setModalOpen] = useState(false);
   const [activeSlot, setActiveSlot] = useState<AdSlot | null>(null);
 
+  // Highlighted vehicles from recommendations
+  const [highlightedVehicleIds, setHighlightedVehicleIds] = useState<string[]>([]);
+
   const fetchInventory = async () => {
     setLoading(true);
 
@@ -380,30 +484,79 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
 
   const suggestedVehicles = getSuggestedPriorities();
 
+  // Generate recommendations
+  const recommendations = generateRecommendations(vehicles);
+
+  // Handle recommendation action - highlight those vehicles
+  const handleRecommendationAction = (vehicleIds: string[]) => {
+    setHighlightedVehicleIds(vehicleIds);
+    // Auto-scroll to suggested priorities section
+    setTimeout(() => {
+      document.getElementById("suggested-priorities")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  };
+
+  // Clear highlights
+  const clearHighlights = () => {
+    setHighlightedVehicleIds([]);
+  };
+
+  // Get vehicles to display in suggested priorities (either highlighted or default top 6)
+  const displayedVehicles = highlightedVehicleIds.length > 0
+    ? vehicles.filter(v => highlightedVehicleIds.includes(v.id)).slice(0, 6)
+    : suggestedVehicles;
+
   return (
     <>
-      <Card className="w-full max-w-3xl">
+      <Card className="w-full max-w-3xl border-blue-100">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-lg">Select Vehicles for Your Ads</CardTitle>
-              <p className="text-sm text-gray-500">
-                Choose vehicles for each ad in your plan
-              </p>
-            </div>
-            <div className="p-2 bg-green-100 rounded-lg shrink-0">
-              <Car className="w-5 h-5 text-green-600" />
-            </div>
-          </div>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Car className="w-4 h-4 text-blue-500" />
+            Select Vehicles for Your Ads
+          </CardTitle>
+          <p className="text-xs text-gray-500">
+            Choose vehicles for each ad in your plan
+          </p>
         </CardHeader>
 
         <CardContent className="space-y-6">
+          {/* === SUGGESTIONS SECTION (AI-Powered = Purple) === */}
+          {recommendations.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Lightbulb className="w-4 h-4 text-purple-500" />
+                <span className="text-sm font-semibold text-gray-700">Recommendations</span>
+              </div>
+              <div className="space-y-2">
+                {recommendations.map((rec, index) => (
+                  <RecommendationCard
+                    key={index}
+                    recommendation={rec}
+                    onAction={handleRecommendationAction}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* === SUGGESTED PRIORITIES SECTION === */}
-          <div className="space-y-3">
+          <div id="suggested-priorities" className="space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-gray-700">Suggested Priorities</span>
-                <Badge variant="secondary" className="text-xs">Top 6</Badge>
+                <span className="text-sm font-semibold text-gray-700">
+                  {highlightedVehicleIds.length > 0 ? "Filtered Vehicles" : "Suggested Priorities"}
+                </span>
+                <Badge variant="secondary" className="text-xs">
+                  {highlightedVehicleIds.length > 0 ? `${displayedVehicles.length} matches` : "Top 6"}
+                </Badge>
+                {highlightedVehicleIds.length > 0 && (
+                  <button
+                    onClick={clearHighlights}
+                    className="text-xs text-gray-500 hover:text-gray-700 underline"
+                  >
+                    Clear filter
+                  </button>
+                )}
               </div>
               {/* Legend */}
               <div className="flex items-center gap-3 text-xs text-gray-500">
@@ -413,7 +566,7 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 md:gap-3">
-              {suggestedVehicles.map((vehicle, index) => {
+              {displayedVehicles.map((vehicle, index) => {
                 const isOld = vehicle.daysOnLot >= 60;
                 const isWinterReady = ["AWD", "4WD"].includes(vehicle.driveType || "");
                 const isHighMileage = vehicle.mileage >= 90000;
