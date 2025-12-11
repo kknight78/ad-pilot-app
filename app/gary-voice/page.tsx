@@ -344,7 +344,7 @@ export default function GaryVoicePage() {
                     className="w-full h-14 text-lg bg-blue-600 hover:bg-blue-700"
                   >
                     <Volume2 className="w-5 h-5 mr-2" />
-                    Preview My Voice
+                    Create My Voice Clone
                   </Button>
                   <Button
                     onClick={redo}
