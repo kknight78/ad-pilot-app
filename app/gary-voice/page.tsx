@@ -12,12 +12,15 @@ import {
   Check,
   Loader2,
   Volume2,
-  Send,
   RefreshCw,
   Sparkles,
   ChevronRight,
   AlertCircle,
 } from "lucide-react";
+
+// n8n webhook endpoints (same as VoiceCapture widget)
+const N8N_VOICE_CLONE_URL = "https://kelly-ads.app.n8n.cloud/webhook/voice/clone";
+const N8N_VOICE_PREVIEW_URL = "https://kelly-ads.app.n8n.cloud/webhook/voice/preview";
 
 // Recording states
 type RecordingState = "idle" | "recording" | "recorded" | "processing" | "voice_ready";
@@ -48,7 +51,11 @@ export default function GaryVoicePage() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  // Voice clone state
+  const [voiceId, setVoiceId] = useState<string | null>(null);
+  const [cloningProgress, setCloningProgress] = useState("");
 
   // Test voice state
   const [testText, setTestText] = useState("");
@@ -78,6 +85,7 @@ export default function GaryVoicePage() {
 
   // Start recording
   const startRecording = async () => {
+    setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
@@ -108,7 +116,7 @@ export default function GaryVoicePage() {
       }, 1000);
     } catch (err) {
       console.error("Error accessing microphone:", err);
-      alert("Could not access your microphone. Please check your browser permissions.");
+      setError("Could not access your microphone. Please check your browser permissions.");
     }
   };
 
@@ -145,40 +153,107 @@ export default function GaryVoicePage() {
     setAudioUrl(null);
     setRecordingState("idle");
     setRecordingTime(0);
+    setError(null);
   };
 
-  // Process voice (simulate)
-  const processVoice = () => {
+  // Process voice - upload to ElevenLabs and create clone
+  const processVoice = async () => {
+    if (!audioBlob) return;
+
+    setError(null);
     setRecordingState("processing");
-    setProcessingProgress(0);
+    setCloningProgress("Uploading audio...");
 
-    // Simulate processing progress
-    const interval = setInterval(() => {
-      setProcessingProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setRecordingState("voice_ready");
-          setStep("test");
-          return 100;
-        }
-        return prev + Math.random() * 15;
+    try {
+      // Create FormData for the audio file
+      const formData = new FormData();
+      formData.append("name", "Gary Knight - CCC");
+      formData.append("files", audioBlob, "voice-recording.webm");
+      formData.append("remove_background_noise", "true");
+
+      setCloningProgress("Creating voice clone...");
+
+      // Upload to ElevenLabs via n8n webhook
+      const cloneResponse = await fetch(N8N_VOICE_CLONE_URL, {
+        method: "POST",
+        body: formData,
       });
-    }, 500);
+
+      const cloneData = await cloneResponse.json();
+
+      if (!cloneData.success || !cloneData.voice_id) {
+        throw new Error(cloneData.error || "Failed to create voice clone");
+      }
+
+      setVoiceId(cloneData.voice_id);
+      setCloningProgress("Generating preview...");
+
+      // Generate a preview with the new voice
+      const previewText = "Hey, it's Gary Knight from Capitol Car Credit. Your AI voice clone is ready to go!";
+
+      const previewResponse = await fetch(N8N_VOICE_PREVIEW_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          voice_id: cloneData.voice_id,
+          text: previewText,
+        }),
+      });
+
+      if (!previewResponse.ok) {
+        throw new Error("Failed to generate voice preview");
+      }
+
+      // Get the audio blob from the response
+      const previewBlob = await previewResponse.blob();
+      const previewUrl = URL.createObjectURL(previewBlob);
+      setGeneratedAudioUrl(previewUrl);
+      setRecordingState("voice_ready");
+      setStep("test");
+
+    } catch (err) {
+      console.error("Voice clone error:", err);
+      setError(err instanceof Error ? err.message : "Failed to create voice clone. Please try again.");
+      setRecordingState("recorded");
+    }
   };
 
-  // Generate TTS preview (simulate)
-  const generatePreview = () => {
-    if (!testText.trim()) return;
+  // Generate TTS preview with custom text
+  const generatePreview = async () => {
+    if (!testText.trim() || !voiceId) return;
 
+    setError(null);
     setIsGenerating(true);
 
-    // Simulate TTS generation
-    setTimeout(() => {
-      // In real implementation, this would call ElevenLabs API
-      // For demo, we'll use the recorded audio as a placeholder
-      setGeneratedAudioUrl(audioUrl);
+    // Clean up previous audio
+    if (generatedAudioUrl) {
+      URL.revokeObjectURL(generatedAudioUrl);
+      setGeneratedAudioUrl(null);
+    }
+
+    try {
+      const previewResponse = await fetch(N8N_VOICE_PREVIEW_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          voice_id: voiceId,
+          text: testText,
+        }),
+      });
+
+      if (!previewResponse.ok) {
+        throw new Error("Failed to generate voice preview");
+      }
+
+      const previewBlob = await previewResponse.blob();
+      const previewUrl = URL.createObjectURL(previewBlob);
+      setGeneratedAudioUrl(previewUrl);
+    } catch (err) {
+      console.error("Preview generation error:", err);
+      setError(err instanceof Error ? err.message : "Failed to generate preview. Please try again.");
+    } finally {
       setIsGenerating(false);
-    }, 2000);
+    }
   };
 
   // Play generated audio
@@ -196,15 +271,15 @@ export default function GaryVoicePage() {
     }
   };
 
-  // Save voice
+  // Save voice - just marks as saved (voice is already on ElevenLabs)
   const saveVoice = () => {
     setIsSaving(true);
-    // Simulate save
+    // Voice is already saved on ElevenLabs, this just confirms it
     setTimeout(() => {
       setIsSaving(false);
       setIsSaved(true);
       setStep("approve");
-    }, 1500);
+    }, 1000);
   };
 
   // Format time
@@ -224,7 +299,9 @@ export default function GaryVoicePage() {
     setRecordingTime(0);
     setTestText("");
     setGeneratedAudioUrl(null);
+    setVoiceId(null);
     setIsSaved(false);
+    setError(null);
     setStep("record");
   };
 
@@ -295,12 +372,20 @@ export default function GaryVoicePage() {
                 </p>
               </div>
 
+              {/* Error display */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2 mb-4">
+                  <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
+
               {/* Script to read */}
               <div className="bg-gray-50 rounded-xl p-4 mb-6">
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-2 font-medium">
                   Read this aloud:
                 </p>
-                <p className="text-gray-800 leading-relaxed">
+                <p className="text-gray-800 leading-relaxed whitespace-pre-line">
                   {RECORDING_SCRIPT}
                 </p>
               </div>
@@ -388,13 +473,7 @@ export default function GaryVoicePage() {
                     <div className="text-center">
                       <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
                       <p className="text-gray-700 font-medium">Creating your voice clone...</p>
-                      <p className="text-gray-500 text-sm mt-1">This takes about 30 seconds</p>
-                    </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-2 bg-blue-600 rounded-full transition-all duration-300"
-                        style={{ width: `${Math.min(processingProgress, 100)}%` }}
-                      />
+                      <p className="text-gray-500 text-sm mt-1">{cloningProgress}</p>
                     </div>
                   </div>
                 )}
@@ -427,9 +506,17 @@ export default function GaryVoicePage() {
                 </div>
                 <h2 className="text-xl font-semibold text-gray-900">Voice Clone Ready!</h2>
                 <p className="text-gray-500 text-sm mt-1">
-                  Let&apos;s test it out. Type anything to hear it in your voice.
+                  Test it out — type anything to hear it in your voice.
                 </p>
               </div>
+
+              {/* Error display */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2 mb-4">
+                  <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
 
               {/* Test input */}
               <div className="space-y-4">
@@ -441,8 +528,11 @@ export default function GaryVoicePage() {
                     value={testText}
                     onChange={(e) => setTestText(e.target.value)}
                     placeholder="e.g., Come check out this beautiful 2020 Honda Accord..."
-                    className="w-full h-24 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    className="w-full h-32 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   />
+                  <p className="text-xs text-gray-400 mt-1">
+                    You can paste longer scripts here to really test it out
+                  </p>
                 </div>
 
                 <Button
