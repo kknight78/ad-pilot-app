@@ -380,6 +380,29 @@ export default function GaryVoicePage() {
                 </div>
               )}
 
+              {/* Start Recording button - at TOP so you press it and then read */}
+              {recordingState === "idle" && (
+                <Button
+                  onClick={startRecording}
+                  size="lg"
+                  className="w-full bg-red-500 hover:bg-red-600 h-14 text-lg mb-4"
+                >
+                  <Mic className="w-5 h-5 mr-2" />
+                  Start Recording
+                </Button>
+              )}
+
+              {/* Recording indicator - at TOP while recording */}
+              {recordingState === "recording" && (
+                <div className="flex items-center justify-center gap-3 mb-4 py-2">
+                  <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                  <span className="text-2xl font-mono text-gray-900">
+                    {formatTime(recordingTime)}
+                  </span>
+                  <span className="text-sm text-red-600 font-medium">Recording...</span>
+                </div>
+              )}
+
               {/* Script to read */}
               <div className="bg-gray-50 rounded-xl p-4 mb-6">
                 <p className="text-xs text-gray-500 uppercase tracking-wide mb-2 font-medium">
@@ -390,37 +413,18 @@ export default function GaryVoicePage() {
                 </p>
               </div>
 
-              {/* Recording controls */}
+              {/* Recording controls - STOP at BOTTOM after the script */}
               <div className="space-y-4">
-                {recordingState === "idle" && (
-                  <Button
-                    onClick={startRecording}
-                    size="lg"
-                    className="w-full bg-red-500 hover:bg-red-600 h-14 text-lg"
-                  >
-                    <Mic className="w-5 h-5 mr-2" />
-                    Start Recording
-                  </Button>
-                )}
-
                 {recordingState === "recording" && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-center gap-3">
-                      <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                      <span className="text-2xl font-mono text-gray-900">
-                        {formatTime(recordingTime)}
-                      </span>
-                    </div>
-                    <Button
-                      onClick={stopRecording}
-                      size="lg"
-                      variant="outline"
-                      className="w-full h-14 text-lg border-red-300 text-red-600 hover:bg-red-50"
-                    >
-                      <Square className="w-5 h-5 mr-2" />
-                      Stop Recording
-                    </Button>
-                  </div>
+                  <Button
+                    onClick={stopRecording}
+                    size="lg"
+                    variant="outline"
+                    className="w-full h-14 text-lg border-red-300 text-red-600 hover:bg-red-50"
+                  >
+                    <Square className="w-5 h-5 mr-2" />
+                    Stop Recording
+                  </Button>
                 )}
 
                 {recordingState === "recorded" && (
