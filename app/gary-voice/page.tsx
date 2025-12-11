@@ -14,17 +14,12 @@ import {
   Volume2,
   RefreshCw,
   Sparkles,
-  ChevronRight,
   AlertCircle,
 } from "lucide-react";
 
-// n8n webhook endpoints (same as VoiceCapture widget)
+// n8n webhook endpoints
 const N8N_VOICE_CLONE_URL = "https://kelly-ads.app.n8n.cloud/webhook/voice/clone";
 const N8N_VOICE_PREVIEW_URL = "https://kelly-ads.app.n8n.cloud/webhook/voice/preview";
-
-// Recording states
-type RecordingState = "idle" | "recording" | "recorded" | "processing" | "voice_ready";
-type Step = "record" | "test" | "approve";
 
 // The script Gary needs to read
 const RECORDING_SCRIPT = `Hi, I'm Gary Knight from Capitol Car Credit in Rantoul. We've been helping families in central Illinois find reliable, affordable vehicles for over twenty years.
@@ -35,22 +30,22 @@ What makes us different? We're not some big corporate dealership. We're your nei
 
 Stop by today and let's find the perfect car for you. We're right here on Route 45 in Rantoul — you can't miss us!`;
 
-// Suggested test phrases
-const SUGGESTED_PHRASES = [
+// Test scripts for Gary to try
+const TEST_SCRIPTS = [
   "Looking for a great deal on a used car? Come see us at Capitol Car Credit!",
-  "This 2019 Toyota RAV4 is perfect for your family - low miles, great condition!",
+  "This 2019 Toyota RAV4 is perfect for your family - low miles, great condition, and priced to sell!",
   "We finance everyone, no credit check required. Let's get you on the road today!",
-  "Happy holidays from Capitol Car Credit! Our year-end sale is happening now!",
+  "Happy holidays from Capitol Car Credit! Our year-end sale is happening now - don't miss out!",
 ];
 
 export default function GaryVoicePage() {
-  // State
-  const [step, setStep] = useState<Step>("record");
-  const [recordingState, setRecordingState] = useState<RecordingState>("idle");
+  // Main flow state
+  const [phase, setPhase] = useState<"record" | "cloning" | "test" | "saved">("record");
+
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Voice clone state
@@ -58,30 +53,24 @@ export default function GaryVoicePage() {
   const [cloningProgress, setCloningProgress] = useState("");
 
   // Test voice state
-  const [testText, setTestText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null);
   const [isPlayingGenerated, setIsPlayingGenerated] = useState(false);
-
-  // Final state
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [customText, setCustomText] = useState("");
 
   // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const generatedAudioRef = useRef<HTMLAudioElement | null>(null);
 
   // Cleanup
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (audioUrl) URL.revokeObjectURL(audioUrl);
       if (generatedAudioUrl) URL.revokeObjectURL(generatedAudioUrl);
     };
-  }, [audioUrl, generatedAudioUrl]);
+  }, [generatedAudioUrl]);
 
   // Start recording
   const startRecording = async () => {
@@ -101,14 +90,11 @@ export default function GaryVoicePage() {
       mediaRecorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         setAudioBlob(blob);
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
-        setRecordingState("recorded");
         stream.getTracks().forEach((track) => track.stop());
       };
 
       mediaRecorder.start();
-      setRecordingState("recording");
+      setIsRecording(true);
       setRecordingTime(0);
 
       timerRef.current = setInterval(() => {
@@ -122,8 +108,9 @@ export default function GaryVoicePage() {
 
   // Stop recording
   const stopRecording = () => {
-    if (mediaRecorderRef.current && recordingState === "recording") {
+    if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
+      setIsRecording(false);
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
@@ -131,49 +118,22 @@ export default function GaryVoicePage() {
     }
   };
 
-  // Play/pause recording
-  const togglePlayback = () => {
-    if (!audioRef.current || !audioUrl) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      audioRef.current.src = audioUrl;
-      audioRef.current.play();
-      setIsPlaying(true);
-      audioRef.current.onended = () => setIsPlaying(false);
-    }
-  };
-
-  // Re-record
-  const reRecord = () => {
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
-    setAudioBlob(null);
-    setAudioUrl(null);
-    setRecordingState("idle");
-    setRecordingTime(0);
-    setError(null);
-  };
-
   // Process voice - upload to ElevenLabs and create clone
   const processVoice = async () => {
     if (!audioBlob) return;
 
     setError(null);
-    setRecordingState("processing");
-    setCloningProgress("Uploading audio...");
+    setPhase("cloning");
+    setCloningProgress("Uploading your recording...");
 
     try {
-      // Create FormData for the audio file
       const formData = new FormData();
       formData.append("name", "Gary Knight - CCC");
       formData.append("files", audioBlob, "voice-recording.webm");
       formData.append("remove_background_noise", "true");
 
-      setCloningProgress("Creating voice clone...");
+      setCloningProgress("Creating your voice clone...");
 
-      // Upload to ElevenLabs via n8n webhook
       const cloneResponse = await fetch(N8N_VOICE_CLONE_URL, {
         method: "POST",
         body: formData,
@@ -186,41 +146,18 @@ export default function GaryVoicePage() {
       }
 
       setVoiceId(cloneData.voice_id);
-      setCloningProgress("Generating preview...");
-
-      // Generate a preview with the new voice
-      const previewText = "Hey, it's Gary Knight from Capitol Car Credit. Your AI voice clone is ready to go!";
-
-      const previewResponse = await fetch(N8N_VOICE_PREVIEW_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          voice_id: cloneData.voice_id,
-          text: previewText,
-        }),
-      });
-
-      if (!previewResponse.ok) {
-        throw new Error("Failed to generate voice preview");
-      }
-
-      // Get the audio blob from the response
-      const previewBlob = await previewResponse.blob();
-      const previewUrl = URL.createObjectURL(previewBlob);
-      setGeneratedAudioUrl(previewUrl);
-      setRecordingState("voice_ready");
-      setStep("test");
+      setPhase("test");
 
     } catch (err) {
       console.error("Voice clone error:", err);
       setError(err instanceof Error ? err.message : "Failed to create voice clone. Please try again.");
-      setRecordingState("recorded");
+      setPhase("record");
     }
   };
 
-  // Generate TTS preview with custom text
-  const generatePreview = async () => {
-    if (!testText.trim() || !voiceId) return;
+  // Generate TTS preview with given text
+  const generatePreview = async (text: string) => {
+    if (!text.trim() || !voiceId) return;
 
     setError(null);
     setIsGenerating(true);
@@ -237,7 +174,7 @@ export default function GaryVoicePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           voice_id: voiceId,
-          text: testText,
+          text: text,
         }),
       });
 
@@ -248,6 +185,16 @@ export default function GaryVoicePage() {
       const previewBlob = await previewResponse.blob();
       const previewUrl = URL.createObjectURL(previewBlob);
       setGeneratedAudioUrl(previewUrl);
+
+      // Auto-play the preview
+      setTimeout(() => {
+        if (generatedAudioRef.current) {
+          generatedAudioRef.current.src = previewUrl;
+          generatedAudioRef.current.play();
+          setIsPlayingGenerated(true);
+        }
+      }, 100);
+
     } catch (err) {
       console.error("Preview generation error:", err);
       setError(err instanceof Error ? err.message : "Failed to generate preview. Please try again.");
@@ -256,7 +203,7 @@ export default function GaryVoicePage() {
     }
   };
 
-  // Play generated audio
+  // Play/pause generated audio
   const toggleGeneratedPlayback = () => {
     if (!generatedAudioRef.current || !generatedAudioUrl) return;
 
@@ -264,22 +211,27 @@ export default function GaryVoicePage() {
       generatedAudioRef.current.pause();
       setIsPlayingGenerated(false);
     } else {
-      generatedAudioRef.current.src = generatedAudioUrl;
       generatedAudioRef.current.play();
       setIsPlayingGenerated(true);
-      generatedAudioRef.current.onended = () => setIsPlayingGenerated(false);
     }
   };
 
-  // Save voice - just marks as saved (voice is already on ElevenLabs)
+  // Save voice (it's already saved on ElevenLabs, just confirm)
   const saveVoice = () => {
-    setIsSaving(true);
-    // Voice is already saved on ElevenLabs, this just confirms it
-    setTimeout(() => {
-      setIsSaving(false);
-      setIsSaved(true);
-      setStep("approve");
-    }, 1000);
+    setPhase("saved");
+  };
+
+  // Redo - clear everything and start over
+  const redo = () => {
+    if (generatedAudioUrl) URL.revokeObjectURL(generatedAudioUrl);
+    setAudioBlob(null);
+    setIsRecording(false);
+    setRecordingTime(0);
+    setVoiceId(null);
+    setGeneratedAudioUrl(null);
+    setCustomText("");
+    setError(null);
+    setPhase("record");
   };
 
   // Format time
@@ -289,27 +241,13 @@ export default function GaryVoicePage() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Try again from scratch
-  const tryAgain = () => {
-    if (audioUrl) URL.revokeObjectURL(audioUrl);
-    if (generatedAudioUrl) URL.revokeObjectURL(generatedAudioUrl);
-    setAudioBlob(null);
-    setAudioUrl(null);
-    setRecordingState("idle");
-    setRecordingTime(0);
-    setTestText("");
-    setGeneratedAudioUrl(null);
-    setVoiceId(null);
-    setIsSaved(false);
-    setError(null);
-    setStep("record");
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Hidden audio elements */}
-      <audio ref={audioRef} />
-      <audio ref={generatedAudioRef} />
+      {/* Hidden audio element */}
+      <audio
+        ref={generatedAudioRef}
+        onEnded={() => setIsPlayingGenerated(false)}
+      />
 
       {/* Header */}
       <header className="bg-white border-b border-gray-100 px-4 py-6">
@@ -328,38 +266,9 @@ export default function GaryVoicePage() {
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-8">
-        {/* Progress Steps */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          {["record", "test", "approve"].map((s, i) => (
-            <div key={s} className="flex items-center">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
-                  step === s
-                    ? "bg-blue-600 text-white"
-                    : (s === "test" && (step === "test" || step === "approve")) ||
-                      (s === "approve" && step === "approve")
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-500"
-                }`}
-              >
-                {i + 1}
-              </div>
-              {i < 2 && (
-                <div
-                  className={`w-12 h-1 mx-1 rounded ${
-                    (i === 0 && (step === "test" || step === "approve")) ||
-                    (i === 1 && step === "approve")
-                      ? "bg-blue-600"
-                      : "bg-gray-200"
-                  }`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
 
-        {/* Step 1: Record Voice */}
-        {step === "record" && (
+        {/* PHASE 1: RECORD */}
+        {phase === "record" && (
           <Card className="border-0 shadow-lg">
             <CardContent className="p-6">
               <div className="text-center mb-6">
@@ -380,8 +289,8 @@ export default function GaryVoicePage() {
                 </div>
               )}
 
-              {/* Start Recording button - at TOP so you press it and then read */}
-              {recordingState === "idle" && (
+              {/* Start Recording button - at TOP */}
+              {!isRecording && !audioBlob && (
                 <Button
                   onClick={startRecording}
                   size="lg"
@@ -393,7 +302,7 @@ export default function GaryVoicePage() {
               )}
 
               {/* Recording indicator - at TOP while recording */}
-              {recordingState === "recording" && (
+              {isRecording && (
                 <div className="flex items-center justify-center gap-3 mb-4 py-2">
                   <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
                   <span className="text-2xl font-mono text-gray-900">
@@ -413,86 +322,52 @@ export default function GaryVoicePage() {
                 </p>
               </div>
 
-              {/* Recording controls - STOP at BOTTOM after the script */}
-              <div className="space-y-4">
-                {recordingState === "recording" && (
+              {/* Stop Recording - at BOTTOM */}
+              {isRecording && (
+                <Button
+                  onClick={stopRecording}
+                  size="lg"
+                  variant="outline"
+                  className="w-full h-14 text-lg border-red-300 text-red-600 hover:bg-red-50"
+                >
+                  <Square className="w-5 h-5 mr-2" />
+                  Stop Recording
+                </Button>
+              )}
+
+              {/* After recording - just two buttons stacked */}
+              {audioBlob && !isRecording && (
+                <div className="space-y-3">
                   <Button
-                    onClick={stopRecording}
+                    onClick={processVoice}
+                    size="lg"
+                    className="w-full h-14 text-lg bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Volume2 className="w-5 h-5 mr-2" />
+                    Preview My Voice
+                  </Button>
+                  <Button
+                    onClick={redo}
                     size="lg"
                     variant="outline"
-                    className="w-full h-14 text-lg border-red-300 text-red-600 hover:bg-red-50"
+                    className="w-full h-12"
                   >
-                    <Square className="w-5 h-5 mr-2" />
-                    Stop Recording
+                    <RotateCcw className="w-4 h-4 mr-2" />
+                    Re-record
                   </Button>
-                )}
+                </div>
+              )}
 
-                {recordingState === "recorded" && (
-                  <div className="space-y-4">
-                    {/* Playback */}
-                    <div className="flex items-center gap-3 bg-gray-100 rounded-xl p-4">
-                      <button
-                        onClick={togglePlayback}
-                        className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors shrink-0"
-                      >
-                        {isPlaying ? (
-                          <Pause className="w-5 h-5" />
-                        ) : (
-                          <Play className="w-5 h-5 ml-0.5" />
-                        )}
-                      </button>
-                      <div className="flex-1">
-                        <div className="h-2 bg-gray-300 rounded-full">
-                          <div className="h-2 bg-blue-600 rounded-full w-0" />
-                        </div>
-                      </div>
-                      <span className="text-sm text-gray-500 font-mono">
-                        {formatTime(recordingTime)}
-                      </span>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <Button
-                        onClick={reRecord}
-                        variant="outline"
-                        className="h-12"
-                      >
-                        <RotateCcw className="w-4 h-4 mr-2" />
-                        Re-record
-                      </Button>
-                      <Button
-                        onClick={processVoice}
-                        className="h-12 bg-blue-600 hover:bg-blue-700"
-                      >
-                        Sounds Good
-                        <ChevronRight className="w-4 h-4 ml-2" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {recordingState === "processing" && (
-                  <div className="space-y-4">
-                    <div className="text-center">
-                      <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-                      <p className="text-gray-700 font-medium">Creating your voice clone...</p>
-                      <p className="text-gray-500 text-sm mt-1">{cloningProgress}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Tips */}
-              {recordingState === "idle" && (
+              {/* Tips - only show before recording */}
+              {!isRecording && !audioBlob && (
                 <div className="mt-6 p-4 bg-amber-50 rounded-xl">
                   <p className="text-sm text-amber-800">
                     <strong>Tips for best results:</strong>
                   </p>
                   <ul className="text-sm text-amber-700 mt-2 space-y-1">
-                    <li>Find a quiet spot with no background noise</li>
-                    <li>Speak naturally at your normal pace</li>
-                    <li>Hold your phone about 6 inches from your mouth</li>
+                    <li>• Find a quiet spot with no background noise</li>
+                    <li>• Speak naturally at your normal pace</li>
+                    <li>• Hold your phone about 6 inches from your mouth</li>
                   </ul>
                 </div>
               )}
@@ -500,8 +375,26 @@ export default function GaryVoicePage() {
           </Card>
         )}
 
-        {/* Step 2: Test Voice */}
-        {step === "test" && (
+        {/* PHASE 2: CLONING */}
+        {phase === "cloning" && (
+          <Card className="border-0 shadow-lg">
+            <CardContent className="p-6">
+              <div className="text-center py-8">
+                <Loader2 className="w-16 h-16 text-blue-600 animate-spin mx-auto mb-6" />
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                  Creating Your Voice Clone
+                </h2>
+                <p className="text-gray-500">{cloningProgress}</p>
+                <p className="text-xs text-gray-400 mt-4">
+                  This usually takes 10-30 seconds...
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* PHASE 3: TEST YOUR VOICE */}
+        {phase === "test" && (
           <Card className="border-0 shadow-lg">
             <CardContent className="p-6">
               <div className="text-center mb-6">
@@ -510,7 +403,7 @@ export default function GaryVoicePage() {
                 </div>
                 <h2 className="text-xl font-semibold text-gray-900">Voice Clone Ready!</h2>
                 <p className="text-gray-500 text-sm mt-1">
-                  Test it out — type anything to hear it in your voice.
+                  Test your new voice with these scripts or create your own
                 </p>
               </div>
 
@@ -522,119 +415,98 @@ export default function GaryVoicePage() {
                 </div>
               )}
 
-              {/* Test input */}
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Type anything you want to hear in your voice:
-                  </label>
-                  <textarea
-                    value={testText}
-                    onChange={(e) => setTestText(e.target.value)}
-                    placeholder="e.g., Come check out this beautiful 2020 Honda Accord..."
-                    className="w-full h-32 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    You can paste longer scripts here to really test it out
-                  </p>
-                </div>
-
-                <Button
-                  onClick={generatePreview}
-                  disabled={!testText.trim() || isGenerating}
-                  className="w-full h-12 bg-blue-600 hover:bg-blue-700"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Volume2 className="w-4 h-4 mr-2" />
-                      Generate Preview
-                    </>
-                  )}
-                </Button>
-
-                {/* Generated audio player */}
-                {generatedAudioUrl && (
-                  <div className="flex items-center gap-3 bg-blue-50 rounded-xl p-4 border border-blue-200">
-                    <button
-                      onClick={toggleGeneratedPlayback}
-                      className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors shrink-0"
-                    >
-                      {isPlayingGenerated ? (
-                        <Pause className="w-5 h-5" />
-                      ) : (
-                        <Play className="w-5 h-5 ml-0.5" />
-                      )}
-                    </button>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-blue-900">Your voice preview</p>
-                      <p className="text-xs text-blue-600">Click to play</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Suggested phrases */}
-                <div className="border-t border-gray-100 pt-4 mt-4">
-                  <p className="text-xs text-gray-500 uppercase tracking-wide mb-3 font-medium">
-                    Try these phrases:
-                  </p>
-                  <div className="space-y-2">
-                    {SUGGESTED_PHRASES.map((phrase, i) => (
-                      <button
-                        key={i}
-                        onClick={() => setTestText(phrase)}
-                        className="w-full text-left p-3 bg-gray-50 hover:bg-gray-100 rounded-lg text-sm text-gray-700 transition-colors"
-                      >
-                        &ldquo;{phrase}&rdquo;
-                      </button>
-                    ))}
+              {/* Audio player - shows when we have audio */}
+              {generatedAudioUrl && (
+                <div className="flex items-center gap-3 bg-blue-50 rounded-xl p-4 border border-blue-200 mb-4">
+                  <button
+                    onClick={toggleGeneratedPlayback}
+                    className="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white hover:bg-blue-700 transition-colors shrink-0"
+                  >
+                    {isPlayingGenerated ? (
+                      <Pause className="w-5 h-5" />
+                    ) : (
+                      <Play className="w-5 h-5 ml-0.5" />
+                    )}
+                  </button>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-blue-900">Your voice preview</p>
+                    <p className="text-xs text-blue-600">Tap to play again</p>
                   </div>
                 </div>
+              )}
+
+              {/* Loading state */}
+              {isGenerating && (
+                <div className="flex items-center justify-center gap-3 py-4 mb-4">
+                  <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                  <span className="text-gray-600">Generating preview...</span>
+                </div>
+              )}
+
+              {/* Test script buttons - stacked */}
+              <div className="space-y-2 mb-4">
+                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">
+                  Tap a script to hear it in your voice:
+                </p>
+                {TEST_SCRIPTS.map((script, i) => (
+                  <button
+                    key={i}
+                    onClick={() => generatePreview(script)}
+                    disabled={isGenerating}
+                    className="w-full text-left p-4 bg-gray-50 hover:bg-gray-100 rounded-xl text-sm text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-gray-200"
+                  >
+                    &ldquo;{script}&rdquo;
+                  </button>
+                ))}
               </div>
 
-              {/* Approval buttons */}
-              <div className="border-t border-gray-100 pt-6 mt-6">
-                <p className="text-center text-gray-700 font-medium mb-4">
-                  Happy with how it sounds?
+              {/* Custom text area */}
+              <div className="mb-6">
+                <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-2">
+                  Or type/paste your own text:
                 </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    onClick={tryAgain}
-                    variant="outline"
-                    className="h-12"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Try Recording Again
-                  </Button>
-                  <Button
-                    onClick={saveVoice}
-                    disabled={isSaving}
-                    className="h-12 bg-green-600 hover:bg-green-700"
-                  >
-                    {isSaving ? (
-                      <>
-                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Saving...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="w-4 h-4 mr-2" />
-                        Yes, Save This Voice
-                      </>
-                    )}
-                  </Button>
-                </div>
+                <textarea
+                  value={customText}
+                  onChange={(e) => setCustomText(e.target.value)}
+                  placeholder="Type or paste any text here to hear it in your voice..."
+                  className="w-full h-28 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+                />
+                <Button
+                  onClick={() => generatePreview(customText)}
+                  disabled={!customText.trim() || isGenerating}
+                  className="w-full mt-2 bg-blue-600 hover:bg-blue-700"
+                >
+                  <Volume2 className="w-4 h-4 mr-2" />
+                  Generate Preview
+                </Button>
+              </div>
+
+              {/* Final action buttons */}
+              <div className="border-t border-gray-100 pt-6 space-y-3">
+                <Button
+                  onClick={saveVoice}
+                  size="lg"
+                  className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
+                >
+                  <Check className="w-5 h-5 mr-2" />
+                  I&apos;m Happy, Save This Voice
+                </Button>
+                <Button
+                  onClick={redo}
+                  size="lg"
+                  variant="outline"
+                  className="w-full h-12"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Redo From Beginning
+                </Button>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Step 3: Success */}
-        {step === "approve" && isSaved && (
+        {/* PHASE 4: SAVED */}
+        {phase === "saved" && (
           <Card className="border-0 shadow-lg">
             <CardContent className="p-6">
               <div className="text-center py-8">
@@ -653,14 +525,14 @@ export default function GaryVoicePage() {
                     <strong>What happens next:</strong>
                   </p>
                   <ul className="text-sm text-blue-700 mt-2 space-y-1">
-                    <li>Your videos will now use your new voice</li>
-                    <li>Kelly will reach out if we need anything else</li>
-                    <li>You can re-record anytime by visiting this page again</li>
+                    <li>• Your videos will now use your new voice</li>
+                    <li>• Kelly will reach out if we need anything else</li>
+                    <li>• You can re-record anytime by visiting this page again</li>
                   </ul>
                 </div>
 
                 <Button
-                  onClick={tryAgain}
+                  onClick={redo}
                   variant="outline"
                   className="w-full"
                 >
