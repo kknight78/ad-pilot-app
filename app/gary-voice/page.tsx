@@ -189,11 +189,11 @@ export default function GaryVoicePage() {
         body: JSON.stringify({
           voice_id: voiceId,
           text: text,
-          // Voice settings for clearer output
+          // Voice settings for clearer, more consistent output
           voice_settings: {
-            stability: 0.5,           // Balance between consistency and naturalness
-            similarity_boost: 0.75,   // How close to match the original voice
-            style: 0.4,               // Some expressiveness but not over the top
+            stability: 0.7,           // Higher = more consistent between previews
+            similarity_boost: 0.8,    // How close to match the original voice
+            style: 0.2,               // Lower = less variation between takes
             use_speaker_boost: true,  // Helps with clarity
           },
         }),
