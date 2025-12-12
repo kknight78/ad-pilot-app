@@ -70,9 +70,8 @@ export default function GaryVoicePage() {
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (generatedAudioUrl) URL.revokeObjectURL(generatedAudioUrl);
     };
-  }, [generatedAudioUrl]);
+  }, []);
 
   // Scroll to top when phase changes to test
   useEffect(() => {
@@ -177,10 +176,10 @@ export default function GaryVoicePage() {
     }
 
     // Clean up previous audio
-    if (generatedAudioUrl) {
-      URL.revokeObjectURL(generatedAudioUrl);
-      setGeneratedAudioUrl(null);
+    if (generatedAudioRef.current) {
+      generatedAudioRef.current.pause();
     }
+    setGeneratedAudioUrl(null);
 
     try {
       const previewResponse = await fetch(N8N_VOICE_PREVIEW_URL, {
@@ -204,33 +203,40 @@ export default function GaryVoicePage() {
       }
 
       const previewBlob = await previewResponse.blob();
-      const previewUrl = URL.createObjectURL(previewBlob);
-      setGeneratedAudioUrl(previewUrl);
 
-      // Create a new Audio element for reliable playback
-      if (generatedAudioRef.current) {
-        generatedAudioRef.current.pause();
-      }
+      // Convert blob to base64 data URL for better iOS/Safari compatibility
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64Url = reader.result as string;
+        setGeneratedAudioUrl(base64Url);
 
-      const audio = new Audio(previewUrl);
-      audio.onended = () => setIsPlayingGenerated(false);
-      audio.onerror = (e) => {
-        console.error("Audio playback error:", e);
-        setError("Could not play audio. Please try again.");
-        setIsPlayingGenerated(false);
-      };
+        // Stop any existing audio
+        if (generatedAudioRef.current) {
+          generatedAudioRef.current.pause();
+          generatedAudioRef.current = null;
+        }
 
-      // Wait for audio to be ready before playing
-      audio.oncanplaythrough = () => {
+        // Create audio element and play
+        const audio = new Audio(base64Url);
+        audio.onended = () => setIsPlayingGenerated(false);
+        audio.onerror = (e) => {
+          console.error("Audio playback error:", e);
+          setError("Could not play audio. Please try again.");
+          setIsPlayingGenerated(false);
+        };
+
+        generatedAudioRef.current = audio;
+
+        // Play the audio
         audio.play()
           .then(() => setIsPlayingGenerated(true))
           .catch((err) => {
             console.error("Play error:", err);
+            // On iOS, autoplay might be blocked - that's okay, user can tap play
             setIsPlayingGenerated(false);
           });
       };
-
-      generatedAudioRef.current = audio;
+      reader.readAsDataURL(previewBlob);
 
     } catch (err) {
       console.error("Preview generation error:", err);
@@ -260,7 +266,10 @@ export default function GaryVoicePage() {
 
   // Redo - clear everything and start over
   const redo = () => {
-    if (generatedAudioUrl) URL.revokeObjectURL(generatedAudioUrl);
+    if (generatedAudioRef.current) {
+      generatedAudioRef.current.pause();
+      generatedAudioRef.current = null;
+    }
     setAudioBlob(null);
     setIsRecording(false);
     setRecordingTime(0);
