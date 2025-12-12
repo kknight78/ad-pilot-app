@@ -207,14 +207,30 @@ export default function GaryVoicePage() {
       const previewUrl = URL.createObjectURL(previewBlob);
       setGeneratedAudioUrl(previewUrl);
 
-      // Auto-play the preview
-      setTimeout(() => {
-        if (generatedAudioRef.current) {
-          generatedAudioRef.current.src = previewUrl;
-          generatedAudioRef.current.play();
-          setIsPlayingGenerated(true);
-        }
-      }, 100);
+      // Create a new Audio element for reliable playback
+      if (generatedAudioRef.current) {
+        generatedAudioRef.current.pause();
+      }
+
+      const audio = new Audio(previewUrl);
+      audio.onended = () => setIsPlayingGenerated(false);
+      audio.onerror = (e) => {
+        console.error("Audio playback error:", e);
+        setError("Could not play audio. Please try again.");
+        setIsPlayingGenerated(false);
+      };
+
+      // Wait for audio to be ready before playing
+      audio.oncanplaythrough = () => {
+        audio.play()
+          .then(() => setIsPlayingGenerated(true))
+          .catch((err) => {
+            console.error("Play error:", err);
+            setIsPlayingGenerated(false);
+          });
+      };
+
+      generatedAudioRef.current = audio;
 
     } catch (err) {
       console.error("Preview generation error:", err);
@@ -263,18 +279,8 @@ export default function GaryVoicePage() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Handle audio ended
-  const handleAudioEnded = () => {
-    setIsPlayingGenerated(false);
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Hidden audio element */}
-      <audio
-        ref={generatedAudioRef}
-        onEnded={handleAudioEnded}
-      />
 
       {/* Top ref for scrolling */}
       <div ref={topRef} />
