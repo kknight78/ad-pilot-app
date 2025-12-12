@@ -39,8 +39,8 @@ import {
 } from "lucide-react";
 
 // Types
-type RecommendationCategory = "included" | "performance" | "expand" | "level_up";
-type CardState = "default" | "reminder_set" | "fading_out";
+type RecommendationCategory = "fresh" | "performance" | "expand" | "level_up";
+type CardState = "default" | "reminder_set" | "fading_out" | "action_completed";
 
 interface Recommendation {
   id: string;
@@ -81,21 +81,23 @@ interface FeedbackReport {
   conclusion?: string;
   actionLabel?: string;
   isNew?: boolean;
+  actionDate?: string; // When the user originally acted on the suggestion
 }
 
 interface CardStateData {
   state: CardState;
   reminderDate?: string;
+  completedMessage?: string;
 }
 
 // Demo Recommendations Data
 const demoRecommendations: Record<RecommendationCategory, Recommendation[]> = {
-  included: [
+  fresh: [
     {
       id: "avatar-sessions",
-      category: "included",
-      icon: <Camera className="w-5 h-5 text-amber-600" />,
-      title: "4 New Avatars Available This Month",
+      category: "fresh",
+      icon: <Camera className="w-5 h-5 text-emerald-600" />,
+      title: "4 Additional Avatars Available",
       description: "Freshen up your look — throw on a new shirt, seasonal accessory, or try a new background.",
       impactNote: "Dealers who update their avatar quarterly see 18% higher engagement on average",
       actionLabel: "Update My Avatar",
@@ -103,12 +105,12 @@ const demoRecommendations: Record<RecommendationCategory, Recommendation[]> = {
     },
     {
       id: "templates-unused",
-      category: "included",
-      icon: <LayoutTemplate className="w-5 h-5 text-amber-600" />,
-      title: "Grow Your Template Library",
-      description: "Check out what's available — testimonials, two-person banter, and more.",
+      category: "fresh",
+      icon: <LayoutTemplate className="w-5 h-5 text-emerald-600" />,
+      title: "New Templates in Your Library",
+      description: "Check out our template gallery for fresh options — we're always adding new ones.",
       impactNote: "New templates take 3-5 business days to customize for your brand",
-      actionLabel: "Browse Templates",
+      actionLabel: "Browse Template Gallery",
       actionType: "open_widget",
     },
   ],
@@ -343,6 +345,7 @@ const demoFeedbackReports: FeedbackReport[] = [
     conclusion: "Nice call! Resting the template paid off.",
     actionLabel: "Great!",
     isNew: true,
+    actionDate: "Rested on Oct 12, 2025",
   },
 ];
 
@@ -355,13 +358,11 @@ const categoryConfig: Record<RecommendationCategory, {
   bgColor: string;
   urgency?: boolean;
 }> = {
-  included: {
-    icon: <AlertTriangle className="w-4 h-4" />,
-    label: "USE IT OR LOSE IT",
-    sublabel: "Don't let these go to waste",
-    color: "text-amber-800",
-    bgColor: "bg-amber-50 border-amber-300",
-    urgency: true,
+  fresh: {
+    icon: <RefreshCw className="w-4 h-4" />,
+    label: "Keep It Fresh",
+    color: "text-emerald-700",
+    bgColor: "bg-emerald-50 border-emerald-200",
   },
   performance: {
     icon: <TrendingUp className="w-4 h-4" />,
@@ -453,6 +454,25 @@ function SuggestionCard({
         <div className="flex items-center gap-2 text-gray-500">
           <Check className="w-4 h-4" />
           <span className="text-sm">Dismissed</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Card action completed - show success state
+  if (cardState.state === "action_completed") {
+    return (
+      <div className="bg-green-50 border border-green-200 rounded-xl p-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+            <Check className="w-4 h-4 text-green-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-semibold text-green-800">{recommendation.title}</h4>
+            <p className="text-sm text-green-700 mt-1">
+              {cardState.completedMessage || "Action completed successfully!"}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -599,23 +619,21 @@ function SuggestionCard({
             <p className="text-sm font-medium text-gray-700 mb-2">How would you like to proceed?</p>
             <button
               onClick={() => handleContactAction("call_eric")}
-              className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all text-left"
+              className="w-full flex items-center p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all text-left"
             >
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-gray-500" />
                 <span className="text-sm font-medium text-gray-700">Great! Have Eric call me to discuss</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-gray-400" />
             </button>
             <button
               onClick={() => handleContactAction("send_email")}
-              className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all text-left"
+              className="w-full flex items-center p-3 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-all text-left"
             >
               <div className="flex items-center gap-2">
                 <Mail className="w-4 h-4 text-gray-500" />
                 <span className="text-sm font-medium text-gray-700">I&apos;m ready — send setup invoice and onboarding link</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-gray-400" />
             </button>
             <button
               onClick={() => {
@@ -697,33 +715,32 @@ function SuggestionCard({
 // Feedback Report Card
 function FeedbackReportCard({
   report,
-  onDismiss,
-  isHighlighted,
+  onAcknowledge,
+  isNew,
 }: {
   report: FeedbackReport;
-  onDismiss: () => void;
-  isHighlighted?: boolean;
+  onAcknowledge?: () => void;
+  isNew?: boolean;
 }) {
   return (
-    <div className={`bg-gradient-to-br from-green-50 to-emerald-50 border rounded-xl p-4 transition-all ${
-      isHighlighted ? "border-green-400 ring-2 ring-green-200" : "border-green-200"
+    <div className={`bg-white border border-gray-200 rounded-xl p-4 transition-all ${
+      isNew ? "ring-1 ring-green-200" : "opacity-75"
     }`}>
-      {isHighlighted && (
+      {isNew && (
         <div className="flex items-center gap-1 text-xs text-green-700 font-medium mb-2">
           <Sparkles className="w-3 h-3" />
           New Result!
         </div>
       )}
       <div className="flex items-start gap-3">
-        <div className="mt-0.5">{report.icon}</div>
         <div className="flex-1">
-          <h4 className="font-semibold text-gray-900">{report.title}</h4>
-          <p className="text-sm text-gray-600 mt-1">{report.description}</p>
+          <h4 className={`font-semibold ${isNew ? "text-gray-900" : "text-gray-700"}`}>{report.title}</h4>
+          <p className={`text-sm mt-1 ${isNew ? "text-gray-600" : "text-gray-500"}`}>{report.description}</p>
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-2 mt-3">
             {report.stats.map((stat, i) => (
-              <div key={i} className="bg-white/70 rounded-lg p-2 text-center">
+              <div key={i} className="bg-gray-50 rounded-lg p-2 text-center">
                 <div className={`text-lg font-bold ${stat.positive ? "text-green-600" : "text-gray-700"}`}>
                   {stat.value}
                 </div>
@@ -733,16 +750,24 @@ function FeedbackReportCard({
           </div>
 
           {report.conclusion && (
-            <p className="text-sm font-medium text-green-700 mt-3">{report.conclusion}</p>
+            <p className={`text-sm font-medium mt-3 ${isNew ? "text-green-700" : "text-gray-600"}`}>{report.conclusion}</p>
+          )}
+
+          {/* Action date - subtle gray text */}
+          {report.actionDate && (
+            <p className="text-xs text-gray-400 mt-2">{report.actionDate}</p>
           )}
         </div>
       </div>
 
-      <div className="flex justify-end mt-3">
-        <Button size="sm" onClick={onDismiss} className="bg-green-600 hover:bg-green-700">
-          {report.actionLabel || "Got It!"}
-        </Button>
-      </div>
+      {/* Only show the button for new/unacknowledged results */}
+      {isNew && onAcknowledge && (
+        <div className="flex justify-end mt-3">
+          <Button size="sm" onClick={onAcknowledge} className="bg-green-600 hover:bg-green-700">
+            {report.actionLabel || "Great!"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
@@ -840,14 +865,8 @@ function DismissModal({
   );
 }
 
-// Unused items dropdown data
-const unusedItemsList = [
-  { icon: <Camera className="w-4 h-4 text-amber-600" />, label: "4 avatar photo sessions" },
-  { icon: <LayoutTemplate className="w-4 h-4 text-amber-600" />, label: "2 templates you haven't tried" },
-  { icon: <Music className="w-4 h-4 text-amber-600" />, label: "Premium music library" },
-];
 
-// Category Section with urgency styling
+// Category Section
 function CategorySection({
   category,
   recommendations,
@@ -856,8 +875,6 @@ function CategorySection({
   onRemind,
   onDismiss,
   onUndo,
-  unusedCount,
-  onDismissSection,
 }: {
   category: RecommendationCategory;
   recommendations: Recommendation[];
@@ -866,65 +883,17 @@ function CategorySection({
   onRemind: (rec: Recommendation) => void;
   onDismiss: (rec: Recommendation) => void;
   onUndo: (rec: Recommendation) => void;
-  unusedCount?: number;
-  onDismissSection?: () => void;
 }) {
-  const [showUnusedDropdown, setShowUnusedDropdown] = useState(false);
   const config = categoryConfig[category];
 
   if (recommendations.length === 0) return null;
 
   return (
     <div className="space-y-3">
-      {config.urgency ? (
-        <div className={`${config.bgColor} border rounded-lg p-3 relative`}>
-          <div className={`flex items-center gap-2 ${config.color}`}>
-            {config.icon}
-            <span className="text-sm font-bold">{config.label}</span>
-            {unusedCount && (
-              <button
-                onClick={() => setShowUnusedDropdown(!showUnusedDropdown)}
-                className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium hover:bg-amber-300 transition-colors flex items-center gap-1"
-              >
-                {unusedCount} unused this month!
-                {showUnusedDropdown ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-              </button>
-            )}
-            {onDismissSection && (
-              <button
-                onClick={onDismissSection}
-                className="ml-auto text-amber-600 hover:text-amber-800 p-1"
-                title="Dismiss section"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-          {config.sublabel && (
-            <p className="text-xs text-amber-700 mt-1 ml-6">{config.sublabel}</p>
-          )}
-
-          {/* Unused items dropdown */}
-          {showUnusedDropdown && (
-            <div className="mt-3 bg-white rounded-lg border border-amber-200 p-3">
-              <p className="text-xs font-medium text-amber-800 mb-2">What&apos;s waiting for you:</p>
-              <ul className="space-y-2">
-                {unusedItemsList.map((item, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className={`flex items-center gap-2 ${config.color}`}>
-          {config.icon}
-          <span className="text-sm font-semibold">{config.label}</span>
-        </div>
-      )}
+      <div className={`flex items-center gap-2 ${config.color}`}>
+        {config.icon}
+        <span className="text-sm font-semibold">{config.label}</span>
+      </div>
       <div className="space-y-3">
         {recommendations.map((rec) => (
           <SuggestionCard
@@ -959,11 +928,13 @@ export function RecommendationsWidget({
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
   const [remindModal, setRemindModal] = useState<Recommendation | null>(null);
   const [dismissModal, setDismissModal] = useState<Recommendation | null>(null);
-  const [confirmationModal, setConfirmationModal] = useState<{ title: string; description: string; bullets?: string[] } | null>(null);
+  const [confirmationModal, setConfirmationModal] = useState<{ title: string; description: string; bullets?: string[]; recId?: string; completedMessage?: string } | null>(null);
   const [feedbackReports, setFeedbackReports] = useState(demoFeedbackReports);
-  const [showPastResults, setShowPastResults] = useState(true); // Default open now that it's at top
+  const [showPastResults, setShowPastResults] = useState(() => {
+    // Start open if there are new results, otherwise closed
+    return demoFeedbackReports.some(r => r.isNew);
+  });
   const [dismissedFeedbackIds, setDismissedFeedbackIds] = useState<Set<string>>(new Set());
-  const [hiddenSections, setHiddenSections] = useState<Set<string>>(new Set());
 
   // Filter visible recommendations
   const getVisibleRecommendations = (category: RecommendationCategory) => {
@@ -988,7 +959,11 @@ export function RecommendationsWidget({
     if (rec.confirmationContent) {
       // Customize based on contact action
       if (config === "call_eric") {
-        setConfirmationModal(rec.confirmationContent);
+        setConfirmationModal({
+          ...rec.confirmationContent,
+          recId: rec.id,
+          completedMessage: "Eric will call you within 24 hours.",
+        });
       } else if (config === "send_email") {
         setConfirmationModal({
           title: "You're all set!",
@@ -998,9 +973,15 @@ export function RecommendationsWidget({
             "Follow the onboarding link when ready",
             "We'll reach out if we don't hear from you in a few days",
           ],
+          recId: rec.id,
+          completedMessage: "Setup email sent! Check your inbox.",
         });
       } else {
-        setConfirmationModal(rec.confirmationContent);
+        setConfirmationModal({
+          ...rec.confirmationContent,
+          recId: rec.id,
+          completedMessage: rec.confirmationContent.description,
+        });
       }
     }
   };
@@ -1047,22 +1028,21 @@ export function RecommendationsWidget({
 
   const handleDismissFeedback = (id: string) => {
     setDismissedFeedbackIds((prev) => new Set([...prev, id]));
+    // Collapse the accordion after acknowledging a result
+    setShowPastResults(false);
   };
 
-  // Get new (highlighted) feedback reports
+  // Get new (unacknowledged) feedback reports vs acknowledged ones
   const newFeedbackReports = feedbackReports.filter(
     (r) => r.isNew && !dismissedFeedbackIds.has(r.id)
   );
-  const pastFeedbackReports = feedbackReports.filter(
-    (r) => !r.isNew || dismissedFeedbackIds.has(r.id)
+  const acknowledgedFeedbackReports = feedbackReports.filter(
+    (r) => dismissedFeedbackIds.has(r.id) || !r.isNew
   );
 
   // Count total visible recommendations
-  const totalVisible = (["included", "performance", "expand", "level_up"] as RecommendationCategory[])
+  const totalVisible = (["fresh", "performance", "expand", "level_up"] as RecommendationCategory[])
     .reduce((sum, cat) => sum + getVisibleRecommendations(cat).length, 0);
-
-  // Count unused items for urgency
-  const unusedIncludedCount = getVisibleRecommendations("included").length;
 
   return (
     <>
@@ -1080,7 +1060,7 @@ export function RecommendationsWidget({
         <CardContent className="space-y-6">
           {/* PAST RESULTS - NOW AT TOP for trust building */}
           {feedbackReports.length > 0 && (
-            <div className="bg-gradient-to-br from-green-50/50 to-emerald-50/50 rounded-lg border border-green-100 p-3">
+            <div key="your-results-section" className="bg-gradient-to-br from-green-50/50 to-emerald-50/50 rounded-lg border border-gray-200 p-3">
               <button
                 onClick={() => setShowPastResults(!showPastResults)}
                 className="flex items-center gap-2 text-sm font-medium text-green-800 hover:text-green-900 w-full"
@@ -1096,21 +1076,21 @@ export function RecommendationsWidget({
               </button>
               {showPastResults && (
                 <div className="mt-3 space-y-3">
-                  {/* New results first, highlighted */}
+                  {/* New results first - with Great! button */}
                   {newFeedbackReports.map((report) => (
                     <FeedbackReportCard
                       key={report.id}
                       report={report}
-                      onDismiss={() => handleDismissFeedback(report.id)}
-                      isHighlighted
+                      onAcknowledge={() => handleDismissFeedback(report.id)}
+                      isNew
                     />
                   ))}
-                  {/* Then past results */}
-                  {pastFeedbackReports.map((report) => (
+                  {/* Acknowledged results - no button, muted styling */}
+                  {acknowledgedFeedbackReports.map((report) => (
                     <FeedbackReportCard
                       key={report.id}
                       report={report}
-                      onDismiss={() => setFeedbackReports((prev) => prev.filter((r) => r.id !== report.id))}
+                      isNew={false}
                     />
                   ))}
                 </div>
@@ -1126,21 +1106,19 @@ export function RecommendationsWidget({
               <p className="text-sm">No new recommendations right now.</p>
             </div>
           ) : (
-            <>
-              {!hiddenSections.has("included") && (
-                <CategorySection
-                  category="included"
-                  recommendations={getVisibleRecommendations("included")}
-                  cardStates={cardStates}
-                  onAction={handleAction}
-                  onRemind={handleRemind}
-                  onDismiss={handleDismiss}
-                  onUndo={handleUndo}
-                  unusedCount={unusedIncludedCount > 0 ? unusedIncludedCount + 2 : undefined}
-                  onDismissSection={() => setHiddenSections((prev) => new Set([...prev, "included"]))}
-                />
-              )}
+            <div key="recommendation-categories" className="space-y-6">
               <CategorySection
+                key="category-fresh"
+                category="fresh"
+                recommendations={getVisibleRecommendations("fresh")}
+                cardStates={cardStates}
+                onAction={handleAction}
+                onRemind={handleRemind}
+                onDismiss={handleDismiss}
+                onUndo={handleUndo}
+              />
+              <CategorySection
+                key="category-performance"
                 category="performance"
                 recommendations={getVisibleRecommendations("performance")}
                 cardStates={cardStates}
@@ -1150,6 +1128,7 @@ export function RecommendationsWidget({
                 onUndo={handleUndo}
               />
               <CategorySection
+                key="category-expand"
                 category="expand"
                 recommendations={getVisibleRecommendations("expand")}
                 cardStates={cardStates}
@@ -1159,6 +1138,7 @@ export function RecommendationsWidget({
                 onUndo={handleUndo}
               />
               <CategorySection
+                key="category-level_up"
                 category="level_up"
                 recommendations={getVisibleRecommendations("level_up")}
                 cardStates={cardStates}
@@ -1167,7 +1147,7 @@ export function RecommendationsWidget({
                 onDismiss={handleDismiss}
                 onUndo={handleUndo}
               />
-            </>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -1189,7 +1169,19 @@ export function RecommendationsWidget({
       {confirmationModal && (
         <ConfirmationModal
           content={confirmationModal}
-          onClose={() => setConfirmationModal(null)}
+          onClose={() => {
+            // Update the card to show completed state
+            if (confirmationModal.recId) {
+              setCardStates((prev) => ({
+                ...prev,
+                [confirmationModal.recId!]: {
+                  state: "action_completed",
+                  completedMessage: confirmationModal.completedMessage,
+                },
+              }));
+            }
+            setConfirmationModal(null);
+          }}
         />
       )}
     </>
