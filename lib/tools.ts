@@ -220,7 +220,7 @@ export async function executeTool(
       try {
         // Try to fetch from n8n webhook
         const response = await fetch(
-          "https://kelly-ads.app.n8n.cloud/webhook/guidance-rules",
+          "https://ad-pilot-n8n-production.up.railway.app/webhook/guidance-rules",
           {
             method: "GET",
             headers: { "Content-Type": "application/json" },

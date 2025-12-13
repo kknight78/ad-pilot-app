@@ -79,7 +79,7 @@ export function ThemeSelectorV2({
 
     try {
       const response = await fetch(
-        "https://corsproxy.io/?https://kelly-ads.app.n8n.cloud/webhook/theme-suggest",
+        "https://corsproxy.io/?https://ad-pilot-n8n-production.up.railway.app/webhook/theme-suggest",
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

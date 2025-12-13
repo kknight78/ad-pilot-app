@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 
 // n8n webhook endpoints
-const N8N_VOICE_CLONE_URL = "https://kelly-ads.app.n8n.cloud/webhook/voice/clone";
-const N8N_VOICE_PREVIEW_URL = "https://kelly-ads.app.n8n.cloud/webhook/voice/preview";
+const N8N_VOICE_CLONE_URL = "https://ad-pilot-n8n-production.up.railway.app/webhook/voice/clone";
+const N8N_VOICE_PREVIEW_URL = "https://ad-pilot-n8n-production.up.railway.app/webhook/voice/preview";
 
 interface VoiceCaptureProps {
   onCapture?: (audioBlob: Blob, voiceId?: string) => void;

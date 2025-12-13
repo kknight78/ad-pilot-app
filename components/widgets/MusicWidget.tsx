@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,9 @@ import {
   Briefcase,
   Gift,
   Heart,
+  Loader2,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 
 // Types
@@ -42,7 +45,29 @@ interface MusicTrack {
   duration: string;
   mood: string;
   category: string;
+  artlistUrl?: string;
 }
+
+interface ArtlistSong {
+  name: string;
+  songId: string;
+  songSlug: string;
+  artlistUrl: string;
+  artist: string;
+  genre: string;
+  duration: string;
+}
+
+const ARTLIST_API_URL = 'https://artlist-scraper-production.up.railway.app/api/search';
+const ARTLIST_SONG_API_URL = 'https://artlist-scraper-production.up.railway.app/api/song';
+
+const moodMap: Record<string, string[]> = {
+  'upbeat': ['uplifting', 'exciting', 'happy'],
+  'chill': ['peaceful', 'carefree'],
+  'professional': ['serious', 'hopeful'],
+  'holiday': ['happy', 'playful'],
+  'trending': ['uplifting', 'groovy'],
+};
 
 // Demo data
 const musicCategories: MusicCategory[] = [
@@ -157,48 +182,146 @@ function BrowseLibraryModal({
   onSelectTrack: (track: MusicTrack) => void;
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [playingTrackId, setPlayingTrackId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [tracks, setTracks] = useState<MusicTrack[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredTracks = selectedCategory
-    ? demoTracks.filter((t) => t.category === selectedCategory)
-    : demoTracks;
+  // Audio preview state
+  const [loadingPreview, setLoadingPreview] = useState<string | null>(null);
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<{ songId: string; audioUrl: string } | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const searchSongs = async (categoryId: string) => {
+    setIsLoading(true);
+    setError(null);
+    setHasSearched(true);
+    // Stop any playing audio when searching
+    stopAudio();
+
+    try {
+      const moods = moodMap[categoryId] || ['uplifting'];
+      const response = await fetch(ARTLIST_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          moods,
+          videoThemes: ['commercial'],
+          limit: 8
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.songs) {
+        const convertedTracks: MusicTrack[] = data.songs.map((song: ArtlistSong) => ({
+          id: song.songId,
+          title: song.name,
+          artist: song.artist || 'Artlist Artist',
+          duration: song.duration || '',
+          mood: song.genre || categoryId,
+          category: categoryId,
+          artlistUrl: song.artlistUrl
+        }));
+        setTracks(convertedTracks);
+      } else {
+        setError('No songs found. Try a different vibe!');
+        setTracks([]);
+      }
+    } catch (err) {
+      setError('Could not load songs. Please try again.');
+      setTracks([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCategoryClick = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+    searchSongs(categoryId);
+  };
+
+  const stopAudio = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+    }
+    setCurrentlyPlaying(null);
+  };
+
+  const previewSong = async (track: MusicTrack) => {
+    // If this song is already playing, stop it
+    if (currentlyPlaying?.songId === track.id) {
+      stopAudio();
+      return;
+    }
+
+    // Stop current audio first
+    stopAudio();
+    setPreviewError(null);
+    setLoadingPreview(track.id);
+
+    try {
+      const response = await fetch(ARTLIST_SONG_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: track.artlistUrl })
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.audioPreviewUrl) {
+        setCurrentlyPlaying({ songId: track.id, audioUrl: data.audioPreviewUrl });
+        // Play the audio
+        if (audioRef.current) {
+          audioRef.current.src = data.audioPreviewUrl;
+          audioRef.current.play().catch(() => {
+            setPreviewError('Could not play audio');
+            setCurrentlyPlaying(null);
+          });
+        }
+      } else {
+        setPreviewError('Preview unavailable for this track');
+      }
+    } catch (err) {
+      setPreviewError('Could not load preview');
+    } finally {
+      setLoadingPreview(null);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl max-w-lg w-full max-h-[80vh] overflow-hidden flex flex-col">
+        {/* Hidden audio element */}
+        <audio ref={audioRef} onEnded={() => setCurrentlyPlaying(null)} />
+
         {/* Header */}
         <div className="p-4 border-b border-gray-100 flex items-center justify-between">
           <div>
             <h3 className="font-semibold text-gray-900">Browse Music Library</h3>
-            <p className="text-sm text-gray-500">Curated tracks for local business ads</p>
+            <p className="text-sm text-gray-500">Real tracks from Artlist for your ads</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button onClick={() => { stopAudio(); onClose(); }} className="text-gray-400 hover:text-gray-600">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Categories */}
         <div className="p-4 border-b border-gray-100">
+          <p className="text-xs text-gray-500 mb-2">Pick a vibe to search:</p>
           <div className="flex gap-2 overflow-x-auto pb-2">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-                selectedCategory === null
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              All
-            </button>
             {musicCategories.map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
+                onClick={() => handleCategoryClick(cat.id)}
+                disabled={isLoading}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
                   selectedCategory === cat.id
                     ? "bg-blue-100 text-blue-700"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                }`}
+                } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 {cat.icon}
                 {cat.name}
@@ -207,52 +330,126 @@ function BrowseLibraryModal({
           </div>
         </div>
 
+        {/* Preview error toast */}
+        {previewError && (
+          <div className="mx-4 mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center justify-between">
+            <span>{previewError}</span>
+            <button onClick={() => setPreviewError(null)} className="text-amber-500 hover:text-amber-700">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         {/* Track List */}
         <div className="flex-1 overflow-y-auto p-4">
-          <div className="space-y-2">
-            {filteredTracks.map((track) => (
-              <div
-                key={track.id}
-                className="flex items-center gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all"
-              >
-                {/* Play button */}
-                <button
-                  onClick={() => setPlayingTrackId(playingTrackId === track.id ? null : track.id)}
-                  className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 hover:bg-blue-200 transition-colors shrink-0"
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="w-10 h-10 border-3 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-gray-600 font-medium">Finding songs that match your vibe...</p>
+              <p className="text-sm text-gray-400 mt-1">This takes about 10-15 seconds</p>
+            </div>
+          )}
+
+          {/* Error State */}
+          {error && !isLoading && (
+            <div className="text-center py-8">
+              <p className="text-gray-500">{error}</p>
+            </div>
+          )}
+
+          {/* Empty State - before search */}
+          {!hasSearched && !isLoading && (
+            <div className="text-center py-12">
+              <Music className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500">Select a vibe above to browse songs</p>
+            </div>
+          )}
+
+          {/* Results */}
+          {!isLoading && !error && tracks.length > 0 && (
+            <div className="space-y-2">
+              {tracks.map((track) => (
+                <div
+                  key={track.id}
+                  className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                    currentlyPlaying?.songId === track.id
+                      ? "border-blue-300 bg-blue-50"
+                      : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
+                  }`}
                 >
-                  {playingTrackId === track.id ? (
-                    <Pause className="w-4 h-4" />
-                  ) : (
-                    <Play className="w-4 h-4 ml-0.5" />
-                  )}
-                </button>
+                  {/* Preview button */}
+                  <button
+                    onClick={() => previewSong(track)}
+                    disabled={loadingPreview !== null}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors shrink-0 ${
+                      currentlyPlaying?.songId === track.id
+                        ? "bg-blue-500 text-white"
+                        : "bg-blue-100 text-blue-600 hover:bg-blue-200"
+                    } ${loadingPreview !== null && loadingPreview !== track.id ? "opacity-50" : ""}`}
+                    title={currentlyPlaying?.songId === track.id ? "Stop" : "Preview"}
+                  >
+                    {loadingPreview === track.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : currentlyPlaying?.songId === track.id ? (
+                      <VolumeX className="w-4 h-4" />
+                    ) : (
+                      <Play className="w-4 h-4 ml-0.5" />
+                    )}
+                  </button>
 
-                {/* Track info */}
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-gray-900 truncate">{track.title}</h4>
-                  <p className="text-sm text-gray-500 truncate">{track.artist}</p>
+                  {/* Track info */}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-gray-900 truncate">{track.title}</h4>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm text-gray-500 truncate">{track.artist}</p>
+                      {loadingPreview === track.id && (
+                        <span className="text-xs text-blue-500">Loading preview...</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Mood & Duration */}
+                  <div className="text-right shrink-0">
+                    {track.mood && (
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                        {track.mood}
+                      </span>
+                    )}
+                    {track.duration && (
+                      <p className="text-xs text-gray-400 mt-1">{track.duration}</p>
+                    )}
+                  </div>
+
+                  {/* Select button */}
+                  <Button
+                    size="sm"
+                    onClick={() => { stopAudio(); onSelectTrack(track); }}
+                    className="shrink-0"
+                  >
+                    Use This
+                  </Button>
                 </div>
-
-                {/* Mood & Duration */}
-                <div className="text-right shrink-0">
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                    {track.mood}
-                  </span>
-                  <p className="text-xs text-gray-400 mt-1">{track.duration}</p>
-                </div>
-
-                {/* Select button */}
-                <Button
-                  size="sm"
-                  onClick={() => onSelectTrack(track)}
-                  className="shrink-0"
-                >
-                  Use This
-                </Button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Now Playing bar at bottom */}
+        {currentlyPlaying && (
+          <div className="p-3 border-t border-gray-100 bg-blue-50 flex items-center gap-3">
+            <Volume2 className="w-4 h-4 text-blue-600" />
+            <p className="text-sm text-blue-700 flex-1">
+              Now playing: <span className="font-medium">{tracks.find(t => t.id === currentlyPlaying.songId)?.title}</span>
+            </p>
+            <button
+              onClick={stopAudio}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              Stop
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -369,7 +566,7 @@ function ConfirmationModal({
           </div>
           <div>
             <h3 className="font-semibold text-gray-900">Music Selected!</h3>
-            <p className="text-sm text-gray-500">{track.title} by {track.artist}</p>
+            <p className="text-sm text-gray-500">{track.title}</p>
           </div>
         </div>
 
@@ -377,6 +574,17 @@ function ConfirmationModal({
           <p className="text-sm text-gray-700">
             This track will be used for your upcoming videos starting next week.
           </p>
+          {track.artlistUrl && (
+            <a
+              href={track.artlistUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline mt-2"
+            >
+              <ExternalLink className="w-3 h-3" />
+              Preview on Artlist
+            </a>
+          )}
         </div>
 
         <Button onClick={onClose} className="w-full">

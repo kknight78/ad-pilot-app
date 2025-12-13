@@ -367,7 +367,7 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
     setLoading(true);
 
     try {
-      const response = await fetch("https://kelly-ads.app.n8n.cloud/webhook/inventory", {
+      const response = await fetch("https://ad-pilot-n8n-production.up.railway.app/webhook/inventory", {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });

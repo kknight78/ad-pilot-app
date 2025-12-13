@@ -347,6 +347,34 @@ const demoFeedbackReports: FeedbackReport[] = [
     isNew: true,
     actionDate: "Rested on Oct 12, 2025",
   },
+  {
+    id: "question-hooks-result",
+    icon: <HelpCircle className="w-5 h-5 text-blue-600" />,
+    title: "Question Hooks A/B Test Complete",
+    description: "Your 2-week test comparing question vs statement hooks is done:",
+    stats: [
+      { label: "Questions won", value: "67%", positive: true },
+      { label: "More clicks", value: "+24%", positive: true },
+      { label: "Watch time", value: "+18%", positive: true },
+    ],
+    conclusion: "Questions definitely work better for your audience!",
+    isNew: false,
+    actionDate: "Tested Nov 1-15, 2025",
+  },
+  {
+    id: "youtube-expansion-result",
+    icon: <Tv className="w-5 h-5 text-purple-600" />,
+    title: "YouTube Shorts: First Month Results",
+    description: "Here's how your first month on YouTube Shorts went:",
+    stats: [
+      { label: "New views", value: "12.4k", positive: true },
+      { label: "Subscribers", value: "89", positive: true },
+      { label: "Website clicks", value: "34", positive: true },
+    ],
+    conclusion: "Great start! YouTube is bringing in a new audience.",
+    isNew: false,
+    actionDate: "Added Sep 15, 2025",
+  },
 ];
 
 // Category config
@@ -930,11 +958,11 @@ export function RecommendationsWidget({
   const [dismissModal, setDismissModal] = useState<Recommendation | null>(null);
   const [confirmationModal, setConfirmationModal] = useState<{ title: string; description: string; bullets?: string[]; recId?: string; completedMessage?: string } | null>(null);
   const [feedbackReports, setFeedbackReports] = useState(demoFeedbackReports);
-  const [showPastResults, setShowPastResults] = useState(() => {
-    // Start open if there are new results, otherwise closed
-    return demoFeedbackReports.some(r => r.isNew);
-  });
+  // Past results accordion starts closed - new results show above the fold anyway
+  const [showPastResults, setShowPastResults] = useState(false);
   const [dismissedFeedbackIds, setDismissedFeedbackIds] = useState<Set<string>>(new Set());
+  const [hiddenUseItOrLoseIt, setHiddenUseItOrLoseIt] = useState(false);
+  const [showUseItDropdown, setShowUseItDropdown] = useState(false);
 
   // Filter visible recommendations
   const getVisibleRecommendations = (category: RecommendationCategory) => {
@@ -1058,25 +1086,18 @@ export function RecommendationsWidget({
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* PAST RESULTS - NOW AT TOP for trust building */}
+          {/* YOUR RESULTS - New cards above, past results collapsed below */}
           {feedbackReports.length > 0 && (
             <div key="your-results-section" className="bg-gradient-to-br from-green-50/50 to-emerald-50/50 rounded-lg border border-gray-200 p-3">
-              <button
-                onClick={() => setShowPastResults(!showPastResults)}
-                className="flex items-center gap-2 text-sm font-medium text-green-800 hover:text-green-900 w-full"
-              >
+              {/* Header */}
+              <div className="flex items-center gap-2 text-sm font-medium text-green-800">
                 <BarChart3 className="w-4 h-4" />
                 <span>Your Results</span>
-                {newFeedbackReports.length > 0 && (
-                  <span className="text-xs bg-green-500 text-white px-1.5 py-0.5 rounded-full ml-1">
-                    {newFeedbackReports.length} New!
-                  </span>
-                )}
-                <ChevronDown className={`w-4 h-4 ml-auto transition-transform ${showPastResults ? "rotate-180" : ""}`} />
-              </button>
-              {showPastResults && (
+              </div>
+
+              {/* NEW unacknowledged results - always visible above the fold */}
+              {newFeedbackReports.length > 0 && (
                 <div className="mt-3 space-y-3">
-                  {/* New results first - with Great! button */}
                   {newFeedbackReports.map((report) => (
                     <FeedbackReportCard
                       key={report.id}
@@ -1085,14 +1106,76 @@ export function RecommendationsWidget({
                       isNew
                     />
                   ))}
-                  {/* Acknowledged results - no button, muted styling */}
-                  {acknowledgedFeedbackReports.map((report) => (
-                    <FeedbackReportCard
-                      key={report.id}
-                      report={report}
-                      isNew={false}
-                    />
-                  ))}
+                </div>
+              )}
+
+              {/* Past Results accordion - only shows if there are acknowledged results */}
+              {acknowledgedFeedbackReports.length > 0 && (
+                <div className="mt-3">
+                  <button
+                    onClick={() => setShowPastResults(!showPastResults)}
+                    className="flex items-center gap-2 text-xs text-green-700 hover:text-green-900 w-full py-2 border-t border-green-200"
+                  >
+                    <ChevronDown className={`w-3 h-3 transition-transform ${showPastResults ? "rotate-180" : ""}`} />
+                    <span>Past Results ({acknowledgedFeedbackReports.length})</span>
+                  </button>
+                  {showPastResults && (
+                    <div className="mt-2 space-y-3">
+                      {acknowledgedFeedbackReports.map((report) => (
+                        <FeedbackReportCard
+                          key={report.id}
+                          report={report}
+                          isNew={false}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* USE IT OR LOSE IT Banner */}
+          {!hiddenUseItOrLoseIt && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <div className="flex items-center gap-2 text-amber-800">
+                <AlertTriangle className="w-4 h-4" />
+                <span className="text-sm font-bold">USE IT OR LOSE IT</span>
+                <button
+                  onClick={() => setShowUseItDropdown(!showUseItDropdown)}
+                  className="text-xs bg-amber-200 text-amber-800 px-2 py-0.5 rounded-full font-medium hover:bg-amber-300 transition-colors flex items-center gap-1"
+                >
+                  3 unused this month!
+                  {showUseItDropdown ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+                <button
+                  onClick={() => setHiddenUseItOrLoseIt(true)}
+                  className="ml-auto text-amber-600 hover:text-amber-800 p-1"
+                  title="Dismiss"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-xs text-amber-700 mt-1 ml-6">Don&apos;t let these go to waste</p>
+
+              {/* Dropdown list */}
+              {showUseItDropdown && (
+                <div className="mt-3 bg-white rounded-lg border border-amber-200 p-3">
+                  <p className="text-xs font-medium text-gray-700 mb-2">What&apos;s waiting for you:</p>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2 text-sm text-gray-700">
+                      <Camera className="w-4 h-4 text-amber-600" />
+                      <span>2 avatar photo sessions</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-gray-700">
+                      <LayoutTemplate className="w-4 h-4 text-amber-600" />
+                      <span>1 free template customization</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-sm text-gray-700">
+                      <Music className="w-4 h-4 text-amber-600" />
+                      <span>Unlimited music library</span>
+                    </li>
+                  </ul>
                 </div>
               )}
             </div>

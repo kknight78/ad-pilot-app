@@ -18,8 +18,8 @@ import {
 } from "lucide-react";
 
 // n8n webhook endpoints
-const N8N_VOICE_CLONE_URL = "https://kelly-ads.app.n8n.cloud/webhook/voice/clone";
-const N8N_VOICE_PREVIEW_URL = "https://kelly-ads.app.n8n.cloud/webhook/voice/preview";
+const N8N_VOICE_CLONE_URL = "https://ad-pilot-n8n-production.up.railway.app/webhook/voice/clone";
+const N8N_VOICE_PREVIEW_URL = "https://ad-pilot-n8n-production.up.railway.app/webhook/voice/preview";
 
 // The script Shad needs to read
 const RECORDING_SCRIPT = `Hi, I'm Shad from Capitol Car Credit. We've been helping families in central Illinois find reliable, affordable vehicles for over twenty years.
