@@ -9,12 +9,15 @@ import {
   RefreshCw,
   Check,
   X,
-  User,
   AlertCircle,
   Loader2,
   AlertTriangle,
   Play,
 } from "lucide-react";
+import { WhatsThis } from "@/components/ui/whats-this";
+
+// Reference photo URL for the example
+const REFERENCE_PHOTO_URL = "https://res.cloudinary.com/dtpqxuwby/image/upload/v1734206160/profile-to-match.png";
 
 interface ExistingStyle {
   id: string;
@@ -470,8 +473,12 @@ export function AvatarPhotoCaptureV2({
     <Card className="w-full max-w-md">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
-          <span>📸</span>
+          <Camera className="w-5 h-5 text-purple-600" />
           Add Video Avatar
+          <WhatsThis>
+            Add a new look for your video avatar. Upload a photo and we&apos;ll
+            create a preview video so you can see how it looks.
+          </WhatsThis>
         </CardTitle>
         <p className="text-sm text-gray-500">
           New look for {presenterName}
@@ -624,30 +631,32 @@ export function AvatarPhotoCaptureV2({
                     <input
                       type="text"
                       value={styleSuffix}
-                      onChange={(e) => setStyleSuffix(e.target.value)}
+                      onChange={(e) => {
+                        // Limit to 20 characters
+                        if (e.target.value.length <= 20) {
+                          setStyleSuffix(e.target.value);
+                        }
+                      }}
+                      maxLength={20}
                       placeholder="Winter, Casual, etc."
                       className="flex-1 border border-gray-300 rounded-r-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     />
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">Keep it short — shows in dropdowns</p>
+                  <p className="text-xs text-gray-400 mt-1">20 characters max</p>
                 </div>
 
-                {/* Preview placeholder with guide */}
-                <div className="relative aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center p-4">
-                    <div className="text-center">
-                      {/* Face + shoulders guide */}
-                      <div className="relative w-32 h-44 mx-auto mb-2">
-                        {/* Shoulder zone */}
-                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-28 h-12 border-2 border-dashed border-gray-300 rounded-b-3xl" />
-                        {/* Face zone */}
-                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-32 border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center">
-                          <User className="w-10 h-10 text-gray-300" />
-                        </div>
-                      </div>
-                      <p className="text-sm text-gray-500">Head-to-shoulder framing</p>
-                      <p className="text-xs text-gray-400">Look directly at camera</p>
-                    </div>
+                {/* Example photo showing correct framing */}
+                <div className="relative aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={REFERENCE_PHOTO_URL}
+                    alt="Example framing"
+                    className="w-full h-full object-cover opacity-80"
+                  />
+                  {/* Overlay text */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-end pb-6 bg-gradient-to-t from-black/60 via-transparent to-transparent">
+                    <p className="text-white text-sm font-medium">Your photo should look like this</p>
+                    <p className="text-white/80 text-xs mt-1">Head to belt, arms at sides</p>
                   </div>
                 </div>
 
@@ -700,105 +709,54 @@ export function AvatarPhotoCaptureV2({
 
                   {/* Silhouette overlay - traced from reference photo */}
                   <div className="absolute inset-0 pointer-events-none">
-                    {/* Dark overlay with person-shaped cutout */}
+                    {/* Simple dashed outline matching reference photo framing */}
                     <svg
                       className="absolute inset-0 w-full h-full"
                       viewBox="0 0 300 400"
                       preserveAspectRatio="xMidYMid slice"
                     >
-                      <defs>
-                        <mask id="silhouette-mask">
-                          <rect width="100%" height="100%" fill="white" />
-                          {/* Person silhouette - matches reference photo framing */}
-                          {/* Head at ~20% from top, shoulders, torso to belt, arms at sides */}
-                          <g transform="translate(150, 180)">
-                            {/* Head - natural shape with hair */}
-                            <path
-                              d="M 0,-75
-                                 C -35,-75 -40,-50 -40,-35
-                                 C -40,-10 -30,5 -20,15
-                                 L -18,20
-                                 L 18,20
-                                 L 20,15
-                                 C 30,5 40,-10 40,-35
-                                 C 40,-50 35,-75 0,-75 Z"
-                              fill="black"
-                            />
-                            {/* Neck */}
-                            <path d="M -18,20 L -18,35 L 18,35 L 18,20" fill="black" />
-                            {/* Polo collar */}
-                            <path d="M -18,35 L -25,45 L 0,55 L 25,45 L 18,35" fill="black" />
-                            {/* Shoulders and torso */}
-                            <path
-                              d="M -25,45
-                                 Q -85,55 -90,80
-                                 L -85,180
-                                 L -50,185
-                                 L -45,85
-                                 Q -40,70 -25,60
-                                 L 25,60
-                                 Q 40,70 45,85
-                                 L 50,185
-                                 L 85,180
-                                 L 90,80
-                                 Q 85,55 25,45 Z"
-                              fill="black"
-                            />
-                            {/* Left arm */}
-                            <path
-                              d="M -85,80
-                                 Q -95,100 -95,140
-                                 L -90,185
-                                 L -70,185
-                                 L -70,140
-                                 Q -70,100 -60,85"
-                              fill="black"
-                            />
-                            {/* Right arm */}
-                            <path
-                              d="M 85,80
-                                 Q 95,100 95,140
-                                 L 90,185
-                                 L 70,185
-                                 L 70,140
-                                 Q 70,100 60,85"
-                              fill="black"
-                            />
-                          </g>
-                        </mask>
-                      </defs>
-                      {/* Dark overlay with person cutout */}
-                      <rect
-                        width="100%"
-                        height="100%"
-                        fill="rgba(0,0,0,0.4)"
-                        mask="url(#silhouette-mask)"
+                      {/* Outer edge silhouette traced from reference photo */}
+                      {/* Head at ~15% from top, shoulders wide, arms at sides, bottom at belt */}
+                      <path
+                        d="M 150,55
+                           C 120,55 110,75 110,100
+                           C 110,125 125,145 135,155
+                           L 135,165
+                           C 135,170 130,175 120,180
+                           L 55,195
+                           C 45,198 40,210 40,225
+                           L 40,340
+                           L 70,345
+                           L 75,265
+                           L 85,260
+                           L 85,345
+                           L 215,345
+                           L 215,260
+                           L 225,265
+                           L 230,345
+                           L 260,340
+                           L 260,225
+                           C 260,210 255,198 245,195
+                           L 180,180
+                           C 170,175 165,170 165,165
+                           L 165,155
+                           C 175,145 190,125 190,100
+                           C 190,75 180,55 150,55 Z"
+                        fill="none"
+                        stroke="rgba(255,255,255,0.8)"
+                        strokeWidth="2"
+                        strokeDasharray="8,4"
                       />
-                      {/* White dashed outline for alignment guide */}
-                      <g transform="translate(150, 180)" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeDasharray="8,4">
-                        {/* Head outline */}
-                        <path
-                          d="M 0,-75
-                             C -35,-75 -40,-50 -40,-35
-                             C -40,-10 -30,5 -20,15
-                             L -18,20
-                             L 18,20
-                             L 20,15
-                             C 30,5 40,-10 40,-35
-                             C 40,-50 35,-75 0,-75 Z"
-                        />
-                        {/* Shoulders outline */}
-                        <path
-                          d="M -25,45
-                             Q -85,55 -90,80
-                             L -85,180
-                             M 25,45
-                             Q 85,55 90,80
-                             L 85,180"
-                        />
-                        {/* Arms outline */}
-                        <path d="M -95,140 L -90,185" />
-                        <path d="M 95,140 L 90,185" />
+                      {/* Corner indicators showing frame boundaries */}
+                      <g stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none">
+                        {/* Top left */}
+                        <path d="M 25,25 L 25,50 M 25,25 L 50,25" />
+                        {/* Top right */}
+                        <path d="M 275,25 L 275,50 M 275,25 L 250,25" />
+                        {/* Bottom left */}
+                        <path d="M 25,375 L 25,350 M 25,375 L 50,375" />
+                        {/* Bottom right */}
+                        <path d="M 275,375 L 275,350 M 275,375 L 250,375" />
                       </g>
                     </svg>
 
@@ -884,12 +842,18 @@ export function AvatarPhotoCaptureV2({
                     <input
                       type="text"
                       value={styleSuffix}
-                      onChange={(e) => setStyleSuffix(e.target.value)}
+                      onChange={(e) => {
+                        // Limit to 20 characters
+                        if (e.target.value.length <= 20) {
+                          setStyleSuffix(e.target.value);
+                        }
+                      }}
+                      maxLength={20}
                       placeholder="Winter, Casual, etc."
                       className="flex-1 border border-gray-300 rounded-r-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     />
                   </div>
-                  <p className="text-xs text-gray-400 mt-1">Keep it short — shows in dropdowns</p>
+                  <p className="text-xs text-gray-400 mt-1">20 characters max</p>
                 </div>
 
                 <div className="relative aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden">
