@@ -698,50 +698,107 @@ export function AvatarPhotoCaptureV2({
                     className="w-full h-full object-cover scale-x-[-1]"
                   />
 
-                  {/* Silhouette overlay - semi-transparent person outline */}
+                  {/* Silhouette overlay - traced from reference photo */}
                   <div className="absolute inset-0 pointer-events-none">
-                    {/* Dark overlay with cutout effect */}
+                    {/* Dark overlay with person-shaped cutout */}
                     <svg
                       className="absolute inset-0 w-full h-full"
                       viewBox="0 0 300 400"
                       preserveAspectRatio="xMidYMid slice"
                     >
-                      {/* Dark semi-transparent background */}
                       <defs>
                         <mask id="silhouette-mask">
                           <rect width="100%" height="100%" fill="white" />
-                          {/* Silhouette cutout - head ~20% from top, shoulders, torso to below belt */}
-                          <g transform="translate(150, 200)">
-                            {/* Head */}
-                            <ellipse cx="0" cy="-90" rx="38" ry="46" fill="black" />
+                          {/* Person silhouette - matches reference photo framing */}
+                          {/* Head at ~20% from top, shoulders, torso to belt, arms at sides */}
+                          <g transform="translate(150, 180)">
+                            {/* Head - natural shape with hair */}
+                            <path
+                              d="M 0,-75
+                                 C -35,-75 -40,-50 -40,-35
+                                 C -40,-10 -30,5 -20,15
+                                 L -18,20
+                                 L 18,20
+                                 L 20,15
+                                 C 30,5 40,-10 40,-35
+                                 C 40,-50 35,-75 0,-75 Z"
+                              fill="black"
+                            />
                             {/* Neck */}
-                            <rect x="-15" y="-48" width="30" height="25" fill="black" />
+                            <path d="M -18,20 L -18,35 L 18,35 L 18,20" fill="black" />
+                            {/* Polo collar */}
+                            <path d="M -18,35 L -25,45 L 0,55 L 25,45 L 18,35" fill="black" />
                             {/* Shoulders and torso */}
                             <path
-                              d="M -15,-25 Q -70,-15 -75,30 L -65,120 Q -50,130 0,130 Q 50,130 65,120 L 75,30 Q 70,-15 15,-25 Z"
+                              d="M -25,45
+                                 Q -85,55 -90,80
+                                 L -85,180
+                                 L -50,185
+                                 L -45,85
+                                 Q -40,70 -25,60
+                                 L 25,60
+                                 Q 40,70 45,85
+                                 L 50,185
+                                 L 85,180
+                                 L 90,80
+                                 Q 85,55 25,45 Z"
+                              fill="black"
+                            />
+                            {/* Left arm */}
+                            <path
+                              d="M -85,80
+                                 Q -95,100 -95,140
+                                 L -90,185
+                                 L -70,185
+                                 L -70,140
+                                 Q -70,100 -60,85"
+                              fill="black"
+                            />
+                            {/* Right arm */}
+                            <path
+                              d="M 85,80
+                                 Q 95,100 95,140
+                                 L 90,185
+                                 L 70,185
+                                 L 70,140
+                                 Q 70,100 60,85"
                               fill="black"
                             />
                           </g>
                         </mask>
                       </defs>
-                      {/* Apply the mask to create dark overlay with person cutout */}
+                      {/* Dark overlay with person cutout */}
                       <rect
                         width="100%"
                         height="100%"
-                        fill="rgba(0,0,0,0.5)"
+                        fill="rgba(0,0,0,0.4)"
                         mask="url(#silhouette-mask)"
                       />
-                      {/* Silhouette outline */}
-                      <g transform="translate(150, 200)" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2">
+                      {/* White dashed outline for alignment guide */}
+                      <g transform="translate(150, 180)" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeDasharray="8,4">
                         {/* Head outline */}
-                        <ellipse cx="0" cy="-90" rx="38" ry="46" />
-                        {/* Neck lines */}
-                        <line x1="-15" y1="-48" x2="-15" y2="-25" />
-                        <line x1="15" y1="-48" x2="15" y2="-25" />
-                        {/* Shoulders and torso outline */}
                         <path
-                          d="M -15,-25 Q -70,-15 -75,30 L -65,120 Q -50,130 0,130 Q 50,130 65,120 L 75,30 Q 70,-15 15,-25"
+                          d="M 0,-75
+                             C -35,-75 -40,-50 -40,-35
+                             C -40,-10 -30,5 -20,15
+                             L -18,20
+                             L 18,20
+                             L 20,15
+                             C 30,5 40,-10 40,-35
+                             C 40,-50 35,-75 0,-75 Z"
                         />
+                        {/* Shoulders outline */}
+                        <path
+                          d="M -25,45
+                             Q -85,55 -90,80
+                             L -85,180
+                             M 25,45
+                             Q 85,55 90,80
+                             L 85,180"
+                        />
+                        {/* Arms outline */}
+                        <path d="M -95,140 L -90,185" />
+                        <path d="M 95,140 L 90,185" />
                       </g>
                     </svg>
 
