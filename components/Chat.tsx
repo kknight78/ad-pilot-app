@@ -48,11 +48,24 @@ function getGreeting(): string {
 // Static initial message to avoid hydration mismatch
 const INITIAL_WELCOME = "Hey, Shad! Here's how last week went:";
 
-// Welcome action button configs (used for silent navigation)
-const welcomeActions = {
-  recommendations: { label: "Show recommendations", variant: "primary" as const },
-  planWeek: { label: "Plan this week", variant: "secondary" as const },
-};
+// Get formatted date strings for week planning
+function getWeekDates() {
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  // Get start of current week (Sunday)
+  const currentWeekStart = new Date(today);
+  currentWeekStart.setDate(today.getDate() - dayOfWeek);
+  // Get start of next week
+  const nextWeekStart = new Date(currentWeekStart);
+  nextWeekStart.setDate(currentWeekStart.getDate() + 7);
+
+  const formatDate = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+
+  return {
+    currentWeek: formatDate(currentWeekStart),
+    nextWeek: formatDate(nextWeekStart),
+  };
+}
 
 // Widget renderer — maps widget types to V2 components
 function WidgetRenderer({
@@ -337,6 +350,9 @@ export default function Chat() {
   // Flow state for tracking conversation progress
   const [flowState, setFlowState] = useState<ConversationState>(initialFlowState);
 
+  // Demo state - whether user has a plan for current week (would come from API in production)
+  const [hasPlanForCurrentWeek, setHasPlanForCurrentWeek] = useState(false);
+
   // Helper for state updates - merges updates properly
   const updateFlowState = useCallback((update: Partial<ConversationState>) => {
     setFlowState((prev) => ({
@@ -545,46 +561,68 @@ export default function Chat() {
                 flowState.currentStep === "performance_dashboard" &&
                 message.widgets?.some(w => w.type === "performance_dashboard") && (
                   <div className="flex flex-wrap gap-2 my-2 mb-4">
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => {
-                        // Silent navigation to recommendations
-                        updateFlowState({
-                          currentStep: "recommendations",
-                          detourStack: ["performance_dashboard"],
-                        });
-                        // Add assistant message with recommendations widget
-                        setMessages(prev => [...prev, {
-                          role: "assistant",
-                          content: "Here are some AI recommendations based on your performance:",
-                          widgets: [{ type: "recommendations" }],
-                        }]);
-                      }}
-                      disabled={isLoading}
-                    >
-                      {welcomeActions.recommendations.label}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        // Silent navigation to theme selector (start planning flow)
-                        updateFlowState({
-                          currentStep: "theme_selector",
-                        });
-                        // Add assistant message with theme selector
-                        setMessages(prev => [...prev, {
-                          role: "assistant",
-                          content: "Let's plan this week's content! First, pick a theme:",
-                          widgets: [{ type: "theme_selector" }],
-                        }]);
-                      }}
-                      disabled={isLoading}
-                      className="border-gray-300 text-gray-700 hover:bg-gray-50"
-                    >
-                      {welcomeActions.planWeek.label}
-                    </Button>
+                    {hasPlanForCurrentWeek ? (
+                      <>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => {
+                            // Navigate to update existing plan
+                            updateFlowState({
+                              currentStep: "ad_plan",
+                            });
+                            setMessages(prev => [...prev, {
+                              role: "assistant",
+                              content: "Here's your current plan. Make any changes you'd like:",
+                              widgets: [{ type: "ad_plan" }],
+                            }]);
+                          }}
+                          disabled={isLoading}
+                        >
+                          Update this week&apos;s plan
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // Start planning for next week
+                            updateFlowState({
+                              currentStep: "theme_selector",
+                            });
+                            const { nextWeek } = getWeekDates();
+                            setMessages(prev => [...prev, {
+                              role: "assistant",
+                              content: `Let's plan the week of ${nextWeek}! First, pick a theme:`,
+                              widgets: [{ type: "theme_selector" }],
+                            }]);
+                          }}
+                          disabled={isLoading}
+                          className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                        >
+                          Plan week of {getWeekDates().nextWeek}
+                        </Button>
+                      </>
+                    ) : (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => {
+                          // Silent navigation to theme selector (start planning flow)
+                          updateFlowState({
+                            currentStep: "theme_selector",
+                          });
+                          // Add assistant message with theme selector
+                          setMessages(prev => [...prev, {
+                            role: "assistant",
+                            content: "Let's plan this week's content! First, pick a theme:",
+                            widgets: [{ type: "theme_selector" }],
+                          }]);
+                        }}
+                        disabled={isLoading}
+                      >
+                        Plan this week
+                      </Button>
+                    )}
                   </div>
                 )}
             </div>

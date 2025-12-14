@@ -637,6 +637,34 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
                 );
               })}
             </div>
+
+            {/* Use These Vehicles button */}
+            <button
+              onClick={() => {
+                // Auto-assign suggested vehicles to ad slots, rotating through them
+                const newSelections: Record<string, Vehicle[]> = {};
+                let vehicleIndex = 0;
+
+                adSlots.forEach((slot) => {
+                  if (slot.vehicleCount > 0) {
+                    const slotVehicles: Vehicle[] = [];
+                    for (let i = 0; i < slot.vehicleCount; i++) {
+                      if (displayedVehicles.length > 0) {
+                        slotVehicles.push(displayedVehicles[vehicleIndex % displayedVehicles.length]);
+                        vehicleIndex++;
+                      }
+                    }
+                    newSelections[slot.id] = slotVehicles;
+                  }
+                });
+
+                setSelections(newSelections);
+                onSelect?.(newSelections);
+              }}
+              className="mt-3 w-full py-2 border-2 border-dashed border-blue-300 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium"
+            >
+              ✨ Use these vehicles
+            </button>
           </div>
 
           {/* Divider */}

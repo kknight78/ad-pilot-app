@@ -624,7 +624,7 @@ function SimpleLineChart({
   );
 }
 
-// Combined overview chart with multi-line and tooltip
+// Combined overview chart with stacked area and gradients
 function CombinedOverviewChart({
   timeRange,
   onTimeRangeChange,
@@ -652,42 +652,90 @@ function CombinedOverviewChart({
 
   // Chart dimensions
   const width = 320;
-  const height = 140;
+  const height = 160;
   const padding = { top: 15, right: 15, bottom: 25, left: 15 };
   const chartWidth = width - padding.left - padding.right;
   const chartHeight = height - padding.top - padding.bottom;
 
-  // Calculate scales
-  const allValues = data.flatMap((d) => [d.total, d.tiktok, d.facebook, d.instagram, d.youtube]);
-  const min = Math.min(...allValues) * 0.9;
-  const max = Math.max(...allValues) * 1.1;
-  const range = max - min || 1;
+  // For stacked area, we need cumulative values
+  // Stack order: youtube (bottom), instagram, facebook, tiktok (top)
+  const stackedData = data.map((d) => ({
+    label: d.label,
+    youtube: d.youtube,
+    youtubeStack: d.youtube,
+    instagram: d.instagram,
+    instagramStack: d.youtube + d.instagram,
+    facebook: d.facebook,
+    facebookStack: d.youtube + d.instagram + d.facebook,
+    tiktok: d.tiktok,
+    tiktokStack: d.youtube + d.instagram + d.facebook + d.tiktok,
+    total: d.total,
+  }));
 
-  // Generate path for a line
-  const generatePath = (values: number[]) => {
-    return values
-      .map((v, i) => {
-        const x = padding.left + (i / (data.length - 1 || 1)) * chartWidth;
-        const y = padding.top + chartHeight - ((v - min) / range) * chartHeight;
-        return `${i === 0 ? "M" : "L"} ${x} ${y}`;
-      })
-      .join(" ");
+  // Calculate max for scaling (use total which should equal stacked top)
+  const maxValue = Math.max(...stackedData.map((d) => d.tiktokStack)) * 1.1;
+
+  // Generate area path (for stacked areas)
+  const generateAreaPath = (
+    topValues: number[],
+    bottomValues: number[]
+  ) => {
+    const topPoints = topValues.map((v, i) => {
+      const x = padding.left + (i / (data.length - 1 || 1)) * chartWidth;
+      const y = padding.top + chartHeight - (v / maxValue) * chartHeight;
+      return { x, y };
+    });
+
+    const bottomPoints = bottomValues.map((v, i) => {
+      const x = padding.left + (i / (data.length - 1 || 1)) * chartWidth;
+      const y = padding.top + chartHeight - (v / maxValue) * chartHeight;
+      return { x, y };
+    });
+
+    // Create path: go forward along top, then backward along bottom
+    const topPath = topPoints.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+    const bottomPath = [...bottomPoints].reverse().map((p) => `L ${p.x} ${p.y}`).join(" ");
+
+    return `${topPath} ${bottomPath} Z`;
   };
 
-  // Platform line data
-  const lines = [
-    { key: "total", values: data.map((d) => d.total), color: platformColors.total, width: 3, label: "Total" },
-    { key: "tiktok", values: data.map((d) => d.tiktok), color: platformColors.tiktok, width: 1.5, label: "TikTok" },
-    { key: "facebook", values: data.map((d) => d.facebook), color: platformColors.facebook, width: 1.5, label: "Facebook" },
-    { key: "instagram", values: data.map((d) => d.instagram), color: platformColors.instagram, width: 1.5, label: "Instagram" },
-    { key: "youtube", values: data.map((d) => d.youtube), color: platformColors.youtube, width: 1.5, label: "YouTube" },
+  // Stacked areas (bottom to top)
+  const areas = [
+    {
+      key: "youtube",
+      topValues: stackedData.map((d) => d.youtubeStack),
+      bottomValues: stackedData.map(() => 0),
+      color: platformColors.youtube,
+      label: "YouTube",
+    },
+    {
+      key: "instagram",
+      topValues: stackedData.map((d) => d.instagramStack),
+      bottomValues: stackedData.map((d) => d.youtubeStack),
+      color: platformColors.instagram,
+      label: "Instagram",
+    },
+    {
+      key: "facebook",
+      topValues: stackedData.map((d) => d.facebookStack),
+      bottomValues: stackedData.map((d) => d.instagramStack),
+      color: platformColors.facebook,
+      label: "Facebook",
+    },
+    {
+      key: "tiktok",
+      topValues: stackedData.map((d) => d.tiktokStack),
+      bottomValues: stackedData.map((d) => d.facebookStack),
+      color: platformColors.tiktok,
+      label: "TikTok",
+    },
   ];
 
-  // Hover points (invisible larger hit areas)
-  const hoverPoints = data.map((d, i) => {
+  // Hover points (on top of stacked area)
+  const hoverPoints = stackedData.map((d, i) => {
     const x = padding.left + (i / (data.length - 1 || 1)) * chartWidth;
-    const y = padding.top + chartHeight - ((d.total - min) / range) * chartHeight;
-    return { x, y, data: d, index: i };
+    const y = padding.top + chartHeight - (d.tiktokStack / maxValue) * chartHeight;
+    return { x, y, data: data[i], index: i };
   });
 
   // Format percentage
@@ -761,6 +809,26 @@ function CombinedOverviewChart({
           className="overflow-visible"
           onMouseLeave={() => setHoveredPoint(null)}
         >
+          {/* Gradient definitions */}
+          <defs>
+            <linearGradient id="gradTiktok" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={platformColors.tiktok} stopOpacity="0.8" />
+              <stop offset="100%" stopColor={platformColors.tiktok} stopOpacity="0.3" />
+            </linearGradient>
+            <linearGradient id="gradFacebook" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={platformColors.facebook} stopOpacity="0.8" />
+              <stop offset="100%" stopColor={platformColors.facebook} stopOpacity="0.3" />
+            </linearGradient>
+            <linearGradient id="gradInstagram" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={platformColors.instagram} stopOpacity="0.8" />
+              <stop offset="100%" stopColor={platformColors.instagram} stopOpacity="0.3" />
+            </linearGradient>
+            <linearGradient id="gradYoutube" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={platformColors.youtube} stopOpacity="0.8" />
+              <stop offset="100%" stopColor={platformColors.youtube} stopOpacity="0.3" />
+            </linearGradient>
+          </defs>
+
           {/* Grid lines */}
           {[0, 0.25, 0.5, 0.75, 1].map((pct) => {
             const y = padding.top + chartHeight * (1 - pct);
@@ -778,21 +846,19 @@ function CombinedOverviewChart({
             );
           })}
 
-          {/* Platform lines (draw thinner lines first, total line last) */}
-          {[...lines].reverse().map((line) => (
+          {/* Stacked areas with gradients (draw from bottom to top) */}
+          {areas.map((area) => (
             <path
-              key={line.key}
-              d={generatePath(line.values)}
-              fill="none"
-              stroke={line.color}
-              strokeWidth={line.width}
-              strokeLinecap="round"
+              key={area.key}
+              d={generateAreaPath(area.topValues, area.bottomValues)}
+              fill={`url(#grad${area.key.charAt(0).toUpperCase() + area.key.slice(1)})`}
+              stroke={area.color}
+              strokeWidth="1.5"
               strokeLinejoin="round"
-              opacity={line.key === "total" ? 1 : 0.7}
             />
           ))}
 
-          {/* Data points for total line */}
+          {/* Data points on top line */}
           {hoverPoints.map((p, i) => (
             <circle
               key={i}
@@ -800,7 +866,7 @@ function CombinedOverviewChart({
               cy={p.y}
               r="4"
               fill="white"
-              stroke={platformColors.total}
+              stroke={platformColors.tiktok}
               strokeWidth="2"
             />
           ))}
@@ -878,15 +944,13 @@ function CombinedOverviewChart({
 
       {/* Legend */}
       <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 mt-3 text-xs">
-        {lines.map((line) => (
-          <div key={line.key} className="flex items-center gap-1.5">
+        {[...areas].reverse().map((area) => (
+          <div key={area.key} className="flex items-center gap-1.5">
             <div
-              className="w-3 h-0.5 rounded"
-              style={{ backgroundColor: line.color, height: line.key === "total" ? "3px" : "2px" }}
+              className="w-3 h-3 rounded-sm"
+              style={{ backgroundColor: area.color, opacity: 0.7 }}
             />
-            <span className={line.key === "total" ? "font-medium text-gray-700" : "text-gray-500"}>
-              {line.label}
-            </span>
+            <span className="text-gray-600">{area.label}</span>
           </div>
         ))}
       </div>

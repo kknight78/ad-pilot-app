@@ -347,9 +347,8 @@ function EditAdModal({
                 placeholder="0"
               />
             </div>
-            <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
-              <Lightbulb className="w-3 h-3" />
-              This is your platform spend, not Ad Pilot fee
+            <p className="text-xs text-gray-500 mt-1">
+              * This is your platform spend, not Ad Pilot fee
             </p>
           </div>
         </div>
@@ -380,15 +379,26 @@ function PlatformIcon({ platform }: { platform: keyof typeof platformConfig }) {
   );
 }
 
-function VideoUsageTracker({ usage, onUpgrade }: { usage: VideoUsage; onUpgrade?: () => void }) {
+function VideoUsageTracker({
+  usage,
+  planVideoCount,
+  onUpgrade
+}: {
+  usage: VideoUsage;
+  planVideoCount: number;
+  onUpgrade?: () => void;
+}) {
   const percentage = (usage.used / usage.limit) * 100;
+  const remainingAfterPlan = usage.limit - usage.used - planVideoCount;
 
   return (
-    <div className="bg-gray-50 rounded-lg p-3">
+    <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">Video Generations</p>
-          <p className="text-xs text-gray-500">{usage.used} of {usage.limit} used this month</p>
+          <p className="text-xs text-gray-500">
+            This plan uses <strong>{planVideoCount}</strong> • You&apos;ll have <strong>{Math.max(0, remainingAfterPlan)}</strong> left this month
+          </p>
         </div>
         <div className="flex items-center gap-3">
           {/* Progress bar */}
@@ -406,7 +416,7 @@ function VideoUsageTracker({ usage, onUpgrade }: { usage: VideoUsage; onUpgrade?
               onClick={onUpgrade}
               className="text-xs bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full hover:opacity-90 transition-opacity"
             >
-              + Add More
+              + Buy More
             </button>
           )}
         </div>
@@ -478,7 +488,7 @@ function PlatformSection({
               )}
             </div>
             <span className={`text-xs ${config.headerText} opacity-80`}>
-              {plan.items.length} {plan.items.length === 1 ? "ad" : "ads"} • {isOrganic ? "Free" : `$${plan.subtotal}`}
+              {plan.items.length} {plan.items.length === 1 ? "ad" : "ads"} • {isOrganic ? "Free" : `$${plan.subtotal}*`}
             </span>
           </div>
         </div>
@@ -549,7 +559,7 @@ function PlatformSection({
                     {item.adSpend === "organic" ? (
                       <span className="text-green-600">$0 (organic)</span>
                     ) : (
-                      `$${item.adSpend}`
+                      <>${item.adSpend}*</>
                     )}
                   </td>
                   <td className="py-2 px-3 text-right">
@@ -683,9 +693,6 @@ export function AdPlanWidget({
         </CardHeader>
 
         <CardContent className="space-y-4">
-          {/* Video Usage Tracker */}
-          <VideoUsageTracker usage={videoUsage} onUpgrade={onUpgradePlan} />
-
           {/* Platform Sections */}
           {localData.platforms.map((platform, index) => (
             <PlatformSection
@@ -698,13 +705,20 @@ export function AdPlanWidget({
             />
           ))}
 
+          {/* Video Usage Tracker - At bottom, showing consumption */}
+          <VideoUsageTracker
+            usage={videoUsage}
+            planVideoCount={localData.totalContent}
+            onUpgrade={onUpgradePlan}
+          />
+
           {/* Summary Footer */}
           <div className="bg-gray-50 rounded-lg p-4 mt-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="text-sm text-gray-700">
                 <span className="font-semibold">Total:</span>{" "}
                 {localData.totalContent} pieces of content •{" "}
-                <span className="text-blue-600 font-medium">${localData.totalAdSpend}</span> platform spend
+                <span className="text-blue-600 font-medium">${localData.totalAdSpend}*</span> platform spend
               </div>
               {onConfirm && (
                 <Button onClick={onConfirm}>
@@ -716,16 +730,13 @@ export function AdPlanWidget({
 
             {/* Deadline text */}
             <p className="text-xs text-gray-500 mt-3">
-              ✏️ You can make changes until Monday 8:00 AM
+              ✏️ You can make changes until Monday 8:00 AM — just come back to this chat
             </p>
 
-            {/* Platform Spend Disclaimer */}
-            <div className="flex items-start gap-2 mt-3 pt-3 border-t border-gray-200">
-              <Lightbulb className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
-              <p className="text-xs text-gray-400">
-                Platform ad spend (${localData.totalAdSpend} total) is charged directly by TikTok/Meta/YouTube — not by Ad Pilot.
-              </p>
-            </div>
+            {/* Platform Spend Disclaimer - with asterisk */}
+            <p className="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-200">
+              * Platform ad spend is charged directly by TikTok/Meta/YouTube — not by Ad Pilot.
+            </p>
           </div>
         </CardContent>
       </Card>

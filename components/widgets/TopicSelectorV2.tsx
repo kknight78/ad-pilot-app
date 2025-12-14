@@ -165,17 +165,13 @@ export function TopicSelectorV2({ numberOfTopics = 2, onSelect, onContinue }: To
   return (
     <Card className="w-full max-w-xl">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">Capitol Smarts Topics</CardTitle>
-            <p className="text-sm text-gray-500">
-              You have {numberOfTopics} Capitol Smarts video{numberOfTopics > 1 ? "s" : ""} — pick {numberOfTopics} topic{numberOfTopics > 1 ? "s" : ""}
-            </p>
-          </div>
-          <div className="p-2 bg-blue-100 rounded-lg shrink-0">
-            <BookOpen className="w-5 h-5 text-blue-600" />
-          </div>
-        </div>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <BookOpen className="w-5 h-5 text-blue-600" />
+          Capitol Smarts Topics
+        </CardTitle>
+        <p className="text-sm text-gray-500">
+          You have {numberOfTopics} Capitol Smarts video{numberOfTopics > 1 ? "s" : ""} — pick {numberOfTopics} topic{numberOfTopics > 1 ? "s" : ""}
+        </p>
       </CardHeader>
 
       <CardContent className="space-y-5">
