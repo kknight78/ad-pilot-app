@@ -720,18 +720,17 @@ export function AdPlanWidget({
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
             <Calendar className="w-5 h-5 text-blue-600" />
-            This Week&apos;s Content Plan
+            This Week&apos;s Plan
           </CardTitle>
-          <p className="text-sm text-gray-500 mt-1">{localData.dateRange}</p>
-          <WhatsThis className="mt-2">
+          <WhatsThis className="mt-1">
             <p className="mb-2"><strong>Your weekly content plan</strong></p>
             <p>This shows all the ads scheduled to run this week across your platforms.</p>
-            <ul className="list-disc list-inside space-y-1 text-xs mt-2">
+            <ul className="list-disc list-inside space-y-1 mt-2">
               <li>Edit any ad by clicking the pencil icon</li>
               <li>Platform spend goes directly to TikTok/Meta/YouTube</li>
-              <li>Changes can be made until Monday 8:00 AM</li>
             </ul>
           </WhatsThis>
+          <p className="text-sm text-gray-500 mt-2">{localData.dateRange}</p>
           {/* Strategy Badges */}
           <div className="flex flex-wrap gap-2 mt-2">
             {localData.strategyBadges.map((badge, index) => (
@@ -784,9 +783,15 @@ export function AdPlanWidget({
             </div>
 
             {/* Deadline text */}
-            <p className="text-xs text-gray-500 mt-3">
-              ✏️ You can make changes until Monday 8:00 AM — just come back to this chat
-            </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-3">
+              <div className="flex items-center gap-2 text-blue-700">
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm font-medium">Scheduled to publish Monday, Dec 16 at 9:00 AM</span>
+              </div>
+              <p className="text-xs text-blue-600 mt-1">
+                You can make changes until then in this chat portal.
+              </p>
+            </div>
 
             {/* Platform Spend Disclaimer - with asterisk */}
             <p className="text-xs text-gray-400 mt-3 pt-3 border-t border-gray-200">

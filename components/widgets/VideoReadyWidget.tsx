@@ -591,17 +591,17 @@ export function VideoReadyWidget({
             <Sparkles className="w-4 h-4 text-purple-600" />
             Videos Ready!
           </CardTitle>
-          <p className="text-xs text-gray-500 mt-1">
-            {totalActive} video{totalActive !== 1 ? "s" : ""} ready to publish
-          </p>
-          <WhatsThis className="mt-2">
+          <WhatsThis className="mt-1">
             <p className="mb-2"><strong>Review your videos:</strong></p>
-            <ul className="list-disc list-inside space-y-1 text-xs">
+            <ul className="list-disc list-inside space-y-1">
               <li>Click any thumbnail to preview</li>
               <li>Use the dropdown to regenerate parts</li>
               <li>Remove videos you don&apos;t want to publish</li>
             </ul>
           </WhatsThis>
+          <p className="text-xs text-gray-500 mt-2">
+            {totalActive} video{totalActive !== 1 ? "s" : ""} ready to publish
+          </p>
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -613,10 +613,10 @@ export function VideoReadyWidget({
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
                 Videos Scheduled!
               </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                {totalActive} videos will be published on {publishDate}
+              <p className="text-sm text-gray-600 mb-2">
+                {totalActive} videos will be published Monday, Dec 16 at 9:00 AM
               </p>
-              <div className="flex justify-center gap-2 mb-4">
+              <div className="flex justify-center gap-2">
                 {platformsWithVideos.map((platform) => {
                   const config = platformConfig[platform];
                   const count = videosByPlatform[platform].filter((v) => !v.removed).length;
@@ -631,9 +631,6 @@ export function VideoReadyWidget({
                   );
                 })}
               </div>
-              <Button variant="outline" onClick={() => setPublished(false)}>
-                Done
-              </Button>
             </div>
           ) : (
             <>
@@ -655,10 +652,10 @@ export function VideoReadyWidget({
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <div className="flex items-center gap-2 text-blue-700">
                   <Calendar className="w-4 h-4" />
-                  <span className="text-sm font-medium">Scheduled for Monday, Dec 16 at 9:00 AM</span>
+                  <span className="text-sm font-medium">Scheduled to publish Monday, Dec 16 at 9:00 AM</span>
                 </div>
                 <p className="text-xs text-blue-600 mt-1">
-                  You can make changes until then.
+                  You can make changes until then in this chat portal.
                 </p>
               </div>
 

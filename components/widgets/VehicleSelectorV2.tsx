@@ -531,20 +531,20 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
             <Car className="w-4 h-4 text-blue-500" />
             Select Vehicles for Your Ads
           </CardTitle>
-          <p className="text-xs text-gray-500">
-            Choose vehicles for each ad in your plan
-          </p>
-          <WhatsThis className="mt-2">
+          <WhatsThis className="mt-1">
             <p className="mb-2"><strong>How vehicle selection works:</strong></p>
-            <ul className="list-disc list-inside space-y-1 text-xs">
+            <ul className="list-disc list-inside space-y-1">
               <li>We suggest vehicles based on age and performance</li>
               <li>Older inventory gets priority to help move it</li>
               <li>Click to pick vehicles for each ad slot</li>
             </ul>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-gray-500">
               You can change selections any time before publishing.
             </p>
           </WhatsThis>
+          <p className="text-xs text-gray-500 mt-2">
+            Choose vehicles for each ad in your plan
+          </p>
         </CardHeader>
 
         <CardContent className="space-y-6">

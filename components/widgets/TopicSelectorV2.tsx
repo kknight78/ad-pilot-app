@@ -170,16 +170,16 @@ export function TopicSelectorV2({ numberOfTopics = 2, onSelect, onContinue }: To
           <BookOpen className="w-5 h-5 text-blue-600" />
           Capitol Smarts Topics
         </CardTitle>
-        <p className="text-sm text-gray-500 mt-1">
-          You have {numberOfTopics} Capitol Smarts video{numberOfTopics > 1 ? "s" : ""} — pick {numberOfTopics} topic{numberOfTopics > 1 ? "s" : ""}
-        </p>
-        <WhatsThis className="mt-2">
+        <WhatsThis className="mt-1">
           <p className="mb-2"><strong>What are Capitol Smarts?</strong></p>
           <p>Educational videos where your spokesperson shares helpful tips and industry knowledge.</p>
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-gray-500">
             These build trust with your audience and perform great as organic content — no ad spend needed!
           </p>
         </WhatsThis>
+        <p className="text-sm text-gray-500 mt-2">
+          You have {numberOfTopics} Capitol Smarts video{numberOfTopics > 1 ? "s" : ""} — pick {numberOfTopics} topic{numberOfTopics > 1 ? "s" : ""}
+        </p>
       </CardHeader>
 
       <CardContent className="space-y-5">

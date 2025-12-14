@@ -148,15 +148,14 @@ export function ThemeSelectorV2({
           <Sparkles className="w-4 h-4 text-purple-500" />
           Weekly Theme
         </CardTitle>
-        <p className="text-xs text-gray-500 mt-1">Sets the tone for your ads</p>
-        <WhatsThis className="mt-2">
+        <WhatsThis className="mt-1">
           <p className="mb-2"><strong>How themes appear in your videos:</strong></p>
-          <ul className="list-disc list-inside space-y-1 text-xs">
+          <ul className="list-disc list-inside space-y-1">
             <li>Script hooks reference the theme naturally</li>
             <li>Visual overlays match the seasonal mood</li>
             <li>Call-to-actions tie into the theme messaging</li>
           </ul>
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-gray-500">
             Consistent themes help your audience recognize campaigns and build momentum.
           </p>
         </WhatsThis>

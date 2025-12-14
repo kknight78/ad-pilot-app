@@ -388,6 +388,7 @@ export function ScriptApprovalCards({
   onComplete,
 }: ScriptApprovalCardsProps) {
   const [scripts, setScripts] = useState(initialScripts);
+  const [notifyWhenDone, setNotifyWhenDone] = useState(false);
   const [platformIndices, setPlatformIndices] = useState<Record<Platform, number>>({
     tiktok: 0,
     facebook: 0,
@@ -489,20 +490,20 @@ export function ScriptApprovalCards({
           <FileText className="w-4 h-4 md:w-5 md:h-5 text-amber-600" />
           Script Approval
         </CardTitle>
-        <p className="text-xs md:text-sm text-gray-500">
-          {totalCount} scripts • {pendingCount} pending
-        </p>
-        <WhatsThis className="mt-2">
+        <WhatsThis className="mt-1">
           <p className="mb-2"><strong>Review your ad scripts:</strong></p>
-          <ul className="list-disc list-inside space-y-1 text-xs">
+          <ul className="list-disc list-inside space-y-1">
             <li>Click any segment to edit the text</li>
             <li>Regenerate to get a fresh take</li>
             <li>Approve when you&apos;re happy with it</li>
           </ul>
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-gray-500">
             Scripts are optimized for each platform&apos;s style and audience.
           </p>
         </WhatsThis>
+        <p className="text-xs md:text-sm text-gray-500 mt-2">
+          {totalCount} scripts • {pendingCount} pending
+        </p>
         {!allApproved && (
           <Button
             size="sm"
@@ -529,6 +530,15 @@ export function ScriptApprovalCards({
             <p className="text-gray-600 mb-4">
               {totalCount} scripts ready for video generation
             </p>
+            <label className="flex items-center justify-center gap-2 text-sm text-gray-600 cursor-pointer mb-4">
+              <input
+                type="checkbox"
+                checked={notifyWhenDone}
+                onChange={(e) => setNotifyWhenDone(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              Text/email me when video generation is complete
+            </label>
             <Button onClick={() => onComplete?.()}>
               Generate Videos
               <ChevronRight className="w-4 h-4 ml-1" />
