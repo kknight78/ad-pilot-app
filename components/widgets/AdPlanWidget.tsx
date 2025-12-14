@@ -430,17 +430,12 @@ function VideoUsageTracker({
 
   return (
     <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="space-y-2">
+        {/* Header row */}
+        <div className="flex items-center justify-between">
           <p className="text-sm font-medium">Videos</p>
-          <p className="text-xs text-gray-500">
-            This plan uses <strong>{planVideoCount}</strong> • You&apos;ll have <strong>{Math.max(0, remainingAfterPlan)}</strong> left
-            <span className="text-gray-400 ml-1">(resets in {daysUntilReset} days)</span>
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {/* Progress bar */}
-          <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+          {/* Progress bar - hidden on mobile for space */}
+          <div className="hidden sm:block w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
                 percentage > 80 ? "bg-amber-500" : "bg-blue-500"
@@ -448,27 +443,28 @@ function VideoUsageTracker({
               style={{ width: `${Math.min(percentage, 100)}%` }}
             />
           </div>
-          {/* Action links */}
+        </div>
+        {/* Usage info */}
+        <p className="text-xs text-gray-500">
+          This plan uses <strong>{planVideoCount}</strong> • You&apos;ll have <strong>{Math.max(0, remainingAfterPlan)}</strong> left
+          <span className="text-gray-400 ml-1">(resets in {daysUntilReset} days)</span>
+        </p>
+        {/* Action links - always on their own line, right-aligned */}
+        <div className="flex justify-end">
           <div className="flex items-center gap-1 text-xs">
-            {onUpgrade && (
-              <button
-                onClick={onUpgrade}
-                className="text-blue-600 hover:underline whitespace-nowrap"
-              >
-                Buy more
-              </button>
-            )}
-            {onUpgrade && onAutoReload && (
-              <span className="text-gray-300">·</span>
-            )}
-            {onAutoReload && (
-              <button
-                onClick={onAutoReload}
-                className="text-blue-600 hover:underline whitespace-nowrap"
-              >
-                Auto-reload
-              </button>
-            )}
+            <button
+              onClick={onUpgrade}
+              className="text-blue-600 hover:underline whitespace-nowrap"
+            >
+              Buy more
+            </button>
+            <span className="text-gray-300">·</span>
+            <button
+              onClick={onAutoReload}
+              className="text-blue-600 hover:underline whitespace-nowrap"
+            >
+              Auto-reload
+            </button>
           </div>
         </div>
       </div>

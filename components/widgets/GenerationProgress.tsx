@@ -9,6 +9,7 @@ import {
   Pause,
   Film,
   ArrowRight,
+  Pencil,
 } from "lucide-react";
 
 type VideoStatus = "done" | "active" | "queued";
@@ -34,6 +35,10 @@ interface VideoJob {
 interface GenerationProgressProps {
   jobs?: VideoJob[];
   onPreviewAll?: () => void;
+  // Completed state - shows collapsed summary
+  completed?: boolean;
+  completedCount?: number;
+  onEdit?: () => void;
 }
 
 // Demo data
@@ -180,9 +185,41 @@ function VideoJobItem({ job }: { job: VideoJob }) {
 export function GenerationProgress({
   jobs = demoJobs,
   onPreviewAll,
+  completed = false,
+  completedCount,
+  onEdit,
 }: GenerationProgressProps) {
   const [localJobs, setLocalJobs] = useState<VideoJob[]>(jobs);
   const [timeRemaining, setTimeRemaining] = useState("~2 min left");
+  const [hasPreviewedAll, setHasPreviewedAll] = useState(false);
+
+  // Collapsed summary state when completed
+  if (completed && completedCount !== undefined) {
+    return (
+      <Card className="w-full max-w-lg border-green-200 bg-green-50/30">
+        <CardContent className="py-3 px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                <Check className="w-4 h-4 text-green-600" />
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700">Videos Generated</span>
+                <p className="text-sm text-gray-900">{completedCount} videos ready for review</p>
+              </div>
+            </div>
+            <button
+              onClick={onEdit}
+              className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            >
+              <Pencil className="w-3 h-3" />
+              Edit
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const doneCount = localJobs.filter((j) => j.status === "done").length;
   const totalCount = localJobs.length;
@@ -284,10 +321,26 @@ export function GenerationProgress({
         {/* Footer */}
         <div className="pt-4 border-t mt-4">
           {allComplete ? (
-            <Button className="w-full" onClick={onPreviewAll}>
-              Preview All
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+            hasPreviewedAll ? (
+              // Success state after clicking Preview All
+              <div className="flex items-center justify-center gap-2 py-2">
+                <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                  <Check className="w-3 h-3 text-green-600" />
+                </div>
+                <span className="text-sm text-green-700 font-medium">Videos sent to review</span>
+              </div>
+            ) : (
+              <Button
+                className="w-full"
+                onClick={() => {
+                  setHasPreviewedAll(true);
+                  onPreviewAll?.();
+                }}
+              >
+                Preview All
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            )
           ) : (
             <div className="flex items-center justify-center gap-2 text-gray-500 text-sm">
               <span>☕</span>

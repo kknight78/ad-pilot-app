@@ -658,22 +658,25 @@ export function VideoReadyWidget({
 
               {/* Video usage tracker - matches AdPlanWidget format */}
               <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">Videos</p>
-                    <p className="text-xs text-gray-500">
-                      This plan uses <strong>5</strong> • You&apos;ll have <strong>6</strong> left
-                      <span className="text-gray-400 ml-1">(resets in 18 days)</span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs">
-                    <button className="text-blue-600 hover:underline whitespace-nowrap">
-                      Buy more
-                    </button>
-                    <span className="text-gray-300">·</span>
-                    <button className="text-blue-600 hover:underline whitespace-nowrap">
-                      Auto-reload
-                    </button>
+                <div className="space-y-2">
+                  {/* Header */}
+                  <p className="text-sm font-medium">Videos</p>
+                  {/* Usage info */}
+                  <p className="text-xs text-gray-500">
+                    This plan uses <strong>5</strong> • You&apos;ll have <strong>6</strong> left
+                    <span className="text-gray-400 ml-1">(resets in 18 days)</span>
+                  </p>
+                  {/* Action links - on their own line, right-aligned */}
+                  <div className="flex justify-end">
+                    <div className="flex items-center gap-1 text-xs">
+                      <button className="text-blue-600 hover:underline whitespace-nowrap">
+                        Buy more
+                      </button>
+                      <span className="text-gray-300">·</span>
+                      <button className="text-blue-600 hover:underline whitespace-nowrap">
+                        Auto-reload
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
