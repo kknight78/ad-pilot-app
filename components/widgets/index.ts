@@ -78,3 +78,4 @@ export { AvatarPhotoCapture } from "./AvatarPhotoCapture";
 export { VoiceCapture } from "./VoiceCapture";
 export { InvoiceWidget } from "./InvoiceWidget";
 export { PublishWidget } from "./PublishWidget";
+export { VideoReadyWidget } from "./VideoReadyWidget";

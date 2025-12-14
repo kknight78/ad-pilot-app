@@ -25,7 +25,9 @@ import {
   Sun,
   Pin,
   LucideIcon,
+  Music2,
 } from "lucide-react";
+import { WhatsThis } from "@/components/ui/whats-this";
 
 export interface AdPlanItem {
   id: string;
@@ -33,6 +35,8 @@ export interface AdPlanItem {
   template: string;
   vehicles?: number | string; // Can be number or string like "2019 Honda CR-V"
   avatar: string;
+  avatarStyle?: string; // e.g., "Casual", "Professional"
+  music?: string; // Music track name
   length: string;
   adSpend: number | "organic";
 }
@@ -74,24 +78,24 @@ const demoData: AdPlanData = {
     {
       platform: "tiktok",
       items: [
-        { id: "1", themeTopic: "Holiday Spirit", template: "Deep Dive", vehicles: 1, avatar: "Shad", length: "30s", adSpend: 75 },
-        { id: "2", themeTopic: "Holiday Spirit", template: "Deep Dive", vehicles: 1, avatar: "Shad", length: "30s", adSpend: 50 },
-        { id: "3", themeTopic: "Winter Ready", template: "Multi-Car", vehicles: 3, avatar: "Shad", length: "45s", adSpend: "organic" },
+        { id: "1", themeTopic: "Holiday Spirit", template: "Deep Dive", vehicles: 1, avatar: "Shad", avatarStyle: "Casual", music: "Upbeat Holiday", length: "30s", adSpend: 75 },
+        { id: "2", themeTopic: "Holiday Spirit", template: "Deep Dive", vehicles: 1, avatar: "Shad", avatarStyle: "Casual", music: "Festive Pop", length: "30s", adSpend: 50 },
+        { id: "3", themeTopic: "Winter Ready", template: "Multi-Car", vehicles: 3, avatar: "Shad", avatarStyle: "Professional", music: "Chill Vibes", length: "45s", adSpend: "organic" },
       ],
       subtotal: 125,
     },
     {
       platform: "facebook",
       items: [
-        { id: "4", themeTopic: "Holiday Spirit", template: "Carousel", vehicles: 4, avatar: "—", length: "—", adSpend: 125 },
-        { id: "5", themeTopic: "Family First", template: "Testimonial", vehicles: "—", avatar: "Lisa", length: "60s", adSpend: 50 },
+        { id: "4", themeTopic: "Holiday Spirit", template: "Carousel", vehicles: 4, avatar: "—", music: "Soft Background", length: "—", adSpend: 125 },
+        { id: "5", themeTopic: "Family First", template: "Testimonial", vehicles: "—", avatar: "Lisa", avatarStyle: "Warm", music: "Acoustic Feel", length: "60s", adSpend: 50 },
       ],
       subtotal: 175,
     },
     {
       platform: "youtube",
       items: [
-        { id: "6", themeTopic: "Winter Tire Safety", template: "Capitol Smarts", vehicles: "—", avatar: "Shad", length: "60s", adSpend: "organic" },
+        { id: "6", themeTopic: "Winter Tire Safety", template: "Capitol Smarts", vehicles: "—", avatar: "Shad", avatarStyle: "Professional", music: "Focus Beats", length: "60s", adSpend: "organic" },
       ],
       subtotal: 0,
     },
@@ -391,13 +395,40 @@ function VideoUsageTracker({
   const percentage = (usage.used / usage.limit) * 100;
   const remainingAfterPlan = usage.limit - usage.used - planVideoCount;
 
+  // Calculate days until reset
+  const getDaysUntilReset = () => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+
+    // Parse reset date - handle formats like "Jan 1" or "January 1"
+    let resetDate = new Date(`${usage.resetDate}, ${currentYear}`);
+
+    // Check if parse failed (invalid date)
+    if (isNaN(resetDate.getTime())) {
+      // Fallback: try parsing with next year
+      resetDate = new Date(`${usage.resetDate}, ${currentYear + 1}`);
+    }
+
+    // If reset date has passed this year, use next year
+    if (resetDate < today) {
+      resetDate = new Date(`${usage.resetDate}, ${currentYear + 1}`);
+    }
+
+    const diffTime = resetDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const daysUntilReset = getDaysUntilReset();
+
   return (
     <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium">Video Generations</p>
           <p className="text-xs text-gray-500">
-            This plan uses <strong>{planVideoCount}</strong> • You&apos;ll have <strong>{Math.max(0, remainingAfterPlan)}</strong> left this month
+            This plan uses <strong>{planVideoCount}</strong> • You&apos;ll have <strong>{Math.max(0, remainingAfterPlan)}</strong> left
+            <span className="text-gray-400 ml-1">(resets in {daysUntilReset} days)</span>
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -522,6 +553,9 @@ function PlatformSection({
                   Avatar
                 </th>
                 <th className="text-left py-2 px-3 font-medium text-gray-500">
+                  Music
+                </th>
+                <th className="text-left py-2 px-3 font-medium text-gray-500">
                   Length
                 </th>
                 <th className="text-right py-2 px-3 font-medium text-gray-500">
@@ -553,7 +587,19 @@ function PlatformSection({
                   <td className="py-2 px-3 text-gray-600">
                     {item.vehicles || "—"}
                   </td>
-                  <td className="py-2 px-3 text-gray-600">{item.avatar}</td>
+                  <td className="py-2 px-3 text-gray-600">
+                    <div>
+                      <span className="font-medium">{item.avatar}</span>
+                      {item.avatarStyle && item.avatar !== "—" && (
+                        <span className="block text-xs text-gray-400">{item.avatarStyle}</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-2 px-3 text-gray-600">
+                    <button className="text-sm text-blue-600 hover:underline">
+                      {item.music || "Select"}
+                    </button>
+                  </td>
                   <td className="py-2 px-3 text-gray-600">{item.length}</td>
                   <td className="py-2 px-3 text-right text-gray-600">
                     {item.adSpend === "organic" ? (
@@ -676,7 +722,16 @@ export function AdPlanWidget({
             <Calendar className="w-5 h-5 text-blue-600" />
             This Week&apos;s Content Plan
           </CardTitle>
-          <p className="text-sm text-gray-500">{localData.dateRange}</p>
+          <p className="text-sm text-gray-500 mt-1">{localData.dateRange}</p>
+          <WhatsThis className="mt-2">
+            <p className="mb-2"><strong>Your weekly content plan</strong></p>
+            <p>This shows all the ads scheduled to run this week across your platforms.</p>
+            <ul className="list-disc list-inside space-y-1 text-xs mt-2">
+              <li>Edit any ad by clicking the pencil icon</li>
+              <li>Platform spend goes directly to TikTok/Meta/YouTube</li>
+              <li>Changes can be made until Monday 8:00 AM</li>
+            </ul>
+          </WhatsThis>
           {/* Strategy Badges */}
           <div className="flex flex-wrap gap-2 mt-2">
             {localData.strategyBadges.map((badge, index) => (

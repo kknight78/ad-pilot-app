@@ -14,6 +14,7 @@ import {
   Plus,
   X,
 } from "lucide-react";
+import { WhatsThis } from "@/components/ui/whats-this";
 
 export interface Topic {
   title: string;
@@ -169,9 +170,16 @@ export function TopicSelectorV2({ numberOfTopics = 2, onSelect, onContinue }: To
           <BookOpen className="w-5 h-5 text-blue-600" />
           Capitol Smarts Topics
         </CardTitle>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 mt-1">
           You have {numberOfTopics} Capitol Smarts video{numberOfTopics > 1 ? "s" : ""} — pick {numberOfTopics} topic{numberOfTopics > 1 ? "s" : ""}
         </p>
+        <WhatsThis className="mt-2">
+          <p className="mb-2"><strong>What are Capitol Smarts?</strong></p>
+          <p>Educational videos where your spokesperson shares helpful tips and industry knowledge.</p>
+          <p className="mt-2 text-xs text-gray-500">
+            These build trust with your audience and perform great as organic content — no ad spend needed!
+          </p>
+        </WhatsThis>
       </CardHeader>
 
       <CardContent className="space-y-5">
@@ -296,7 +304,7 @@ export function TopicSelectorV2({ numberOfTopics = 2, onSelect, onContinue }: To
               </Button>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               {topics.map((topic, index) => {
                 const isSelected = isTopicSelected(topic.title);
                 const isDisabled = !canSelectMore && !isSelected;
@@ -308,17 +316,17 @@ export function TopicSelectorV2({ numberOfTopics = 2, onSelect, onContinue }: To
                     key={index}
                     onClick={() => addTopic(topic.title)}
                     disabled={isDisabled}
-                    className={`w-full text-left p-3 rounded-lg border-2 transition-all flex items-center gap-3 ${
+                    className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
                       isDisabled
-                        ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
-                        : "border-gray-200 hover:border-blue-300 hover:bg-blue-50 bg-white"
+                        ? "bg-gray-50 opacity-50 cursor-not-allowed"
+                        : "bg-gray-50 hover:bg-gray-100"
                     }`}
                   >
-                    <span className="text-2xl">{topic.emoji}</span>
-                    <span className="font-medium text-gray-900 flex-1">
+                    <span className="text-base">{topic.emoji}</span>
+                    <span className="text-sm text-gray-700 flex-1">
                       {topic.title}
                     </span>
-                    <Plus className="w-5 h-5 text-blue-500" />
+                    <Plus className="w-4 h-4 text-gray-400 hover:text-blue-500" />
                   </button>
                 );
               })}

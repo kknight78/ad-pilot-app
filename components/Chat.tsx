@@ -21,7 +21,7 @@ import {
   AdPlanWidget,
   ScriptApprovalCards,
   GenerationProgress,
-  PublishWidget,
+  VideoReadyWidget,
   RecommendationsList,
   GuidanceRulesCard,
   AvatarPhotoCapture,
@@ -188,22 +188,16 @@ function WidgetRenderer({
               completedSteps: [...flowState.completedSteps, "generation_progress"] as GoldenPathStep[],
             });
             // Add assistant message with next widget
-            onAddAssistantMessage("Your videos are ready! Choose where to publish:", [{ type: "publish_widget" }]);
+            onAddAssistantMessage("Your videos are ready! Review and approve for publishing:", [{ type: "publish_widget" }]);
           }}
         />
       );
 
     case "publish_widget":
       return (
-        <PublishWidget
-          onPublish={(platforms) => {
-            console.log("Published to:", platforms);
-          }}
-          onSaveForLater={() => {
-            // Silent action - no user bubble
-            console.log("Saved for later");
-          }}
-          onNext={() => {
+        <VideoReadyWidget
+          onPublish={(videos) => {
+            console.log("Published videos:", videos);
             // Update state (silent, no user bubble)
             onStateUpdate({
               currentStep: "wrap_up",
@@ -211,6 +205,12 @@ function WidgetRenderer({
             });
             // Add assistant message for wrap up
             onAddAssistantMessage("All done! Your content is scheduled. Anything else you'd like to work on?", []);
+          }}
+          onRemove={(videoId) => {
+            console.log("Removed video:", videoId);
+          }}
+          onRegenerate={(videoId, options) => {
+            console.log("Regenerating video:", videoId, "with options:", options);
           }}
         />
       );
