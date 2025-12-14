@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   Music,
   Gift,
+  Mic,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -33,7 +34,8 @@ import { TopicSelectorV2 } from "@/components/widgets/TopicSelectorV2";
 import { VehicleSelectorV2 } from "@/components/widgets/VehicleSelectorV2";
 import { ScriptApprovalCards } from "@/components/widgets/ScriptApprovalCards";
 import { GenerationProgress } from "@/components/widgets/GenerationProgress";
-import { AvatarPhotoCapture } from "@/components/widgets/AvatarPhotoCapture";
+import { AvatarPhotoCaptureV2 } from "@/components/widgets/AvatarPhotoCaptureV2";
+import { VoiceCaptureV2 } from "@/components/widgets/VoiceCaptureV2";
 import { InvoiceWidget } from "@/components/widgets/InvoiceWidget";
 import { RecommendationsWidget } from "@/components/widgets/RecommendationsWidget";
 import { MusicWidget } from "@/components/widgets/MusicWidget";
@@ -53,7 +55,8 @@ const widgets = [
   { id: "vehicle", name: "Vehicle Selector", icon: Car, status: "new" },
   { id: "script", name: "Script Approval", icon: FileText, status: "new" },
   { id: "progress", name: "Generation Progress", icon: Loader, status: "new" },
-  { id: "avatar", name: "Avatar Photo Capture", icon: Camera, status: "new" },
+  { id: "avatar", name: "Avatar Photo Capture", icon: Camera, status: "rebuilt" },
+  { id: "voice", name: "Voice Recording", icon: Mic, status: "rebuilt" },
   { id: "invoice", name: "Invoice / Pay Bill", icon: CreditCard, status: "new" },
 ];
 
@@ -115,7 +118,9 @@ export default function GalleryPage() {
       case "progress":
         return <GenerationProgress />;
       case "avatar":
-        return <AvatarPhotoCapture />;
+        return <AvatarPhotoCaptureV2 />;
+      case "voice":
+        return <VoiceCaptureV2 />;
       case "invoice":
         return <InvoiceWidget />;
       default:

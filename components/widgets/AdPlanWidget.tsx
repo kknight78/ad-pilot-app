@@ -27,6 +27,7 @@ import {
   LucideIcon,
   Music2,
 } from "lucide-react";
+// Note: Pencil is already imported above, used in both edit buttons and collapsed state
 import { WhatsThis } from "@/components/ui/whats-this";
 
 export interface AdPlanItem {
@@ -68,7 +69,11 @@ export interface AdPlanWidgetProps {
   onRemove?: (platformIndex: number, itemId: string) => void;
   onAddAd?: (platformIndex: number) => void;
   onUpgradePlan?: () => void;
+  onAutoReload?: () => void;
   onConfirm?: () => void;
+  // Completed state - shows collapsed summary
+  completed?: boolean;
+  onEditPlan?: () => void;
 }
 
 // Demo data
@@ -386,11 +391,13 @@ function PlatformIcon({ platform }: { platform: keyof typeof platformConfig }) {
 function VideoUsageTracker({
   usage,
   planVideoCount,
-  onUpgrade
+  onUpgrade,
+  onAutoReload
 }: {
   usage: VideoUsage;
   planVideoCount: number;
   onUpgrade?: () => void;
+  onAutoReload?: () => void;
 }) {
   const percentage = (usage.used / usage.limit) * 100;
   const remainingAfterPlan = usage.limit - usage.used - planVideoCount;
@@ -425,13 +432,13 @@ function VideoUsageTracker({
     <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm font-medium">Video Generations</p>
+          <p className="text-sm font-medium">Videos</p>
           <p className="text-xs text-gray-500">
             This plan uses <strong>{planVideoCount}</strong> • You&apos;ll have <strong>{Math.max(0, remainingAfterPlan)}</strong> left
             <span className="text-gray-400 ml-1">(resets in {daysUntilReset} days)</span>
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* Progress bar */}
           <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
             <div
@@ -441,15 +448,28 @@ function VideoUsageTracker({
               style={{ width: `${Math.min(percentage, 100)}%` }}
             />
           </div>
-          {/* Upsell button */}
-          {onUpgrade && (
-            <button
-              onClick={onUpgrade}
-              className="text-xs bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full hover:opacity-90 transition-opacity"
-            >
-              + Buy More
-            </button>
-          )}
+          {/* Action links */}
+          <div className="flex items-center gap-1 text-xs">
+            {onUpgrade && (
+              <button
+                onClick={onUpgrade}
+                className="text-blue-600 hover:underline whitespace-nowrap"
+              >
+                Buy more
+              </button>
+            )}
+            {onUpgrade && onAutoReload && (
+              <span className="text-gray-300">·</span>
+            )}
+            {onAutoReload && (
+              <button
+                onClick={onAutoReload}
+                className="text-blue-600 hover:underline whitespace-nowrap"
+              >
+                Auto-reload
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -595,8 +615,8 @@ function PlatformSection({
                       )}
                     </div>
                   </td>
-                  <td className="py-2 px-3 text-gray-600">
-                    <button className="text-sm text-blue-600 hover:underline">
+                  <td className="py-2 px-3 text-gray-600 text-left">
+                    <button className="text-sm text-blue-600 hover:underline text-left">
                       {item.music || "Select"}
                     </button>
                   </td>
@@ -659,10 +679,43 @@ export function AdPlanWidget({
   onRemove,
   onAddAd,
   onUpgradePlan,
+  onAutoReload,
   onConfirm,
+  completed = false,
+  onEditPlan,
 }: AdPlanWidgetProps) {
   const [localData, setLocalData] = useState(data);
   const [editingItem, setEditingItem] = useState<EditingItem | null>(null);
+
+  // Collapsed summary state when completed
+  if (completed) {
+    return (
+      <Card className="w-full max-w-4xl border-green-200 bg-green-50/30">
+        <CardContent className="py-3 px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle2 className="w-4 h-4 text-green-600" />
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700">This Week&apos;s Plan</span>
+                <p className="text-sm text-gray-900">
+                  {localData.totalContent} videos • ${localData.totalAdSpend} spend • {localData.dateRange}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={onEditPlan}
+              className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            >
+              <Pencil className="w-3 h-3" />
+              Edit
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const handleOpenEdit = (platformIndex: number, itemId: string) => {
     const platform = localData.platforms[platformIndex];
@@ -764,6 +817,7 @@ export function AdPlanWidget({
             usage={videoUsage}
             planVideoCount={localData.totalContent}
             onUpgrade={onUpgradePlan}
+            onAutoReload={onAutoReload}
           />
 
           {/* Summary Footer */}
@@ -771,7 +825,7 @@ export function AdPlanWidget({
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="text-sm text-gray-700">
                 <span className="font-semibold">Total:</span>{" "}
-                {localData.totalContent} pieces of content •{" "}
+                {localData.totalContent} videos •{" "}
                 <span className="text-blue-600 font-medium">${localData.totalAdSpend}*</span> platform spend
               </div>
               {onConfirm && (

@@ -86,9 +86,19 @@ function WidgetRenderer({
       // Self-contained widget — fetches its own data
       return <PerformanceDashboard />;
 
-    case "theme_selector":
+    case "theme_selector": {
+      const isCompleted = flowState.completedSteps.includes("theme_selector");
       return (
         <ThemeSelectorV2
+          completed={isCompleted}
+          selectedValue={flowState.selections?.theme || undefined}
+          onEdit={() => {
+            // Re-expand the widget by removing from completedSteps
+            onStateUpdate({
+              currentStep: "theme_selector",
+              completedSteps: flowState.completedSteps.filter(s => s !== "theme_selector") as GoldenPathStep[],
+            });
+          }}
           onContinue={(theme) => {
             // Update state - move to topic_selector (silent, no user bubble)
             onStateUpdate({
@@ -101,10 +111,21 @@ function WidgetRenderer({
           }}
         />
       );
+    }
 
-    case "topic_selector":
+    case "topic_selector": {
+      const isCompleted = flowState.completedSteps.includes("topic_selector");
       return (
         <TopicSelectorV2
+          completed={isCompleted}
+          selectedValues={flowState.selections?.topics || undefined}
+          onEdit={() => {
+            // Re-expand the widget by removing from completedSteps
+            onStateUpdate({
+              currentStep: "topic_selector",
+              completedSteps: flowState.completedSteps.filter(s => s !== "topic_selector") as GoldenPathStep[],
+            });
+          }}
           onContinue={(topics) => {
             // Update state (silent, no user bubble)
             onStateUpdate({
@@ -117,10 +138,20 @@ function WidgetRenderer({
           }}
         />
       );
+    }
 
-    case "ad_plan":
+    case "ad_plan": {
+      const isCompleted = flowState.completedSteps.includes("ad_plan");
       return (
         <AdPlanWidget
+          completed={isCompleted}
+          onEditPlan={() => {
+            // Re-expand the widget by removing from completedSteps
+            onStateUpdate({
+              currentStep: "ad_plan",
+              completedSteps: flowState.completedSteps.filter(s => s !== "ad_plan") as GoldenPathStep[],
+            });
+          }}
           onConfirm={() => {
             // Update state (silent, no user bubble)
             onStateUpdate({
@@ -132,10 +163,21 @@ function WidgetRenderer({
           }}
         />
       );
+    }
 
-    case "vehicle_selector":
+    case "vehicle_selector": {
+      const isCompleted = flowState.completedSteps.includes("vehicle_selector");
       return (
         <VehicleSelectorV2
+          completed={isCompleted}
+          selectedCount={flowState.selections?.vehicleCount || undefined}
+          onEdit={() => {
+            // Re-expand the widget by removing from completedSteps
+            onStateUpdate({
+              currentStep: "vehicle_selector",
+              completedSteps: flowState.completedSteps.filter(s => s !== "vehicle_selector") as GoldenPathStep[],
+            });
+          }}
           onContinue={(selections) => {
             // Extract VINs from Vehicle objects for state storage
             const vehicleAssignments: Record<string, string[]> = {};
@@ -161,22 +203,52 @@ function WidgetRenderer({
           }}
         />
       );
+    }
 
-    case "script_approval":
+    case "script_approval": {
+      const isCompleted = flowState.completedSteps.includes("script_approval");
+      const approvedCount = flowState.selections?.approvedScripts?.length || 0;
       return (
         <ScriptApprovalCards
-          onApprove={(id) => console.log("Approved script:", id)}
+          completed={isCompleted}
+          approvedCount={approvedCount > 0 ? approvedCount : undefined}
+          onEdit={() => {
+            // Re-expand the widget by removing from completedSteps
+            onStateUpdate({
+              currentStep: "script_approval",
+              completedSteps: flowState.completedSteps.filter(s => s !== "script_approval") as GoldenPathStep[],
+            });
+          }}
+          onApprove={(id) => {
+            // Track approved scripts
+            const current = flowState.selections?.approvedScripts || [];
+            if (!current.includes(id)) {
+              onStateUpdate({
+                selections: {
+                  ...flowState.selections,
+                  approvedScripts: [...current, id],
+                },
+              });
+            }
+          }}
           onComplete={() => {
+            // Get count of approved scripts for collapsed display
+            const scriptsApproved = flowState.selections?.approvedScripts?.length || 3; // Default to demo count
             // Update state (silent, no user bubble)
             onStateUpdate({
               currentStep: "generation_progress",
               completedSteps: [...flowState.completedSteps, "script_approval"] as GoldenPathStep[],
+              selections: {
+                ...flowState.selections,
+                approvedScripts: flowState.selections?.approvedScripts || ["script1", "script2", "script3"], // Default if not tracked
+              },
             });
             // Add assistant message with next widget
             onAddAssistantMessage("Generating your videos now...", [{ type: "generation_progress" }]);
           }}
         />
       );
+    }
 
     case "generation_progress":
       return (

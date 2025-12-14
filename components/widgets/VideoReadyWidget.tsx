@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  Film,
   Check,
   X,
   Calendar,
@@ -15,7 +14,6 @@ import {
   Camera,
   LucideIcon,
   RefreshCw,
-  ChevronDown,
   Play,
   Trash2,
   Clock,
@@ -143,13 +141,17 @@ const demoVideos: Video[] = [
   },
 ];
 
-// Video Preview Modal
+// Video Preview Modal with action buttons
 function VideoPreviewModal({
   video,
   onClose,
+  onOpenRegenerate,
+  onRemove,
 }: {
   video: Video | null;
   onClose: () => void;
+  onOpenRegenerate?: () => void;
+  onRemove?: () => void;
 }) {
   useEffect(() => {
     if (!video) return;
@@ -166,24 +168,90 @@ function VideoPreviewModal({
 
   if (!video || typeof window === "undefined") return null;
 
+  const config = platformConfig[video.platform];
+
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/80" onClick={onClose} />
-      <div className="relative bg-black rounded-xl overflow-hidden max-h-[90vh]" style={{ aspectRatio: "9/16", maxWidth: "360px" }}>
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-        <video
-          className="w-full h-full object-cover"
-          src={video.videoUrl}
-          autoPlay
-          loop
-          controls
-          playsInline
-        />
+      <div className="relative flex flex-col items-center gap-4 max-h-[90vh]">
+        {/* Video container */}
+        <div className="relative bg-black rounded-xl overflow-hidden" style={{ aspectRatio: "9/16", maxWidth: "360px", maxHeight: "70vh" }}>
+          <button
+            onClick={onClose}
+            className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <video
+            className="w-full h-full object-cover"
+            src={video.videoUrl}
+            autoPlay
+            loop
+            controls
+            playsInline
+          />
+        </div>
+
+        {/* Video info and actions */}
+        <div className="bg-white rounded-xl p-4 w-full max-w-[360px] space-y-3">
+          {/* Video details */}
+          <div className="flex items-start gap-3">
+            <div className={`w-8 h-8 rounded flex items-center justify-center shrink-0 ${config.bgColor}`}>
+              <config.Icon className={`w-4 h-4 ${config.iconColor}`} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-gray-900">{video.theme}</p>
+              <p className="text-sm text-gray-500">{video.template} • {video.avatar} • {video.music}</p>
+            </div>
+          </div>
+
+          {/* Action section with separate explanatory copy for each button */}
+          <div className="border-t border-gray-100 pt-3 space-y-3">
+            {/* Regenerate section */}
+            {onOpenRegenerate && (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">Something not quite right? Let&apos;s fix it!</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    onClose();
+                    onOpenRegenerate();
+                  }}
+                >
+                  <RefreshCw className="w-4 h-4 mr-1" />
+                  Regenerate
+                </Button>
+              </div>
+            )}
+
+            {/* Remove section */}
+            {onRemove && (
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">Don&apos;t want to publish this ad? No problem!</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  onClick={() => {
+                    onRemove();
+                    onClose();
+                  }}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Remove
+                </Button>
+              </div>
+            )}
+
+            {/* Warning about video allocation */}
+            <div className="flex items-start gap-2 text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-2">
+              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <span>Regenerations use your monthly video allocation</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>,
     document.body
@@ -347,72 +415,17 @@ function RegenerateModal({
   );
 }
 
-// Simple dropdown with 2 buttons
-function VideoActionsDropdown({
-  video,
-  onOpenRegenerate,
-  onRemove,
-}: {
-  video: Video;
-  onOpenRegenerate: () => void;
-  onRemove: () => void;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
-      >
-        <ChevronDown className="w-3 h-3" />
-      </button>
-
-      {isOpen && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 top-full mt-1 z-50 w-44 bg-white border border-gray-200 rounded-lg shadow-lg p-1">
-            <button
-              onClick={() => {
-                onOpenRegenerate();
-                setIsOpen(false);
-              }}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded text-left text-sm hover:bg-gray-50 text-gray-700"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Regenerate
-            </button>
-            <button
-              onClick={() => {
-                onRemove();
-                setIsOpen(false);
-              }}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded text-left text-sm text-red-600 hover:bg-red-50"
-            >
-              <Trash2 className="w-4 h-4" />
-              Remove from publish
-            </button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// Video Thumbnail Card
+// Video Thumbnail Card - simplified, actions moved to preview modal
 function VideoThumbnail({
   video,
   onPlay,
-  onRegenerate,
-  onRemove,
+  onUndo,
 }: {
   video: Video;
   onPlay: () => void;
-  onRegenerate: (updates: Record<string, string>) => void;
-  onRemove: () => void;
+  onUndo: () => void;
 }) {
   const [isHovered, setIsHovered] = useState(false);
-  const [showRegenModal, setShowRegenModal] = useState(false);
 
   if (video.removed) {
     return (
@@ -421,7 +434,7 @@ function VideoThumbnail({
           <Trash2 className="w-6 h-6 text-gray-400 mx-auto mb-2" />
           <p className="text-xs text-gray-500">Removed</p>
           <button
-            onClick={onRemove}
+            onClick={onUndo}
             className="text-xs text-blue-600 hover:underline mt-1"
           >
             Undo
@@ -432,101 +445,84 @@ function VideoThumbnail({
   }
 
   return (
-    <>
-      <div className="space-y-1">
-        {/* Thumbnail */}
+    <div className="space-y-1">
+      {/* Thumbnail */}
+      <div
+        className="relative aspect-[9/16] bg-gray-900 rounded-lg overflow-hidden cursor-pointer group"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={onPlay}
+      >
+        {/* Thumbnail image - using video poster or first frame */}
         <div
-          className="relative aspect-[9/16] bg-gray-900 rounded-lg overflow-hidden cursor-pointer group"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          onClick={onPlay}
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `url(${video.thumbnail})`,
+          }}
+        />
+
+        {/* Hover overlay with play button */}
+        <div
+          className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${
+            isHovered ? "opacity-100" : "opacity-0"
+          }`}
         >
-          {/* Thumbnail image - using video poster or first frame */}
-          <div
-            className="absolute inset-0 bg-cover bg-center"
-            style={{
-              backgroundImage: `url(${video.thumbnail})`,
-            }}
-          />
-
-          {/* Hover overlay with play button */}
-          <div
-            className={`absolute inset-0 bg-black/40 flex items-center justify-center transition-opacity ${
-              isHovered ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
-              <Play className="w-5 h-5 text-gray-900 ml-0.5" fill="currentColor" />
-            </div>
-          </div>
-
-          {/* Template badge */}
-          <div className="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
-            {video.template}
+          <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center">
+            <Play className="w-5 h-5 text-gray-900 ml-0.5" fill="currentColor" />
           </div>
         </div>
 
-        {/* Video info */}
-        <div className="flex items-start justify-between gap-1">
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-gray-900 truncate">{video.theme}</p>
-            <p className="text-[10px] text-gray-500 truncate">{video.avatar} • {video.music}</p>
-          </div>
-          <VideoActionsDropdown
-            video={video}
-            onOpenRegenerate={() => setShowRegenModal(true)}
-            onRemove={onRemove}
-          />
+        {/* Template badge */}
+        <div className="absolute top-2 left-2 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded">
+          {video.template}
         </div>
       </div>
 
-      <RegenerateModal
-        video={video}
-        isOpen={showRegenModal}
-        onClose={() => setShowRegenModal(false)}
-        onRegenerate={onRegenerate}
-      />
-    </>
+      {/* Video info - simplified without dropdown */}
+      <div className="min-w-0">
+        <p className="text-xs font-medium text-gray-900 truncate">{video.theme}</p>
+        <p className="text-[10px] text-gray-500 truncate">{video.avatar} • {video.music}</p>
+      </div>
+    </div>
   );
 }
 
-// Platform Section with Video Grid
+// Platform Section with Video Grid - uses colored bar header like AdPlanWidget
 function PlatformSection({
   platform,
   videos,
   onPlayVideo,
-  onRegenerate,
-  onRemove,
+  onToggleRemove,
 }: {
   platform: Platform;
   videos: Video[];
   onPlayVideo: (video: Video) => void;
-  onRegenerate: (videoId: string, updates: Record<string, string>) => void;
-  onRemove: (videoId: string) => void;
+  onToggleRemove: (videoId: string) => void;
 }) {
   const config = platformConfig[platform];
   const activeVideos = videos.filter((v) => !v.removed);
 
   return (
-    <div className="space-y-2">
-      {/* Platform header */}
-      <div className="flex items-center gap-2">
-        <div className={`w-5 h-5 rounded flex items-center justify-center ${config.bgColor}`}>
-          <config.Icon className={`w-3 h-3 ${config.iconColor}`} />
+    <div className="border rounded-lg overflow-hidden border-gray-200">
+      {/* Platform header - colored bar style matching AdPlanWidget */}
+      <div className={`flex items-center gap-2 p-2.5 ${config.headerBg}`}>
+        <div className={`w-6 h-6 rounded flex items-center justify-center bg-white/20`}>
+          <config.Icon className={`w-3.5 h-3.5 ${config.iconColor}`} />
         </div>
-        <span className="text-sm font-medium text-gray-900">{config.name}</span>
-        <span className="text-xs text-gray-500">({activeVideos.length} video{activeVideos.length !== 1 ? "s" : ""})</span>
+        <span className="font-semibold text-white">{config.name}</span>
+        <span className="text-xs text-white/80 ml-auto">
+          {activeVideos.length} video{activeVideos.length !== 1 ? "s" : ""}
+        </span>
       </div>
 
       {/* Video grid */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2 p-2">
         {videos.map((video) => (
           <VideoThumbnail
             key={video.id}
             video={video}
             onPlay={() => onPlayVideo(video)}
-            onRegenerate={(updates) => onRegenerate(video.id, updates)}
-            onRemove={() => onRemove(video.id)}
+            onUndo={() => onToggleRemove(video.id)}
           />
         ))}
       </div>
@@ -543,6 +539,7 @@ export function VideoReadyWidget({
 }: VideoReadyWidgetProps) {
   const [videos, setVideos] = useState(initialVideos);
   const [previewVideo, setPreviewVideo] = useState<Video | null>(null);
+  const [regenerateVideo, setRegenerateVideo] = useState<Video | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [published, setPublished] = useState(false);
 
@@ -560,7 +557,7 @@ export function VideoReadyWidget({
   const activeVideos = videos.filter((v) => !v.removed);
   const totalActive = activeVideos.length;
 
-  const handleRemove = (videoId: string) => {
+  const handleToggleRemove = (videoId: string) => {
     setVideos((prev) =>
       prev.map((v) =>
         v.id === videoId ? { ...v, removed: !v.removed } : v
@@ -569,10 +566,12 @@ export function VideoReadyWidget({
     onRemove?.(videoId);
   };
 
-  const handleRegenerate = (videoId: string, updates: Record<string, string>) => {
-    console.log("Regenerating video:", videoId, "with updates:", updates);
-    // Note: parent component should handle the actual regeneration
-    // For now just log the updates - onRegenerate signature would need updating in props
+  const handleRegenerate = (updates: Record<string, string>) => {
+    if (regenerateVideo) {
+      console.log("Regenerating video:", regenerateVideo.id, "with updates:", updates);
+      // Note: parent component should handle the actual regeneration
+    }
+    setRegenerateVideo(null);
   };
 
   const handlePublish = async () => {
@@ -595,8 +594,7 @@ export function VideoReadyWidget({
             <p className="mb-2"><strong>Review your videos:</strong></p>
             <ul className="list-disc list-inside space-y-1">
               <li>Click any thumbnail to preview</li>
-              <li>Use the dropdown to regenerate parts</li>
-              <li>Remove videos you don&apos;t want to publish</li>
+              <li>Regenerate or remove from the preview popup</li>
             </ul>
           </WhatsThis>
           <p className="text-xs text-gray-500 mt-2">
@@ -642,8 +640,7 @@ export function VideoReadyWidget({
                     platform={platform}
                     videos={videosByPlatform[platform]}
                     onPlayVideo={setPreviewVideo}
-                    onRegenerate={handleRegenerate}
-                    onRemove={handleRemove}
+                    onToggleRemove={handleToggleRemove}
                   />
                 ))}
               </div>
@@ -659,10 +656,26 @@ export function VideoReadyWidget({
                 </p>
               </div>
 
-              {/* Video usage tracker */}
-              <div className="flex items-center justify-between text-xs text-gray-500 px-1">
-                <span>12 of 40 videos used this month</span>
-                <button className="text-blue-600 hover:underline">Upgrade plan</button>
+              {/* Video usage tracker - matches AdPlanWidget format */}
+              <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Videos</p>
+                    <p className="text-xs text-gray-500">
+                      This plan uses <strong>5</strong> • You&apos;ll have <strong>6</strong> left
+                      <span className="text-gray-400 ml-1">(resets in 18 days)</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs">
+                    <button className="text-blue-600 hover:underline whitespace-nowrap">
+                      Buy more
+                    </button>
+                    <span className="text-gray-300">·</span>
+                    <button className="text-blue-600 hover:underline whitespace-nowrap">
+                      Auto-reload
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Ready to Publish button */}
@@ -688,11 +701,31 @@ export function VideoReadyWidget({
         </CardContent>
       </Card>
 
-      {/* Video Preview Modal */}
+      {/* Video Preview Modal - now with action buttons */}
       <VideoPreviewModal
         video={previewVideo}
         onClose={() => setPreviewVideo(null)}
+        onOpenRegenerate={() => {
+          if (previewVideo) {
+            setRegenerateVideo(previewVideo);
+          }
+        }}
+        onRemove={() => {
+          if (previewVideo) {
+            handleToggleRemove(previewVideo.id);
+          }
+        }}
       />
+
+      {/* Regenerate Modal */}
+      {regenerateVideo && (
+        <RegenerateModal
+          video={regenerateVideo}
+          isOpen={!!regenerateVideo}
+          onClose={() => setRegenerateVideo(null)}
+          onRegenerate={handleRegenerate}
+        />
+      )}
     </>
   );
 }

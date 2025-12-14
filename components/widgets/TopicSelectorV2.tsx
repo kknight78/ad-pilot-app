@@ -13,6 +13,7 @@ import {
   Sparkles,
   Plus,
   X,
+  Pencil,
 } from "lucide-react";
 import { WhatsThis } from "@/components/ui/whats-this";
 
@@ -25,6 +26,10 @@ interface TopicSelectorV2Props {
   numberOfTopics?: number; // How many topics to select (default 2 for prototype)
   onSelect?: (topics: string[]) => void;
   onContinue?: (topics: string[]) => void;
+  // Completed state - shows collapsed summary
+  completed?: boolean;
+  selectedValues?: string[];
+  onEdit?: () => void;
 }
 
 type SuggestionMode = "lucky" | "guided";
@@ -49,7 +54,42 @@ const getEmojiForTopic = (title: string | undefined | null): string => {
   return "💡";
 };
 
-export function TopicSelectorV2({ numberOfTopics = 2, onSelect, onContinue }: TopicSelectorV2Props) {
+export function TopicSelectorV2({
+  numberOfTopics = 2,
+  onSelect,
+  onContinue,
+  completed = false,
+  selectedValues,
+  onEdit,
+}: TopicSelectorV2Props) {
+  // Collapsed summary state when completed
+  if (completed && selectedValues && selectedValues.length > 0) {
+    return (
+      <Card className="w-full max-w-xl border-green-200 bg-green-50/30">
+        <CardContent className="py-3 px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                <Check className="w-4 h-4 text-green-600" />
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700">Capitol Smarts Topics</span>
+                <p className="text-sm text-gray-900">{selectedValues.join(", ")}</p>
+              </div>
+            </div>
+            <button
+              onClick={onEdit}
+              className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            >
+              <Pencil className="w-3 h-3" />
+              Edit
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // Custom topic input
   const [customInput, setCustomInput] = useState("");
 

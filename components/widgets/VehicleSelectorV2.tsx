@@ -19,6 +19,7 @@ import {
   DollarSign,
   Sparkles,
   Clock,
+  Pencil,
 } from "lucide-react";
 import { WhatsThis } from "@/components/ui/whats-this";
 
@@ -58,6 +59,10 @@ interface VehicleSelectorV2Props {
   adSlots?: AdSlot[];
   onSelect?: (selections: Record<string, Vehicle[]>) => void;
   onContinue?: (selections: Record<string, Vehicle[]>) => void;
+  // Completed state - shows collapsed summary
+  completed?: boolean;
+  selectedCount?: number;
+  onEdit?: () => void;
 }
 
 // Demo ad slots matching the Ad Plan Table
@@ -358,7 +363,42 @@ function VehicleModal({
   );
 }
 
-export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue }: VehicleSelectorV2Props) {
+export function VehicleSelectorV2({
+  adSlots = demoAdSlots,
+  onSelect,
+  onContinue,
+  completed = false,
+  selectedCount,
+  onEdit,
+}: VehicleSelectorV2Props) {
+  // Collapsed summary state when completed
+  if (completed) {
+    return (
+      <Card className="w-full max-w-3xl border-green-200 bg-green-50/30">
+        <CardContent className="py-3 px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                <Check className="w-4 h-4 text-green-600" />
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700">Vehicle Selection</span>
+                <p className="text-sm text-gray-900">{selectedCount || 0} vehicles selected</p>
+              </div>
+            </div>
+            <button
+              onClick={onEdit}
+              className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            >
+              <Pencil className="w-3 h-3" />
+              Edit
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
 

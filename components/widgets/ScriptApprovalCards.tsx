@@ -48,13 +48,17 @@ interface ScriptApprovalCardsProps {
   onRegenerate?: (id: string) => void;
   onEditSegment?: (scriptId: string, segmentIndex: number, content: string) => void;
   onComplete?: () => void;
+  // Completed state - shows collapsed summary
+  completed?: boolean;
+  approvedCount?: number;
+  onEdit?: () => void;
 }
 
-const platformConfig: Record<Platform, { name: string; Icon: LucideIcon; bgColor: string; iconColor: string }> = {
-  tiktok: { name: "TikTok", Icon: Music2, bgColor: "bg-gray-900", iconColor: "text-white" },
-  facebook: { name: "Facebook", Icon: Facebook, bgColor: "bg-blue-600", iconColor: "text-white" },
-  youtube: { name: "YouTube", Icon: Youtube, bgColor: "bg-red-600", iconColor: "text-white" },
-  instagram: { name: "Instagram", Icon: Camera, bgColor: "bg-gradient-to-r from-purple-500 to-pink-500", iconColor: "text-white" },
+const platformConfig: Record<Platform, { name: string; Icon: LucideIcon; bgColor: string; iconColor: string; headerBg: string }> = {
+  tiktok: { name: "TikTok", Icon: Music2, bgColor: "bg-gray-900", iconColor: "text-white", headerBg: "bg-gray-900" },
+  facebook: { name: "Facebook", Icon: Facebook, bgColor: "bg-blue-600", iconColor: "text-white", headerBg: "bg-blue-600" },
+  youtube: { name: "YouTube", Icon: Youtube, bgColor: "bg-red-600", iconColor: "text-white", headerBg: "bg-red-600" },
+  instagram: { name: "Instagram", Icon: Camera, bgColor: "bg-gradient-to-r from-purple-500 to-pink-500", iconColor: "text-white", headerBg: "bg-gradient-to-r from-purple-500 to-pink-500" },
 };
 
 // Demo scripts organized by platform
@@ -240,30 +244,30 @@ function PlatformSection({
 
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden">
-      {/* Platform Header */}
+      {/* Platform Header - colored bar style matching AdPlanWidget */}
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between gap-2 p-2 md:p-3 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+        className={`w-full flex items-center justify-between gap-2 p-2 md:p-3 ${config.headerBg} hover:opacity-90 transition-opacity text-left`}
       >
         <div className="flex items-center gap-2 min-w-0">
           {isActive ? (
-            <ChevronDown className="w-4 h-4 text-gray-500 shrink-0" />
+            <ChevronDown className="w-4 h-4 text-white shrink-0" />
           ) : (
-            <ChevronRight className="w-4 h-4 text-gray-500 shrink-0" />
+            <ChevronRight className="w-4 h-4 text-white shrink-0" />
           )}
-          <div className={`w-6 h-6 rounded flex items-center justify-center shrink-0 ${config.bgColor}`}>
+          <div className="w-6 h-6 rounded flex items-center justify-center shrink-0 bg-white/20">
             <config.Icon className={`w-3.5 h-3.5 ${config.iconColor}`} />
           </div>
-          <span className="font-medium text-gray-900 truncate">{config.name}</span>
+          <span className="font-semibold text-white truncate">{config.name}</span>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {isComplete ? (
-            <Badge className="bg-green-100 text-green-700 whitespace-nowrap">
+            <Badge className="bg-white/20 text-white border-white/30 whitespace-nowrap">
               <Check className="w-3 h-3 mr-1" />
               Done
             </Badge>
           ) : (
-            <span className="text-xs md:text-sm text-gray-500 whitespace-nowrap">
+            <span className="text-xs md:text-sm text-white/80 whitespace-nowrap">
               {approvedCount}/{scripts.length}
             </span>
           )}
@@ -386,7 +390,38 @@ export function ScriptApprovalCards({
   onRegenerate,
   onEditSegment,
   onComplete,
+  completed = false,
+  approvedCount: completedApprovedCount,
+  onEdit,
 }: ScriptApprovalCardsProps) {
+  // Collapsed summary state when completed
+  if (completed && completedApprovedCount !== undefined) {
+    return (
+      <Card className="w-full max-w-lg border-green-200 bg-green-50/30">
+        <CardContent className="py-3 px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                <Check className="w-4 h-4 text-green-600" />
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700">Script Approval</span>
+                <p className="text-sm text-gray-900">{completedApprovedCount} scripts approved</p>
+              </div>
+            </div>
+            <button
+              onClick={onEdit}
+              className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            >
+              <Pencil className="w-3 h-3" />
+              Edit
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const [scripts, setScripts] = useState(initialScripts);
   const [notifyWhenDone, setNotifyWhenDone] = useState(false);
   const [platformIndices, setPlatformIndices] = useState<Record<Platform, number>>({

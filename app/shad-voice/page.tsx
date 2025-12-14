@@ -21,14 +21,13 @@ import {
 const N8N_VOICE_CLONE_URL = "https://ad-pilot-n8n-production.up.railway.app/webhook/voice/clone";
 const N8N_VOICE_PREVIEW_URL = "https://ad-pilot-n8n-production.up.railway.app/webhook/voice/preview";
 
-// The script Shad needs to read
-const RECORDING_SCRIPT = `Hi, I'm Shad from Capitol Car Credit. We've been helping families in central Illinois find reliable, affordable vehicles for over twenty years.
+// The script Shad needs to read (~45-60 seconds for quality voice clone)
+const RECORDING_SCRIPT = `Welcome to Capitol Car Credit, where we treat you like family. Right now we've got incredible deals on sedans, SUVs, and trucks. Whether you're looking for a reliable daily driver or something with a little more power, we've got you covered.
 
-Whether you're looking for a fuel-efficient commuter to save on gas, a family SUV with room for the kids and all their stuff, or a dependable work truck that can handle anything you throw at it — we've got you covered.
+Stop by today and ask for Shad — mention you saw us online and we'll take care of you. That's Capitol Car Credit in Rantoul. See you soon!`;
 
-What makes us different? We're not some big corporate dealership. We're your neighbors. We live here, we work here, and we're gonna be here long after you drive off the lot. That means we treat you right, because we're gonna see you at the grocery store.
-
-Stop by today and let's find the perfect car for you. We're right here on Route 45 in Rantoul — you can't miss us!`;
+const MIN_RECORDING_SECONDS = 20;
+const MAX_RECORDING_SECONDS = 60;
 
 // Test scripts for Shad to try
 const TEST_SCRIPTS = [
@@ -397,7 +396,8 @@ export default function ShadVoicePage() {
                   <ul className="text-sm text-amber-700 mt-2 space-y-1">
                     <li>• Find a quiet spot with no background noise</li>
                     <li>• Speak naturally at your normal pace</li>
-                    <li>• Hold your phone about 6 inches from your mouth</li>
+                    <li>• Position yourself 6-12 inches from your microphone</li>
+                    <li>• Read the full script (minimum {MIN_RECORDING_SECONDS} seconds)</li>
                   </ul>
                 </div>
               )}

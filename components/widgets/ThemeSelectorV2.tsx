@@ -12,6 +12,8 @@ import {
   Lightbulb,
   Star,
   ArrowRight,
+  Check,
+  Pencil,
 } from "lucide-react";
 import { WhatsThis } from "@/components/ui/whats-this";
 
@@ -32,6 +34,10 @@ interface ThemeSelectorV2Props {
   onContinue?: (theme: string | null) => void;
   // Performance data from last week (optional)
   performanceRecommendation?: PerformanceRecommendation | null;
+  // Completed state - shows collapsed summary
+  completed?: boolean;
+  selectedValue?: string;
+  onEdit?: () => void;
 }
 
 type ThemeOption = "choose_for_me" | "specific" | "inspire";
@@ -47,6 +53,9 @@ export function ThemeSelectorV2({
   onSelect,
   onContinue,
   performanceRecommendation = demoPerformanceRecommendation,
+  completed = false,
+  selectedValue,
+  onEdit,
 }: ThemeSelectorV2Props) {
   const [selectedOption, setSelectedOption] = useState<ThemeOption>("choose_for_me");
   const [specificInput, setSpecificInput] = useState("");
@@ -140,6 +149,34 @@ export function ThemeSelectorV2({
     return theme.name.toLowerCase().includes(performanceRecommendation.title.toLowerCase()) ||
            performanceRecommendation.title.toLowerCase().includes(theme.name.toLowerCase());
   };
+
+  // Collapsed summary state when completed
+  if (completed && selectedValue) {
+    return (
+      <Card className="w-full max-w-xl border-green-200 bg-green-50/30">
+        <CardContent className="py-3 px-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                <Check className="w-4 h-4 text-green-600" />
+              </div>
+              <div>
+                <span className="text-sm font-medium text-gray-700">Weekly Theme</span>
+                <p className="text-sm text-gray-900">{selectedValue}</p>
+              </div>
+            </div>
+            <button
+              onClick={onEdit}
+              className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+            >
+              <Pencil className="w-3 h-3" />
+              Edit
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-xl border-blue-100">

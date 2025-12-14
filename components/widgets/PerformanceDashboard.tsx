@@ -1131,30 +1131,20 @@ function VideoPreviewModal({
           <X className="w-4 h-4" />
         </button>
 
-        {/* Video thumbnail area */}
-        <div className="relative aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-          {video.thumbnailUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={video.thumbnailUrl}
-              alt={video.title}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="text-center text-gray-400">
-              <Play className="w-12 h-12 mx-auto mb-2 opacity-50" />
-              <span className="text-sm">Video Preview</span>
-            </div>
-          )}
-          {/* Play button overlay */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-lg cursor-pointer hover:bg-white transition-colors">
-              <Play className="w-8 h-8 text-gray-800 ml-1" fill="currentColor" />
-            </div>
-          </div>
+        {/* Video player area */}
+        <div className="relative aspect-[9/16] max-h-[60vh] bg-black">
+          <video
+            className="w-full h-full object-contain"
+            src="https://res.cloudinary.com/dtpqxuwby/video/upload/v1763688792/facebook_2025-11-20_test.mp4"
+            autoPlay
+            loop
+            controls
+            playsInline
+            poster={video.thumbnailUrl}
+          />
           {/* Duration badge */}
           {video.duration && (
-            <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded">
+            <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded pointer-events-none">
               {video.duration}
             </div>
           )}
