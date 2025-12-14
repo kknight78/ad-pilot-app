@@ -6,17 +6,15 @@ import { Button } from "@/components/ui/button";
 import {
   RefreshCw,
   Check,
-  X,
   AlertCircle,
   Loader2,
   Mic,
   Square,
   Play,
-  Pause,
-  FileAudio,
   Volume2,
   Settings,
 } from "lucide-react";
+import { WhatsThis } from "@/components/ui/whats-this";
 
 // n8n webhook endpoints
 const N8N_VOICE_CLONE_URL = "https://ad-pilot-n8n-production.up.railway.app/webhook/voice/clone";
@@ -35,7 +33,15 @@ const DEFAULT_VOICE_SCRIPT = `Welcome to Capitol Car Credit, where we treat you 
 
 Stop by today and ask for Shad — mention you saw us online and we'll take care of you. That's Capitol Car Credit in Rantoul. See you soon!`;
 
-const MIN_RECORDING_SECONDS = 20;
+// Sample scripts for preview testing
+const PREVIEW_SCRIPTS = [
+  "Looking for a great deal? Come see us!",
+  "This 2024 Honda CR-V is perfect for families.",
+  "Happy holidays from Capitol Car Credit!",
+  "Got questions? Just ask for Shad!",
+];
+
+const MIN_RECORDING_SECONDS = 30;
 const MAX_RECORDING_SECONDS = 60;
 
 type PermissionState = "prompt" | "granted" | "denied" | "checking";
@@ -47,14 +53,11 @@ export function VoiceCaptureV2({
   businessName = "Capitol Car Credit",
   clientId = "CCC",
 }: VoiceCaptureV2Props) {
-  const [mode, setMode] = useState<"permission" | "record" | "cloning" | "preview" | "confirmed">("permission");
-  const [voiceMode, setVoiceMode] = useState<"idle" | "recording" | "review">("idle");
+  const [mode, setMode] = useState<"permission" | "ready" | "recording" | "complete" | "cloning" | "preview" | "confirmed">("permission");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [permissionState, setPermissionState] = useState<PermissionState>("checking");
 
   // Audio waveform state
@@ -62,25 +65,33 @@ export function VoiceCaptureV2({
 
   // ElevenLabs voice clone state
   const [voiceId, setVoiceId] = useState<string | null>(null);
-  const [previewAudioUrl, setPreviewAudioUrl] = useState<string | null>(null);
-  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const [cloningProgress, setCloningProgress] = useState<string>("Uploading audio...");
 
-  const audioFileInputRef = useRef<HTMLInputElement>(null);
+  // Preview state
+  const [previewText, setPreviewText] = useState("");
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+  const [currentPlayingScript, setCurrentPlayingScript] = useState<string | null>(null);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<number | null>(null);
-  const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const previewPlayerRef = useRef<HTMLAudioElement | null>(null);
   const stopRecordingRef = useRef<() => void>(() => {});
   const analyzerRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   // Generate script with business name and presenter name
   const voiceScript = DEFAULT_VOICE_SCRIPT
     .replace(/Capitol Car Credit/g, businessName)
     .replace(/Shad/g, presenterName);
+
+  // Personalize preview scripts
+  const personalizedPreviewScripts = PREVIEW_SCRIPTS.map(script =>
+    script.replace(/Shad/g, presenterName).replace(/Capitol Car Credit/g, businessName)
+  );
 
   // Check microphone permission on mount
   useEffect(() => {
@@ -91,25 +102,21 @@ export function VoiceCaptureV2({
     setPermissionState("checking");
 
     try {
-      // Check if permissions API is available
       if (navigator.permissions) {
         const result = await navigator.permissions.query({ name: "microphone" as PermissionName });
         setPermissionState(result.state as PermissionState);
 
-        // Listen for permission changes
         result.onchange = () => {
           setPermissionState(result.state as PermissionState);
         };
 
         if (result.state === "granted") {
-          setMode("record");
+          setMode("ready");
         }
       } else {
-        // Permissions API not available, try to detect via getUserMedia
         setPermissionState("prompt");
       }
     } catch (err) {
-      // Permissions query failed, default to prompt
       setPermissionState("prompt");
     }
   };
@@ -118,11 +125,10 @@ export function VoiceCaptureV2({
     setError(null);
 
     try {
-      // Request permission by getting user media briefly
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach(track => track.stop());
       setPermissionState("granted");
-      setMode("record");
+      setMode("ready");
     } catch (err: any) {
       console.error("Microphone permission error:", err);
 
@@ -130,9 +136,9 @@ export function VoiceCaptureV2({
         setPermissionState("denied");
         setError("Microphone access was denied. Please enable it in your browser settings.");
       } else if (err.name === "NotFoundError") {
-        setError("No microphone found. Please connect a microphone or use the upload option.");
+        setError("No microphone found. Please connect a microphone.");
       } else {
-        setError("Could not access microphone. Please try again or upload an audio file.");
+        setError("Could not access microphone. Please try again.");
       }
     }
   };
@@ -152,12 +158,11 @@ export function VoiceCaptureV2({
         if (analyzerRef.current) {
           analyzerRef.current.getByteFrequencyData(dataArray);
 
-          // Sample 20 points from the frequency data
           const levels: number[] = [];
           const step = Math.floor(dataArray.length / 20);
           for (let i = 0; i < 20; i++) {
             const value = dataArray[i * step] || 0;
-            levels.push(value / 255); // Normalize to 0-1
+            levels.push(value / 255);
           }
           setAudioLevels(levels);
         }
@@ -189,8 +194,8 @@ export function VoiceCaptureV2({
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
 
-      // Start audio visualization
       startAudioVisualization(stream);
 
       const mediaRecorder = new MediaRecorder(stream);
@@ -206,19 +211,15 @@ export function VoiceCaptureV2({
       mediaRecorder.onstop = () => {
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         setAudioBlob(blob);
-        const url = URL.createObjectURL(blob);
-        setAudioUrl(url);
-        setVoiceMode("review");
-        // Stop the stream tracks
+        setMode("complete");
         stream.getTracks().forEach(track => track.stop());
         stopAudioVisualization();
       };
 
       mediaRecorder.start();
-      setVoiceMode("recording");
+      setMode("recording");
       setRecordingSeconds(0);
 
-      // Start timer
       timerRef.current = window.setInterval(() => {
         setRecordingSeconds((prev) => {
           const next = prev + 1;
@@ -231,13 +232,13 @@ export function VoiceCaptureV2({
 
     } catch (err: any) {
       console.error("Microphone error:", err);
-      setVoiceMode("idle");
+      setMode("ready");
 
       if (err.name === "NotAllowedError") {
         setPermissionState("denied");
-        setError("Microphone access was denied. Please enable it in your browser settings, or upload an audio file instead.");
+        setError("Microphone access was denied. Please enable it in your browser settings.");
       } else {
-        setError("Could not access microphone. Please try again or upload an audio file.");
+        setError("Could not access microphone. Please try again.");
       }
     }
   }, []);
@@ -255,60 +256,20 @@ export function VoiceCaptureV2({
     stopAudioVisualization();
   }, []);
 
-  // Keep ref in sync
   stopRecordingRef.current = stopRecording;
 
-  const handleReRecord = () => {
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-    }
+  const handleTryAgain = () => {
     setAudioBlob(null);
-    setAudioUrl(null);
     setRecordingSeconds(0);
-    setVoiceMode("idle");
-    setIsPlaying(false);
+    setMode("ready");
   };
 
-  const handleAudioFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const validTypes = ['audio/mpeg', 'audio/wav', 'audio/webm', 'audio/mp3', 'audio/x-m4a', 'audio/mp4'];
-      if (!validTypes.some(t => file.type.includes(t.split('/')[1]))) {
-        setError("Please select an audio file (MP3, WAV, M4A, or WebM)");
-        return;
-      }
-      if (file.size > 25 * 1024 * 1024) {
-        setError("Audio file must be less than 25MB");
-        return;
-      }
-
-      setAudioBlob(file);
-      const url = URL.createObjectURL(file);
-      setAudioUrl(url);
-      setVoiceMode("review");
-      setRecordingSeconds(0);
-      setMode("record");
-    }
-  };
-
-  const togglePlayback = () => {
-    if (!audioPlayerRef.current || !audioUrl) return;
-
-    if (isPlaying) {
-      audioPlayerRef.current.pause();
-    } else {
-      audioPlayerRef.current.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  // Upload audio to ElevenLabs and create voice clone
-  const handleUseRecording = async () => {
+  // Create voice clone
+  const handleCreateVoiceClone = async () => {
     if (!audioBlob) return;
 
-    // Check recording length
-    if (recordingSeconds > 0 && recordingSeconds < MIN_RECORDING_SECONDS) {
-      setError(`Recording too short. Please read the full script (minimum ${MIN_RECORDING_SECONDS} seconds).`);
+    if (recordingSeconds < MIN_RECORDING_SECONDS) {
+      setError(`Recording too short. Please record at least ${MIN_RECORDING_SECONDS} seconds.`);
       return;
     }
 
@@ -317,7 +278,6 @@ export function VoiceCaptureV2({
     setCloningProgress("Uploading audio...");
 
     try {
-      // Create FormData for the audio file
       const formData = new FormData();
       formData.append("name", `${presenterName} - ${clientId}`);
       formData.append("files", audioBlob, "voice-recording.webm");
@@ -325,7 +285,6 @@ export function VoiceCaptureV2({
 
       setCloningProgress("Creating voice clone...");
 
-      // Upload to ElevenLabs via n8n webhook
       const cloneResponse = await fetch(N8N_VOICE_CLONE_URL, {
         method: "POST",
         body: formData,
@@ -338,47 +297,58 @@ export function VoiceCaptureV2({
       }
 
       setVoiceId(cloneData.voice_id);
-      setCloningProgress("Generating preview...");
-
-      // Generate a preview with the new voice
-      const previewText = `Hey, it's ${presenterName} from ${businessName}. Your AI voice clone is ready to go!`;
-
-      const previewResponse = await fetch(N8N_VOICE_PREVIEW_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          voice_id: cloneData.voice_id,
-          text: previewText,
-        }),
-      });
-
-      if (!previewResponse.ok) {
-        throw new Error("Failed to generate voice preview");
-      }
-
-      // Get the audio blob from the response
-      const previewBlob = await previewResponse.blob();
-      const previewUrl = URL.createObjectURL(previewBlob);
-      setPreviewAudioUrl(previewUrl);
       setMode("preview");
 
     } catch (err) {
       console.error("Voice clone error:", err);
       setError(err instanceof Error ? err.message : "Failed to create voice clone. Please try again.");
-      setMode("record");
-      setVoiceMode("review");
+      setMode("complete");
     }
   };
 
-  const togglePreviewPlayback = () => {
-    if (!previewPlayerRef.current || !previewAudioUrl) return;
+  // Generate and play preview for a script
+  const playPreviewScript = async (script: string) => {
+    if (!voiceId || isGeneratingPreview) return;
 
-    if (isPlayingPreview) {
-      previewPlayerRef.current.pause();
-    } else {
-      previewPlayerRef.current.play();
+    setIsGeneratingPreview(true);
+    setCurrentPlayingScript(script);
+
+    try {
+      const previewResponse = await fetch(N8N_VOICE_PREVIEW_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          voice_id: voiceId,
+          text: script,
+        }),
+      });
+
+      if (!previewResponse.ok) {
+        throw new Error("Failed to generate preview");
+      }
+
+      const previewBlob = await previewResponse.blob();
+      const previewUrl = URL.createObjectURL(previewBlob);
+
+      if (previewPlayerRef.current) {
+        previewPlayerRef.current.src = previewUrl;
+        previewPlayerRef.current.play();
+        setIsPlayingPreview(true);
+      }
+
+    } catch (err) {
+      console.error("Preview error:", err);
+      setError("Failed to generate preview. Please try again.");
+    } finally {
+      setIsGeneratingPreview(false);
     }
-    setIsPlayingPreview(!isPlayingPreview);
+  };
+
+  // Generate custom preview
+  const handleGenerateCustomPreview = () => {
+    if (previewText.trim()) {
+      playPreviewScript(previewText.trim());
+    }
   };
 
   const handleFinalSubmit = async () => {
@@ -390,14 +360,12 @@ export function VoiceCaptureV2({
     setMode("confirmed");
   };
 
-  const handleRejectPreview = () => {
-    if (previewAudioUrl) {
-      URL.revokeObjectURL(previewAudioUrl);
-      setPreviewAudioUrl(null);
-    }
+  const handleRedoFromBeginning = () => {
     setVoiceId(null);
-    setMode("record");
-    setVoiceMode("review");
+    setAudioBlob(null);
+    setRecordingSeconds(0);
+    setPreviewText("");
+    setMode("ready");
   };
 
   const formatTime = (seconds: number) => {
@@ -415,18 +383,13 @@ export function VoiceCaptureV2({
       if (mediaRecorderRef.current && mediaRecorderRef.current.state === "recording") {
         mediaRecorderRef.current.stop();
       }
-      if (audioUrl) {
-        URL.revokeObjectURL(audioUrl);
-      }
-      if (previewAudioUrl) {
-        URL.revokeObjectURL(previewAudioUrl);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
       stopAudioVisualization();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Get browser-specific settings instructions
   const getSettingsInstructions = () => {
     const ua = navigator.userAgent;
     if (ua.includes("Chrome")) {
@@ -442,17 +405,17 @@ export function VoiceCaptureV2({
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">Record Your Voice</CardTitle>
-            <p className="text-sm text-gray-500">
-              Create a voice clone for {presenterName}
-            </p>
-          </div>
-          <div className="p-2 bg-purple-100 rounded-lg shrink-0">
-            <Mic className="w-5 h-5 text-purple-600" />
-          </div>
-        </div>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Mic className="w-5 h-5 text-purple-600" />
+          Record Your Voice
+        </CardTitle>
+        <WhatsThis>
+          Record your voice once and we&apos;ll create an AI clone.
+          This voice will be used for all your video avatars.
+        </WhatsThis>
+        <p className="text-sm text-gray-500 mt-1">
+          Create a voice clone for {presenterName}
+        </p>
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -483,20 +446,10 @@ export function VoiceCaptureV2({
                     </p>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Button onClick={checkMicPermission} className="w-full">
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Try Again
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => audioFileInputRef.current?.click()}
-                  >
-                    <FileAudio className="w-4 h-4 mr-2" />
-                    Upload Audio File Instead
-                  </Button>
-                </div>
+                <Button onClick={checkMicPermission} className="w-full">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Try Again
+                </Button>
               </>
             ) : (
               <>
@@ -513,26 +466,8 @@ export function VoiceCaptureV2({
                   <Mic className="w-4 h-4 mr-2" />
                   Enable Microphone
                 </Button>
-                <p className="text-xs text-gray-400 mt-3">
-                  Or{" "}
-                  <button
-                    onClick={() => audioFileInputRef.current?.click()}
-                    className="text-purple-600 hover:underline"
-                  >
-                    upload an audio file
-                  </button>{" "}
-                  instead
-                </p>
               </>
             )}
-
-            <input
-              ref={audioFileInputRef}
-              type="file"
-              accept="audio/*"
-              onChange={handleAudioFileSelect}
-              className="hidden"
-            />
           </div>
         )}
 
@@ -569,46 +504,92 @@ export function VoiceCaptureV2({
           </div>
         )}
 
-        {/* Preview screen - listen to the AI voice */}
+        {/* Preview screen - test scripts */}
         {mode === "preview" && (
-          <div className="text-center py-6">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Volume2 className="w-8 h-8 text-green-600" />
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Great! Listen back:
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Here&apos;s a preview of your voice clone. Does it sound like you?
-            </p>
-
-            {/* Preview player */}
-            <div className="bg-gray-100 rounded-xl p-4 mb-4">
-              <div className="flex items-center justify-center gap-3">
-                <button
-                  onClick={togglePreviewPlayback}
-                  className="w-12 h-12 bg-purple-500 hover:bg-purple-600 text-white rounded-full flex items-center justify-center transition-colors"
-                >
-                  {isPlayingPreview ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
-                </button>
-                <span className="text-sm text-gray-600">
-                  {isPlayingPreview ? "Playing preview..." : "Tap to play"}
-                </span>
+          <div className="space-y-4">
+            <div className="text-center">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Check className="w-6 h-6 text-green-600" />
               </div>
-              <audio
-                ref={previewPlayerRef}
-                src={previewAudioUrl || undefined}
-                onEnded={() => setIsPlayingPreview(false)}
-              />
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                Voice Clone Ready!
+              </h3>
+              <p className="text-sm text-gray-600">
+                Tap a script below to hear your voice
+              </p>
             </div>
 
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleRejectPreview}>
-                <RefreshCw className="w-4 h-4 mr-1" />
-                Try Again
-              </Button>
+            {/* Sample scripts */}
+            <div className="space-y-2">
+              {personalizedPreviewScripts.map((script, index) => (
+                <button
+                  key={index}
+                  onClick={() => playPreviewScript(script)}
+                  disabled={isGeneratingPreview}
+                  className={`w-full text-left p-3 rounded-lg border transition-colors flex items-center gap-3 ${
+                    currentPlayingScript === script && isPlayingPreview
+                      ? "border-purple-300 bg-purple-50"
+                      : "border-gray-200 hover:border-purple-200 hover:bg-gray-50"
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                    currentPlayingScript === script && isGeneratingPreview
+                      ? "bg-purple-100"
+                      : currentPlayingScript === script && isPlayingPreview
+                      ? "bg-purple-500"
+                      : "bg-gray-100"
+                  }`}>
+                    {currentPlayingScript === script && isGeneratingPreview ? (
+                      <Loader2 className="w-4 h-4 text-purple-600 animate-spin" />
+                    ) : currentPlayingScript === script && isPlayingPreview ? (
+                      <Volume2 className="w-4 h-4 text-white" />
+                    ) : (
+                      <Play className="w-4 h-4 text-gray-500 ml-0.5" />
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-700">&quot;{script}&quot;</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Custom text input */}
+            <div className="space-y-2">
+              <p className="text-sm text-gray-600">Or type your own:</p>
+              <textarea
+                value={previewText}
+                onChange={(e) => setPreviewText(e.target.value)}
+                placeholder="Type anything to hear it in your voice..."
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none"
+                rows={2}
+              />
               <Button
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                variant="outline"
+                className="w-full"
+                onClick={handleGenerateCustomPreview}
+                disabled={!previewText.trim() || isGeneratingPreview}
+              >
+                {isGeneratingPreview ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4 mr-2" />
+                )}
+                Generate Preview
+              </Button>
+            </div>
+
+            {/* Hidden audio player */}
+            <audio
+              ref={previewPlayerRef}
+              onEnded={() => {
+                setIsPlayingPreview(false);
+                setCurrentPlayingScript(null);
+              }}
+            />
+
+            {/* Action buttons */}
+            <div className="pt-2 space-y-2">
+              <Button
+                className="w-full bg-green-600 hover:bg-green-700"
                 onClick={handleFinalSubmit}
                 disabled={isSubmitting}
               >
@@ -620,16 +601,23 @@ export function VoiceCaptureV2({
                 ) : (
                   <>
                     <Check className="w-4 h-4 mr-2" />
-                    Sounds Good!
+                    I&apos;m Happy, Save This Voice
                   </>
                 )}
               </Button>
+              <button
+                onClick={handleRedoFromBeginning}
+                className="w-full text-sm text-gray-500 hover:text-gray-700 py-2"
+              >
+                <RefreshCw className="w-3 h-3 inline mr-1" />
+                Redo From Beginning
+              </button>
             </div>
           </div>
         )}
 
-        {/* Recording mode */}
-        {mode === "record" && (
+        {/* Ready state - show tips, timer, button, then script */}
+        {mode === "ready" && (
           <>
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
@@ -638,120 +626,97 @@ export function VoiceCaptureV2({
               </div>
             )}
 
+            {/* Tips */}
+            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <p className="text-xs font-medium text-gray-700 mb-2">Tips for best results:</p>
+              <ul className="text-xs text-gray-500 space-y-1">
+                <li className="flex items-start gap-2">
+                  <span className="text-gray-400">•</span>
+                  Find a quiet space with minimal background noise
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-gray-400">•</span>
+                  Position yourself 6-12 inches from your mic
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-gray-400">•</span>
+                  Speak naturally, like you&apos;re talking to a customer
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-gray-400">•</span>
+                  Read at a steady, conversational pace
+                </li>
+              </ul>
+            </div>
+
+            {/* Timer display */}
+            <div className="text-center py-4">
+              <div className="text-3xl font-mono text-gray-400 mb-1">0:00</div>
+              <p className="text-xs text-gray-500">Ready to record (min {MIN_RECORDING_SECONDS}s)</p>
+            </div>
+
+            {/* Record button */}
+            <Button className="w-full h-12 bg-red-500 hover:bg-red-600" onClick={startRecording}>
+              <Mic className="w-5 h-5 mr-2" />
+              Start Recording
+            </Button>
+
             {/* Script to read */}
             <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
               <p className="text-xs font-medium text-gray-500 mb-2">Read this script aloud:</p>
               <p className="text-sm text-gray-700 leading-relaxed">&quot;{voiceScript}&quot;</p>
             </div>
 
-            {/* Tips - device agnostic */}
-            <div className="text-xs text-gray-500 space-y-1">
-              <p className="font-medium">Tips for best results:</p>
-              <ul className="list-disc list-inside space-y-0.5 text-gray-400">
-                <li>Find a quiet space with minimal background noise</li>
-                <li>Position yourself 6-12 inches from your microphone</li>
-                <li>Speak naturally, like you&apos;re talking to a customer</li>
-                <li>Read at a steady, conversational pace</li>
-              </ul>
-            </div>
+            {/* Skip button */}
+            {onSkip && (
+              <button
+                onClick={onSkip}
+                className="w-full text-sm text-gray-400 hover:text-gray-600 py-2"
+              >
+                Skip for now
+              </button>
+            )}
+          </>
+        )}
 
-            {/* Recording interface */}
-            <div className="bg-gray-100 rounded-xl p-4">
-              {voiceMode === "idle" && (
-                <div className="text-center py-4">
-                  <div className="text-2xl font-mono text-gray-400 mb-2">0:00</div>
-                  <p className="text-xs text-gray-500">Ready to record (min {MIN_RECORDING_SECONDS}s)</p>
-                </div>
-              )}
+        {/* Recording state */}
+        {mode === "recording" && (
+          <>
+            {/* Timer with pulsing indicator */}
+            <div className="text-center py-4">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                <span className="text-3xl font-mono text-gray-900">{formatTime(recordingSeconds)}</span>
+                <span className="text-sm text-red-500 font-medium">Recording...</span>
+              </div>
 
-              {voiceMode === "recording" && (
-                <div className="text-center py-4">
-                  {/* Audio waveform visualization */}
-                  <div className="flex items-center justify-center gap-0.5 h-12 mb-2">
-                    {audioLevels.map((level, i) => (
-                      <div
-                        key={i}
-                        className="w-1.5 bg-red-500 rounded-full transition-all duration-75"
-                        style={{
-                          height: `${Math.max(4, level * 48)}px`,
-                        }}
-                      />
-                    ))}
-                  </div>
-
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                    <span className="text-2xl font-mono text-gray-900">{formatTime(recordingSeconds)}</span>
-                  </div>
-                  <p className="text-xs text-gray-500">
-                    {recordingSeconds < MIN_RECORDING_SECONDS
-                      ? `Keep going... (min ${MIN_RECORDING_SECONDS}s)`
-                      : `Recording... (max ${MAX_RECORDING_SECONDS}s)`}
-                  </p>
-                </div>
-              )}
-
-              {voiceMode === "review" && (
-                <div className="text-center py-4">
-                  <div className="flex items-center justify-center gap-3 mb-2">
-                    <button
-                      onClick={togglePlayback}
-                      className="w-10 h-10 bg-purple-500 hover:bg-purple-600 text-white rounded-full flex items-center justify-center transition-colors"
-                    >
-                      {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-                    </button>
-                    <span className="text-2xl font-mono text-gray-900">{formatTime(recordingSeconds)}</span>
-                  </div>
-                  <p className="text-xs text-green-600 font-medium">Recording complete!</p>
-                  <audio
-                    ref={audioPlayerRef}
-                    src={audioUrl || undefined}
-                    onEnded={() => setIsPlaying(false)}
-                    onLoadedMetadata={(e) => {
-                      const audio = e.target as HTMLAudioElement;
-                      if (audio.duration && !isNaN(audio.duration)) {
-                        setRecordingSeconds(Math.floor(audio.duration));
-                      }
+              {/* Audio waveform visualization */}
+              <div className="flex items-center justify-center gap-0.5 h-12 mb-2">
+                {audioLevels.map((level, i) => (
+                  <div
+                    key={i}
+                    className="w-1.5 bg-red-500 rounded-full transition-all duration-75"
+                    style={{
+                      height: `${Math.max(4, level * 48)}px`,
                     }}
                   />
-                </div>
-              )}
+                ))}
+              </div>
             </div>
 
-            {/* Action buttons based on voice mode */}
-            {voiceMode === "idle" && (
-              <div className="space-y-2">
-                <Button className="w-full h-12 bg-red-500 hover:bg-red-600" onClick={startRecording}>
-                  <Mic className="w-5 h-5 mr-2" />
-                  Start Recording
-                </Button>
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200" />
-                  </div>
-                  <div className="relative flex justify-center text-xs">
-                    <span className="bg-white px-2 text-gray-400">OR</span>
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  className="w-full h-12"
-                  onClick={() => audioFileInputRef.current?.click()}
-                >
-                  <FileAudio className="w-5 h-5 mr-2" />
-                  Upload Audio File
-                </Button>
-                <input
-                  ref={audioFileInputRef}
-                  type="file"
-                  accept="audio/*"
-                  onChange={handleAudioFileSelect}
-                  className="hidden"
-                />
-              </div>
-            )}
+            {/* Script to read */}
+            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+              <p className="text-xs font-medium text-gray-500 mb-2">Read this script aloud:</p>
+              <p className="text-sm text-gray-700 leading-relaxed">&quot;{voiceScript}&quot;</p>
+            </div>
 
-            {voiceMode === "recording" && (
+            {/* Stop button */}
+            <div className="text-center">
+              <p className="text-xs text-gray-500 mb-2">
+                {recordingSeconds < MIN_RECORDING_SECONDS
+                  ? `Keep going... (min ${MIN_RECORDING_SECONDS}s)`
+                  : "Great! You can stop now."}
+              </p>
               <Button
                 className="w-full h-12 bg-gray-800 hover:bg-gray-900"
                 onClick={stopRecording}
@@ -759,36 +724,47 @@ export function VoiceCaptureV2({
               >
                 <Square className="w-5 h-5 mr-2" />
                 {recordingSeconds < MIN_RECORDING_SECONDS
-                  ? `Recording... (${MIN_RECORDING_SECONDS - recordingSeconds}s left)`
+                  ? `Stop Recording (${MIN_RECORDING_SECONDS - recordingSeconds}s left)`
                   : "Stop Recording"}
               </Button>
-            )}
+            </div>
+          </>
+        )}
 
-            {voiceMode === "review" && (
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleReRecord}>
-                  <RefreshCw className="w-4 h-4 mr-1" />
-                  Try Again
-                </Button>
-                <Button className="flex-1" onClick={handleUseRecording}>
-                  <Check className="w-4 h-4 mr-2" />
-                  Sounds Good!
-                </Button>
+        {/* Recording complete - gate before API call */}
+        {mode === "complete" && (
+          <div className="text-center py-6">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Check className="w-8 h-8 text-green-600" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-1">
+              Recording Complete!
+            </h3>
+            <p className="text-2xl font-mono text-gray-700 mb-6">{formatTime(recordingSeconds)}</p>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2 mb-4 text-left">
+                <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                <p className="text-sm text-red-700">{error}</p>
               </div>
             )}
 
-            {/* Skip button */}
-            {onSkip && voiceMode !== "recording" && (
-              <Button
-                variant="ghost"
-                className="w-full text-gray-500"
-                onClick={onSkip}
-              >
-                <X className="w-4 h-4 mr-1" />
-                Skip for now
-              </Button>
-            )}
-          </>
+            <Button
+              className="w-full h-12 bg-purple-600 hover:bg-purple-700"
+              onClick={handleCreateVoiceClone}
+            >
+              <Volume2 className="w-5 h-5 mr-2" />
+              Create Voice Clone
+            </Button>
+
+            <button
+              onClick={handleTryAgain}
+              className="w-full text-sm text-gray-500 hover:text-gray-700 py-3 mt-2"
+            >
+              <RefreshCw className="w-3 h-3 inline mr-1" />
+              Try Again
+            </button>
+          </div>
         )}
       </CardContent>
     </Card>
