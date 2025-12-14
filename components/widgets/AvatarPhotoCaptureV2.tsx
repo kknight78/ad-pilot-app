@@ -517,7 +517,7 @@ export function AvatarPhotoCaptureV2({
                 ) : (
                   <>
                     <Check className="w-4 h-4 mr-2" />
-                    Save This Style
+                    Save This Avatar
                   </>
                 )}
               </Button>
@@ -626,7 +626,8 @@ export function AvatarPhotoCaptureV2({
             {/* Camera mode */}
             {mode === "camera" && (
               <div className="space-y-4">
-                <div className="relative aspect-[4/3] bg-black rounded-xl overflow-hidden">
+                {/* Portrait aspect ratio - always 9:16 like final videos */}
+                <div className="relative aspect-[3/4] bg-black rounded-xl overflow-hidden">
                   <video
                     ref={videoRef}
                     autoPlay
@@ -635,12 +636,52 @@ export function AvatarPhotoCaptureV2({
                     className="w-full h-full object-cover scale-x-[-1]"
                   />
 
-                  {/* Face guide overlay */}
+                  {/* Silhouette overlay - semi-transparent person outline */}
                   <div className="absolute inset-0 pointer-events-none">
-                    {/* Guide frame - simple rectangle */}
-                    <div
-                      className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[45%] w-36 h-48 rounded-xl border-[3px] transition-colors duration-300 ${statusConfig.borderColor}`}
-                    />
+                    {/* Dark overlay with cutout effect */}
+                    <svg
+                      className="absolute inset-0 w-full h-full"
+                      viewBox="0 0 300 400"
+                      preserveAspectRatio="xMidYMid slice"
+                    >
+                      {/* Dark semi-transparent background */}
+                      <defs>
+                        <mask id="silhouette-mask">
+                          <rect width="100%" height="100%" fill="white" />
+                          {/* Silhouette cutout - head ~20% from top, shoulders, torso to below belt */}
+                          <g transform="translate(150, 200)">
+                            {/* Head */}
+                            <ellipse cx="0" cy="-90" rx="38" ry="46" fill="black" />
+                            {/* Neck */}
+                            <rect x="-15" y="-48" width="30" height="25" fill="black" />
+                            {/* Shoulders and torso */}
+                            <path
+                              d="M -15,-25 Q -70,-15 -75,30 L -65,120 Q -50,130 0,130 Q 50,130 65,120 L 75,30 Q 70,-15 15,-25 Z"
+                              fill="black"
+                            />
+                          </g>
+                        </mask>
+                      </defs>
+                      {/* Apply the mask to create dark overlay with person cutout */}
+                      <rect
+                        width="100%"
+                        height="100%"
+                        fill="rgba(0,0,0,0.5)"
+                        mask="url(#silhouette-mask)"
+                      />
+                      {/* Silhouette outline */}
+                      <g transform="translate(150, 200)" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2">
+                        {/* Head outline */}
+                        <ellipse cx="0" cy="-90" rx="38" ry="46" />
+                        {/* Neck lines */}
+                        <line x1="-15" y1="-48" x2="-15" y2="-25" />
+                        <line x1="15" y1="-48" x2="15" y2="-25" />
+                        {/* Shoulders and torso outline */}
+                        <path
+                          d="M -15,-25 Q -70,-15 -75,30 L -65,120 Q -50,130 0,130 Q 50,130 65,120 L 75,30 Q 70,-15 15,-25"
+                        />
+                      </g>
+                    </svg>
 
                     {/* Status message at bottom */}
                     <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 ${statusConfig.bgColor} text-white text-sm px-4 py-2 rounded-full flex items-center gap-2 whitespace-nowrap`}>
