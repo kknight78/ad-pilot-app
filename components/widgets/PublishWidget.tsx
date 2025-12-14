@@ -16,6 +16,8 @@ import {
   Youtube,
   Camera,
   LucideIcon,
+  RefreshCw,
+  ChevronDown,
 } from "lucide-react";
 
 type Platform = "tiktok" | "facebook" | "instagram" | "youtube";
@@ -86,6 +88,121 @@ const demoPlatforms: PlatformPost[] = [
     caption: "This Thanksgiving, we're thankful for great customers like YOU! 🦃\n\nCheck out these Turkey Day specials - reliable cars at prices that won't ruffle your feathers.\n\n👉 capitolcarcredit.com",
   },
 ];
+
+// Regenerate Modal
+function RegenerateModal({
+  isOpen,
+  onClose,
+  onRegenerate,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onRegenerate: (options: string[]) => void;
+}) {
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+
+  const options = [
+    { id: "script", label: "Script", description: "Generate a new script with different angles" },
+    { id: "avatar", label: "Avatar Recording", description: "Re-record with different delivery" },
+    { id: "music", label: "Music", description: "Try different background music" },
+    { id: "visuals", label: "Vehicle Clips", description: "Use different vehicle footage" },
+  ];
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedOptions([]);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "";
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen || typeof window === "undefined") return null;
+
+  const toggleOption = (id: string) => {
+    setSelectedOptions(prev =>
+      prev.includes(id) ? prev.filter(o => o !== id) : [...prev, id]
+    );
+  };
+
+  const handleRegenerate = () => {
+    onRegenerate(selectedOptions);
+    onClose();
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+
+      <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+          <h3 className="font-semibold text-gray-900">
+            What would you like to regenerate?
+          </h3>
+          <button
+            onClick={onClose}
+            className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-2">
+          {options.map((option) => (
+            <button
+              key={option.id}
+              onClick={() => toggleOption(option.id)}
+              className={`w-full flex items-start gap-3 p-3 rounded-lg border-2 transition-colors text-left ${
+                selectedOptions.includes(option.id)
+                  ? "border-blue-500 bg-blue-50"
+                  : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <div className={`mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${
+                selectedOptions.includes(option.id)
+                  ? "border-blue-500 bg-blue-500"
+                  : "border-gray-300"
+              }`}>
+                {selectedOptions.includes(option.id) && (
+                  <Check className="w-3 h-3 text-white" />
+                )}
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">{option.label}</p>
+                <p className="text-sm text-gray-500">{option.description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="flex justify-end gap-2 px-4 py-3 border-t border-gray-200 bg-gray-50 rounded-b-xl">
+          <Button variant="outline" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            size="sm"
+            onClick={handleRegenerate}
+            disabled={selectedOptions.length === 0}
+          >
+            <RefreshCw className="w-4 h-4 mr-1" />
+            Regenerate {selectedOptions.length > 0 && `(${selectedOptions.length})`}
+          </Button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 // Edit Caption Modal
 function EditCaptionModal({
@@ -254,6 +371,7 @@ export function PublishWidget({
   const [editingPlatform, setEditingPlatform] = useState<Platform | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [published, setPublished] = useState(false);
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const selectedPlatforms = platforms.filter((p) => p.enabled);
@@ -288,6 +406,11 @@ export function PublishWidget({
     // Could show a toast or advance to next video
   };
 
+  const handleRegenerate = (options: string[]) => {
+    console.log("Regenerating:", options);
+    // In real implementation, this would trigger regeneration workflow
+  };
+
   const handleNextVideo = () => {
     setPublished(false);
     onNext?.();
@@ -300,20 +423,18 @@ export function PublishWidget({
       <Card className="w-full max-w-lg">
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="p-1.5 md:p-2 bg-purple-100 rounded-lg shrink-0">
+            <div>
+              <CardTitle className="text-base md:text-lg flex items-center gap-2">
                 <Film className="w-4 h-4 md:w-5 md:h-5 text-purple-600" />
-              </div>
-              <div className="min-w-0">
-                <CardTitle className="text-base md:text-lg">Video Ready!</CardTitle>
-                <p className="text-xs md:text-sm text-gray-900 font-medium truncate">
-                  {videoTitle} — {videoTheme}
-                </p>
-                <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                  <Calendar className="w-3 h-3 shrink-0" />
-                  <span className="truncate">{runDates}</span>
-                </p>
-              </div>
+                Video Ready!
+              </CardTitle>
+              <p className="text-xs md:text-sm text-gray-900 font-medium truncate mt-1">
+                {videoTitle} — {videoTheme}
+              </p>
+              <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
+                <Calendar className="w-3 h-3 shrink-0" />
+                <span className="truncate">{runDates}</span>
+              </p>
             </div>
             <span className="text-xs md:text-sm text-gray-500 font-medium whitespace-nowrap shrink-0">
               {currentVideo}/{totalVideos}
@@ -357,7 +478,7 @@ export function PublishWidget({
           ) : (
             <>
               {/* Video Player - Vertical 9:16 aspect ratio with native controls */}
-              <div className="flex justify-center">
+              <div className="flex flex-col items-center gap-2">
                 <div className="relative w-48 bg-gray-900 rounded-lg overflow-hidden" style={{ aspectRatio: '9/16' }}>
                   {/* Actual video with native controls for audio */}
                   <video
@@ -376,6 +497,16 @@ export function PublishWidget({
                     </p>
                   </div>
                 </div>
+
+                {/* Regenerate button */}
+                <button
+                  onClick={() => setShowRegenerateModal(true)}
+                  className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Regenerate
+                  <ChevronDown className="w-3 h-3" />
+                </button>
               </div>
 
               {/* Publish To Section */}
@@ -435,6 +566,13 @@ export function PublishWidget({
           onSave={(caption) => handleSaveCaption(editingPlatform, caption)}
         />
       )}
+
+      {/* Regenerate Modal */}
+      <RegenerateModal
+        isOpen={showRegenerateModal}
+        onClose={() => setShowRegenerateModal(false)}
+        onRegenerate={handleRegenerate}
+      />
     </>
   );
 }

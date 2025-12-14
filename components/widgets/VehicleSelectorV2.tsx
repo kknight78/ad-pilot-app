@@ -316,19 +316,35 @@ function VehicleModal({
                     onSelect(vehicle);
                     onClose();
                   }}
-                  className="w-full p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                  className="w-full p-3 text-left bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors flex gap-3"
                 >
-                  {/* Row 1: Year Make Model */}
-                  <div className="text-sm font-medium text-gray-900">
-                    {vehicle.year} {vehicle.make} {vehicle.model}
+                  {/* Thumbnail */}
+                  <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden shrink-0">
+                    {vehicle.imageUrl ? (
+                      <img
+                        src={vehicle.imageUrl}
+                        alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Car className="w-5 h-5 text-gray-400" />
+                      </div>
+                    )}
                   </div>
-                  {/* Row 2: VIN */}
-                  <div className="text-xs text-gray-400 font-mono mt-0.5">
-                    {vehicle.vin || "VIN unavailable"}
-                  </div>
-                  {/* Row 3: Price, mileage, days */}
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {formatPrice(vehicle.price)} • {Math.round(vehicle.mileage / 1000)}k mi • {vehicle.daysOnLot}d on lot
+                  <div className="flex-1 min-w-0">
+                    {/* Row 1: Year Make Model */}
+                    <div className="text-sm font-medium text-gray-900">
+                      {vehicle.year} {vehicle.make} {vehicle.model}
+                    </div>
+                    {/* Row 2: VIN */}
+                    <div className="text-xs text-gray-400 font-mono mt-0.5 truncate">
+                      {vehicle.vin || "VIN unavailable"}
+                    </div>
+                    {/* Row 3: Price, mileage, days */}
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      {formatPrice(vehicle.price)} • {Math.round(vehicle.mileage / 1000)}k mi • {vehicle.daysOnLot}d on lot
+                    </div>
                   </div>
                 </button>
               ))}
@@ -576,9 +592,19 @@ export function VehicleSelectorV2({ adSlots = demoAdSlots, onSelect, onContinue 
                     key={vehicle.id}
                     className="p-2 md:p-3 bg-gray-50 rounded-lg border border-gray-200 flex gap-3"
                   >
-                    {/* Thumbnail - desktop only */}
-                    <div className="hidden md:flex w-16 h-16 bg-gray-200 rounded-lg items-center justify-center shrink-0">
-                      <Car className="w-8 h-8 text-gray-400" />
+                    {/* Thumbnail */}
+                    <div className="w-14 h-14 md:w-16 md:h-16 bg-gray-200 rounded-lg overflow-hidden shrink-0">
+                      {vehicle.imageUrl ? (
+                        <img
+                          src={vehicle.imageUrl}
+                          alt={`${vehicle.year} ${vehicle.make} ${vehicle.model}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Car className="w-6 h-6 md:w-8 md:h-8 text-gray-400" />
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">
