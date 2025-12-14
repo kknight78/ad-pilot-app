@@ -28,8 +28,10 @@ interface VoiceCaptureV2Props {
   clientId?: string;
 }
 
-// Longer voice recording script (~45-60 seconds for quality clone)
+// Longer voice recording script (~45-50 seconds for quality clone)
 const DEFAULT_VOICE_SCRIPT = `Welcome to Capitol Car Credit, where we treat you like family. Right now we've got incredible deals on sedans, SUVs, and trucks. Whether you're looking for a reliable daily driver or something with a little more power, we've got you covered.
+
+What makes us different? We work with everyone — good credit, bad credit, no credit, we'll find a way to get you driving. Our team takes the time to understand your situation and find the right vehicle at the right price.
 
 Stop by today and ask for Shad — mention you saw us online and we'll take care of you. That's Capitol Car Credit in Rantoul. See you soon!`;
 
@@ -41,7 +43,7 @@ const PREVIEW_SCRIPTS = [
   "Got questions? Just ask for Shad!",
 ];
 
-const MIN_RECORDING_SECONDS = 30;
+const MIN_RECORDING_SECONDS = 20;
 const MAX_RECORDING_SECONDS = 60;
 
 type PermissionState = "prompt" | "granted" | "denied" | "checking";
@@ -682,26 +684,17 @@ export function VoiceCaptureV2({
         {/* Recording state */}
         {mode === "recording" && (
           <>
-            {/* Timer with pulsing indicator */}
-            <div className="text-center py-4">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <span className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                <span className="text-3xl font-mono text-gray-900">{formatTime(recordingSeconds)}</span>
-                <span className="text-sm text-red-500 font-medium">Recording...</span>
-              </div>
-
-              {/* Audio waveform visualization */}
-              <div className="flex items-center justify-center gap-0.5 h-12 mb-2">
-                {audioLevels.map((level, i) => (
-                  <div
-                    key={i}
-                    className="w-1.5 bg-red-500 rounded-full transition-all duration-75"
-                    style={{
-                      height: `${Math.max(4, level * 48)}px`,
-                    }}
-                  />
-                ))}
-              </div>
+            {/* Audio waveform visualization */}
+            <div className="flex items-center justify-center gap-0.5 h-12">
+              {audioLevels.map((level, i) => (
+                <div
+                  key={i}
+                  className="w-1.5 bg-red-500 rounded-full transition-all duration-75"
+                  style={{
+                    height: `${Math.max(4, level * 48)}px`,
+                  }}
+                />
+              ))}
             </div>
 
             {/* Script to read */}
@@ -710,24 +703,18 @@ export function VoiceCaptureV2({
               <p className="text-sm text-gray-700 leading-relaxed">&quot;{voiceScript}&quot;</p>
             </div>
 
-            {/* Stop button */}
-            <div className="text-center">
-              <p className="text-xs text-gray-500 mb-2">
-                {recordingSeconds < MIN_RECORDING_SECONDS
-                  ? `Keep going... (min ${MIN_RECORDING_SECONDS}s)`
-                  : "Great! You can stop now."}
-              </p>
-              <Button
-                className="w-full h-12 bg-gray-800 hover:bg-gray-900"
-                onClick={stopRecording}
-                disabled={recordingSeconds < MIN_RECORDING_SECONDS}
-              >
-                <Square className="w-5 h-5 mr-2" />
-                {recordingSeconds < MIN_RECORDING_SECONDS
-                  ? `Stop Recording (${MIN_RECORDING_SECONDS - recordingSeconds}s left)`
-                  : "Stop Recording"}
-              </Button>
-            </div>
+            {/* Stop button with timer inside */}
+            <Button
+              className="w-full h-12 bg-gray-800 hover:bg-gray-900"
+              onClick={stopRecording}
+              disabled={recordingSeconds < MIN_RECORDING_SECONDS}
+            >
+              <Square className="w-5 h-5 mr-2" />
+              Stop Recording {formatTime(recordingSeconds)}
+              {recordingSeconds < MIN_RECORDING_SECONDS && (
+                <span className="ml-1 text-gray-400">({MIN_RECORDING_SECONDS - recordingSeconds}s left)</span>
+              )}
+            </Button>
           </>
         )}
 

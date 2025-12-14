@@ -491,9 +491,6 @@ export function AvatarPhotoCaptureV2({
           Add a new look for your video avatar. Upload a photo and we&apos;ll
           create a preview video so you can see how it looks.
         </WhatsThis>
-        <p className="text-sm text-gray-500 mt-1">
-          New look for {presenterName}
-        </p>
       </CardHeader>
 
       <CardContent className="space-y-4">
