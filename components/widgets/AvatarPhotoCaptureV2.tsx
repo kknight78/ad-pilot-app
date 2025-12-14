@@ -16,12 +16,19 @@ import {
   Play,
 } from "lucide-react";
 
+interface ExistingStyle {
+  id: string;
+  name: string;
+  thumbnail: string;
+}
+
 interface AvatarPhotoCaptureV2Props {
   onCapture?: (imageData: string, avatarName: string) => void;
   onUpload?: (file: File, avatarName: string) => void;
   onPreviewGenerated?: (previewUrl: string) => void;
   presenterName?: string;
   avatarGenerationsRemaining?: number;
+  existingStyles?: ExistingStyle[];
 }
 
 // Face detection states
@@ -93,21 +100,33 @@ const faceStatusConfig: Record<FaceStatus, FaceGuideConfig> = {
   },
 };
 
+// Demo existing styles
+const demoExistingStyles: ExistingStyle[] = [
+  { id: "1", name: "Default", thumbnail: "https://res.cloudinary.com/dtpqxuwby/image/upload/v1763688792/avatar-default.jpg" },
+  { id: "2", name: "Winter", thumbnail: "https://res.cloudinary.com/dtpqxuwby/image/upload/v1763688792/avatar-winter.jpg" },
+  { id: "3", name: "Colts", thumbnail: "https://res.cloudinary.com/dtpqxuwby/image/upload/v1763688792/avatar-colts.jpg" },
+];
+
 export function AvatarPhotoCaptureV2({
   onCapture,
   onUpload,
   onPreviewGenerated,
   presenterName = "Shad",
   avatarGenerationsRemaining = 5,
+  existingStyles = demoExistingStyles,
 }: AvatarPhotoCaptureV2Props) {
-  // Modes: select -> camera -> preview -> generating -> video_preview -> confirmed
-  const [mode, setMode] = useState<"select" | "camera" | "preview" | "generating" | "video_preview" | "confirmed">("select");
+  // Modes: gallery -> select -> camera -> preview -> generating -> video_preview -> confirmed
+  const [mode, setMode] = useState<"gallery" | "select" | "camera" | "preview" | "generating" | "video_preview" | "confirmed">(
+    existingStyles.length > 0 ? "gallery" : "select"
+  );
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [avatarName, setAvatarName] = useState("");
+  // Pre-fill with presenter name + " - " (user adds style name after)
+  const [styleSuffix, setStyleSuffix] = useState("");
+  const avatarName = styleSuffix ? `${presenterName} - ${styleSuffix}` : "";
 
   // Video preview state
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
@@ -365,7 +384,7 @@ export function AvatarPhotoCaptureV2({
 
   // Generate preview video via HeyGen API
   const handlePreviewAvatar = async () => {
-    if (!avatarName.trim()) {
+    if (!styleSuffix.trim()) {
       setError("Please enter a style name");
       return;
     }
@@ -450,17 +469,13 @@ export function AvatarPhotoCaptureV2({
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">Add Avatar Style</CardTitle>
-            <p className="text-sm text-gray-500">
-              New look for {presenterName}
-            </p>
-          </div>
-          <div className="p-2 bg-purple-100 rounded-lg shrink-0">
-            <Camera className="w-5 h-5 text-purple-600" />
-          </div>
-        </div>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <span>📸</span>
+          Add Video Avatar
+        </CardTitle>
+        <p className="text-sm text-gray-500">
+          New look for {presenterName}
+        </p>
       </CardHeader>
 
       <CardContent className="space-y-4">
@@ -553,21 +568,68 @@ export function AvatarPhotoCaptureV2({
               </div>
             )}
 
+            {/* Gallery mode - show existing styles */}
+            {mode === "gallery" && existingStyles.length > 0 && (
+              <div className="space-y-4">
+                {/* Existing styles */}
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-2">
+                    Your Styles ({existingStyles.length})
+                  </p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {existingStyles.map((style) => (
+                      <div key={style.id} className="text-center">
+                        <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden mb-1">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={style.thumbnail}
+                            alt={style.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Fallback for missing images
+                              (e.target as HTMLImageElement).style.display = 'none';
+                              (e.target as HTMLImageElement).parentElement!.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-gray-200"><span class="text-2xl">👤</span></div>`;
+                            }}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-600 truncate">{style.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Add new style button */}
+                <Button
+                  className="w-full"
+                  onClick={() => setMode("select")}
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Add New Style
+                </Button>
+              </div>
+            )}
+
             {/* Selection mode */}
             {mode === "select" && (
               <div className="space-y-4">
-                {/* Style Name Input */}
+                {/* Style Name Input - pre-filled with presenter name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Style Name
                   </label>
-                  <input
-                    type="text"
-                    value={avatarName}
-                    onChange={(e) => setAvatarName(e.target.value)}
-                    placeholder="e.g., Winter Jacket, Casual Friday"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  />
+                  <div className="flex">
+                    <span className="inline-flex items-center px-3 text-sm text-gray-600 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg">
+                      {presenterName} -
+                    </span>
+                    <input
+                      type="text"
+                      value={styleSuffix}
+                      onChange={(e) => setStyleSuffix(e.target.value)}
+                      placeholder="Winter, Casual, etc."
+                      className="flex-1 border border-gray-300 rounded-r-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Keep it short — shows in dropdowns</p>
                 </div>
 
                 {/* Preview placeholder with guide */}
@@ -753,18 +815,24 @@ export function AvatarPhotoCaptureV2({
             {/* Preview mode - after photo capture */}
             {mode === "preview" && capturedImage && (
               <div className="space-y-4">
-                {/* Style Name Input */}
+                {/* Style Name Input - pre-filled with presenter name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Style Name
                   </label>
-                  <input
-                    type="text"
-                    value={avatarName}
-                    onChange={(e) => setAvatarName(e.target.value)}
-                    placeholder="e.g., Winter Jacket, Casual Friday"
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                  />
+                  <div className="flex">
+                    <span className="inline-flex items-center px-3 text-sm text-gray-600 bg-gray-100 border border-r-0 border-gray-300 rounded-l-lg">
+                      {presenterName} -
+                    </span>
+                    <input
+                      type="text"
+                      value={styleSuffix}
+                      onChange={(e) => setStyleSuffix(e.target.value)}
+                      placeholder="Winter, Casual, etc."
+                      className="flex-1 border border-gray-300 rounded-r-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1">Keep it short — shows in dropdowns</p>
                 </div>
 
                 <div className="relative aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden">
