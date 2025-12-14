@@ -17,7 +17,7 @@ import {
 import { WhatsThis } from "@/components/ui/whats-this";
 
 // Reference photo URL for the example
-const REFERENCE_PHOTO_URL = "https://res.cloudinary.com/dtpqxuwby/image/upload/v1734206160/profile-to-match.png";
+const REFERENCE_PHOTO_URL = "https://res.cloudinary.com/dtpqxuwby/image/upload/v1765747325/profile-to-match_nirsvu.png";
 
 interface ExistingStyle {
   id: string;
