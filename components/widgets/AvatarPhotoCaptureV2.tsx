@@ -15,6 +15,7 @@ import {
   Play,
 } from "lucide-react";
 import { WhatsThis } from "@/components/ui/whats-this";
+import * as faceapi from "face-api.js";
 
 // Reference photo URL for the example
 const REFERENCE_PHOTO_URL = "https://res.cloudinary.com/dtpqxuwby/image/upload/v1765747325/profile-to-match_nirsvu.png";
@@ -36,6 +37,7 @@ interface AvatarPhotoCaptureV2Props {
 
 // Face detection states
 type FaceStatus =
+  | "loading_model"
   | "initializing"
   | "no_face"
   | "multiple_faces"
@@ -49,10 +51,16 @@ interface FaceGuideConfig {
   borderColor: string;
   bgColor: string;
   message: string;
-  icon: "warning" | "error" | "success" | "info";
+  icon: "warning" | "error" | "success" | "info" | "loading";
 }
 
 const faceStatusConfig: Record<FaceStatus, FaceGuideConfig> = {
+  loading_model: {
+    borderColor: "border-white/50",
+    bgColor: "bg-purple-600/80",
+    message: "Loading face detection...",
+    icon: "loading",
+  },
   initializing: {
     borderColor: "border-white/50",
     bgColor: "bg-gray-700/80",
@@ -110,6 +118,9 @@ const demoExistingStyles: ExistingStyle[] = [
   { id: "3", name: "Colts", thumbnail: "https://res.cloudinary.com/dtpqxuwby/image/upload/v1763688792/avatar-colts.jpg" },
 ];
 
+// Track if models are loaded globally to avoid reloading
+let modelsLoaded = false;
+
 export function AvatarPhotoCaptureV2({
   onCapture,
   onUpload,
@@ -137,50 +148,42 @@ export function AvatarPhotoCaptureV2({
   // Face detection state
   const [faceStatus, setFaceStatus] = useState<FaceStatus>("initializing");
   const [perfectHoldTime, setPerfectHoldTime] = useState(0);
-  const [faceDetectionSupported, setFaceDetectionSupported] = useState<boolean | null>(null); // null = checking
+  const [faceDetectionReady, setFaceDetectionReady] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const faceDetectorRef = useRef<any>(null);
   const detectionIntervalRef = useRef<number | null>(null);
   const perfectTimerRef = useRef<number | null>(null);
   const captureTriggeredRef = useRef(false);
 
-  // Check for FaceDetector API support on mount
+  // Load face-api.js models
   useEffect(() => {
-    const checkFaceDetection = async () => {
-      if (typeof window === "undefined") {
-        setFaceDetectionSupported(false);
+    const loadModels = async () => {
+      if (modelsLoaded) {
+        setFaceDetectionReady(true);
         return;
       }
 
-      // Check if FaceDetector exists
-      if (!("FaceDetector" in window)) {
-        console.log("FaceDetector API not available in this browser");
-        setFaceDetectionSupported(false);
-        return;
-      }
-
-      // Try to create an instance to verify it works
       try {
-        // @ts-ignore
-        const detector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 5 });
-        faceDetectorRef.current = detector;
-        setFaceDetectionSupported(true);
-        console.log("FaceDetector API available and working");
+        // Load the tiny face detector model (smallest and fastest)
+        await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
+        modelsLoaded = true;
+        setFaceDetectionReady(true);
+        console.log("Face detection models loaded successfully");
       } catch (err) {
-        console.log("FaceDetector API failed to initialize:", err);
-        setFaceDetectionSupported(false);
+        console.error("Failed to load face detection models:", err);
+        // Fall back to manual mode if models fail to load
+        setFaceDetectionReady(false);
       }
     };
 
-    checkFaceDetection();
+    loadModels();
   }, []);
 
-  // Run face detection on video frame
+  // Run face detection on video frame using face-api.js
   const detectFaces = useCallback(async () => {
-    if (!videoRef.current || !faceDetectorRef.current || !faceDetectionSupported) {
+    if (!videoRef.current || !faceDetectionReady) {
       return;
     }
 
@@ -190,54 +193,61 @@ export function AvatarPhotoCaptureV2({
     }
 
     try {
-      const faces = await faceDetectorRef.current.detect(video);
+      // Detect faces using tiny face detector (fast)
+      const detections = await faceapi.detectAllFaces(
+        video,
+        new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
+      );
 
       const videoWidth = video.videoWidth;
       const videoHeight = video.videoHeight;
 
-      // Guide zone - roughly center 40% width, 60% height
-      const guideLeft = videoWidth * 0.3;
-      const guideRight = videoWidth * 0.7;
-      const guideTop = videoHeight * 0.1;
-      const guideBottom = videoHeight * 0.7;
+      // Guide zone - roughly center area where face should be
+      const guideLeft = videoWidth * 0.25;
+      const guideRight = videoWidth * 0.75;
+      const guideTop = videoHeight * 0.05;
+      const guideBottom = videoHeight * 0.6;
       const guideWidth = guideRight - guideLeft;
       const guideHeight = guideBottom - guideTop;
+      const guideArea = guideWidth * guideHeight;
 
-      if (faces.length === 0) {
+      if (detections.length === 0) {
         setFaceStatus("no_face");
         return;
       }
 
-      if (faces.length > 1) {
+      if (detections.length > 1) {
         setFaceStatus("multiple_faces");
         return;
       }
 
-      const face = faces[0];
-      const box = face.boundingBox;
+      const face = detections[0];
+      const box = face.box;
       const faceCenterX = box.x + box.width / 2;
       const faceCenterY = box.y + box.height / 2;
       const faceArea = box.width * box.height;
-      const guideArea = guideWidth * guideHeight;
 
       const sizeRatio = faceArea / guideArea;
 
-      if (sizeRatio < 0.25) {
+      // Check if face is too small (needs to move closer)
+      if (sizeRatio < 0.15) {
         setFaceStatus("too_small");
         return;
       }
 
-      if (sizeRatio > 1.3) {
+      // Check if face is too large (needs to back up)
+      if (sizeRatio > 0.8) {
         setFaceStatus("too_large");
         return;
       }
 
+      // Check if face is centered
       const guideCenterX = (guideLeft + guideRight) / 2;
       const guideCenterY = (guideTop + guideBottom) / 2;
       const xOffset = Math.abs(faceCenterX - guideCenterX) / guideWidth;
       const yOffset = Math.abs(faceCenterY - guideCenterY) / guideHeight;
 
-      if (xOffset > 0.3 || yOffset > 0.3) {
+      if (xOffset > 0.35 || yOffset > 0.4) {
         setFaceStatus("off_center");
         return;
       }
@@ -249,12 +259,12 @@ export function AvatarPhotoCaptureV2({
       console.error("Face detection error:", err);
       // Don't change status on error, keep last known state
     }
-  }, [faceDetectionSupported]);
+  }, [faceDetectionReady]);
 
   // Start camera
   const startCamera = useCallback(async () => {
     setError(null);
-    setFaceStatus("initializing");
+    setFaceStatus(faceDetectionReady ? "loading_model" : "manual");
     setPerfectHoldTime(0);
     captureTriggeredRef.current = false;
 
@@ -267,11 +277,12 @@ export function AvatarPhotoCaptureV2({
 
       // Wait a bit for video to initialize
       setTimeout(() => {
-        if (faceDetectionSupported) {
-          // Start detection loop
+        if (faceDetectionReady) {
+          setFaceStatus("initializing");
+          // Start detection loop - run every 200ms for smooth feedback
           detectionIntervalRef.current = window.setInterval(() => {
             detectFaces();
-          }, 250);
+          }, 200);
         } else {
           // Manual mode - no auto-capture
           setFaceStatus("manual");
@@ -282,11 +293,11 @@ export function AvatarPhotoCaptureV2({
       console.error("Camera error:", err);
       setError("Could not access camera. Please check permissions or try uploading instead.");
     }
-  }, [faceDetectionSupported, detectFaces]);
+  }, [faceDetectionReady, detectFaces]);
 
-  // Track time in "perfect" state for auto-capture (only when face detection is supported)
+  // Track time in "perfect" state for auto-capture
   useEffect(() => {
-    if (faceStatus === "perfect" && mode === "camera" && faceDetectionSupported && !captureTriggeredRef.current) {
+    if (faceStatus === "perfect" && mode === "camera" && faceDetectionReady && !captureTriggeredRef.current) {
       perfectTimerRef.current = window.setInterval(() => {
         setPerfectHoldTime((prev) => {
           const next = prev + 100;
@@ -316,7 +327,7 @@ export function AvatarPhotoCaptureV2({
         setPerfectHoldTime(0);
       }
     }
-  }, [faceStatus, mode, faceDetectionSupported]);
+  }, [faceStatus, mode, faceDetectionReady]);
 
   const stopCamera = useCallback(() => {
     if (stream) {
@@ -756,6 +767,7 @@ export function AvatarPhotoCaptureV2({
 
                     {/* Status message at bottom */}
                     <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 ${statusConfig.bgColor} text-white text-sm px-4 py-2 rounded-full flex items-center gap-2 whitespace-nowrap`}>
+                      {statusConfig.icon === "loading" && <Loader2 className="w-4 h-4 shrink-0 animate-spin" />}
                       {statusConfig.icon === "error" && <AlertCircle className="w-4 h-4 shrink-0" />}
                       {statusConfig.icon === "warning" && <AlertTriangle className="w-4 h-4 shrink-0" />}
                       {statusConfig.icon === "success" && <Check className="w-4 h-4 shrink-0" />}
@@ -763,7 +775,7 @@ export function AvatarPhotoCaptureV2({
                     </div>
 
                     {/* Progress ring for auto-capture (only when face detection works) */}
-                    {faceStatus === "perfect" && perfectHoldTime > 0 && faceDetectionSupported && (
+                    {faceStatus === "perfect" && perfectHoldTime > 0 && faceDetectionReady && (
                       <div className="absolute top-4 right-4">
                         <div className="relative w-12 h-12">
                           <svg className="w-12 h-12 transform -rotate-90">
@@ -806,14 +818,14 @@ export function AvatarPhotoCaptureV2({
                   <Button
                     className="flex-1"
                     onClick={capturePhoto}
-                    disabled={!canCapture && faceDetectionSupported === true}
+                    disabled={!canCapture && faceDetectionReady === true}
                   >
                     <Camera className="w-4 h-4 mr-2" />
-                    {canCapture || !faceDetectionSupported ? "Capture Photo" : "Position Your Face"}
+                    {canCapture || !faceDetectionReady ? "Capture Photo" : "Position Your Face"}
                   </Button>
                 </div>
 
-                {faceDetectionSupported && faceStatus !== "manual" && (
+                {faceDetectionReady && faceStatus !== "manual" && (
                   <p className="text-xs text-gray-400 text-center">
                     Photo will auto-capture when perfectly positioned
                   </p>
