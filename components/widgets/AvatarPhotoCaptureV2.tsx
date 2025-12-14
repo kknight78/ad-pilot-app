@@ -15,7 +15,6 @@ import {
   Play,
 } from "lucide-react";
 import { WhatsThis } from "@/components/ui/whats-this";
-import * as faceapi from "face-api.js";
 
 // Reference photo URL for the example
 const REFERENCE_PHOTO_URL = "https://res.cloudinary.com/dtpqxuwby/image/upload/v1765747325/profile-to-match_nirsvu.png";
@@ -35,81 +34,6 @@ interface AvatarPhotoCaptureV2Props {
   existingStyles?: ExistingStyle[];
 }
 
-// Face detection states
-type FaceStatus =
-  | "loading_model"
-  | "initializing"
-  | "no_face"
-  | "multiple_faces"
-  | "too_small"
-  | "too_large"
-  | "off_center"
-  | "perfect"
-  | "manual"; // Manual mode when detection unavailable
-
-interface FaceGuideConfig {
-  borderColor: string;
-  bgColor: string;
-  message: string;
-  icon: "warning" | "error" | "success" | "info" | "loading";
-}
-
-const faceStatusConfig: Record<FaceStatus, FaceGuideConfig> = {
-  loading_model: {
-    borderColor: "border-white/50",
-    bgColor: "bg-purple-600/80",
-    message: "Loading face detection...",
-    icon: "loading",
-  },
-  initializing: {
-    borderColor: "border-white/50",
-    bgColor: "bg-gray-700/80",
-    message: "Initializing camera...",
-    icon: "info",
-  },
-  manual: {
-    borderColor: "border-white/50",
-    bgColor: "bg-blue-600/80",
-    message: "Position your face in the guide, then capture",
-    icon: "info",
-  },
-  no_face: {
-    borderColor: "border-red-400",
-    bgColor: "bg-red-500/90",
-    message: "We can't see your face - get in the frame",
-    icon: "error",
-  },
-  multiple_faces: {
-    borderColor: "border-red-400",
-    bgColor: "bg-red-500/90",
-    message: "We see more than one person - just you!",
-    icon: "error",
-  },
-  too_small: {
-    borderColor: "border-amber-400",
-    bgColor: "bg-amber-500/90",
-    message: "Move a little closer",
-    icon: "warning",
-  },
-  too_large: {
-    borderColor: "border-amber-400",
-    bgColor: "bg-amber-500/90",
-    message: "Back up just a bit",
-    icon: "warning",
-  },
-  off_center: {
-    borderColor: "border-amber-400",
-    bgColor: "bg-amber-500/90",
-    message: "Center your face in the guide",
-    icon: "warning",
-  },
-  perfect: {
-    borderColor: "border-green-400",
-    bgColor: "bg-green-500/90",
-    message: "Perfect! Hold still...",
-    icon: "success",
-  },
-};
 
 // Demo existing styles
 const demoExistingStyles: ExistingStyle[] = [
@@ -117,9 +41,6 @@ const demoExistingStyles: ExistingStyle[] = [
   { id: "2", name: "Winter", thumbnail: "https://res.cloudinary.com/dtpqxuwby/image/upload/v1763688792/avatar-winter.jpg" },
   { id: "3", name: "Colts", thumbnail: "https://res.cloudinary.com/dtpqxuwby/image/upload/v1763688792/avatar-colts.jpg" },
 ];
-
-// Track if models are loaded globally to avoid reloading
-let modelsLoaded = false;
 
 export function AvatarPhotoCaptureV2({
   onCapture,
@@ -145,127 +66,17 @@ export function AvatarPhotoCaptureV2({
   // Video preview state
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
 
-  // Face detection state (kept for future use, but auto-capture disabled)
-  const [faceStatus, setFaceStatus] = useState<FaceStatus>("manual");
-  const [faceDetectionReady, setFaceDetectionReady] = useState(false);
-
   // Ghost overlay fade state
   const [showGhostPhoto, setShowGhostPhoto] = useState(true);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const detectionIntervalRef = useRef<number | null>(null);
   const ghostFadeTimerRef = useRef<number | null>(null);
-
-  // Load face-api.js models
-  useEffect(() => {
-    const loadModels = async () => {
-      if (modelsLoaded) {
-        setFaceDetectionReady(true);
-        return;
-      }
-
-      try {
-        // Load the tiny face detector model (smallest and fastest)
-        await faceapi.nets.tinyFaceDetector.loadFromUri("/models");
-        modelsLoaded = true;
-        setFaceDetectionReady(true);
-        console.log("Face detection models loaded successfully");
-      } catch (err) {
-        console.error("Failed to load face detection models:", err);
-        // Fall back to manual mode if models fail to load
-        setFaceDetectionReady(false);
-      }
-    };
-
-    loadModels();
-  }, []);
-
-  // Run face detection on video frame using face-api.js
-  const detectFaces = useCallback(async () => {
-    if (!videoRef.current || !faceDetectionReady) {
-      return;
-    }
-
-    const video = videoRef.current;
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-      return;
-    }
-
-    try {
-      // Detect faces using tiny face detector (fast)
-      const detections = await faceapi.detectAllFaces(
-        video,
-        new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
-      );
-
-      const videoWidth = video.videoWidth;
-      const videoHeight = video.videoHeight;
-
-      // Guide zone - roughly center area where face should be
-      const guideLeft = videoWidth * 0.25;
-      const guideRight = videoWidth * 0.75;
-      const guideTop = videoHeight * 0.05;
-      const guideBottom = videoHeight * 0.6;
-      const guideWidth = guideRight - guideLeft;
-      const guideHeight = guideBottom - guideTop;
-      const guideArea = guideWidth * guideHeight;
-
-      if (detections.length === 0) {
-        setFaceStatus("no_face");
-        return;
-      }
-
-      if (detections.length > 1) {
-        setFaceStatus("multiple_faces");
-        return;
-      }
-
-      const face = detections[0];
-      const box = face.box;
-      const faceCenterX = box.x + box.width / 2;
-      const faceCenterY = box.y + box.height / 2;
-      const faceArea = box.width * box.height;
-
-      const sizeRatio = faceArea / guideArea;
-
-      // Check if face is too small (needs to move closer)
-      if (sizeRatio < 0.15) {
-        setFaceStatus("too_small");
-        return;
-      }
-
-      // Check if face is too large (needs to back up)
-      if (sizeRatio > 0.8) {
-        setFaceStatus("too_large");
-        return;
-      }
-
-      // Check if face is centered
-      const guideCenterX = (guideLeft + guideRight) / 2;
-      const guideCenterY = (guideTop + guideBottom) / 2;
-      const xOffset = Math.abs(faceCenterX - guideCenterX) / guideWidth;
-      const yOffset = Math.abs(faceCenterY - guideCenterY) / guideHeight;
-
-      if (xOffset > 0.35 || yOffset > 0.4) {
-        setFaceStatus("off_center");
-        return;
-      }
-
-      // All checks passed!
-      setFaceStatus("perfect");
-
-    } catch (err) {
-      console.error("Face detection error:", err);
-      // Don't change status on error, keep last known state
-    }
-  }, [faceDetectionReady]);
 
   // Start camera
   const startCamera = useCallback(async () => {
     setError(null);
-    setFaceStatus("manual");
     setShowGhostPhoto(true);
 
     try {
@@ -290,10 +101,6 @@ export function AvatarPhotoCaptureV2({
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
       setStream(null);
-    }
-    if (detectionIntervalRef.current) {
-      window.clearInterval(detectionIntervalRef.current);
-      detectionIntervalRef.current = null;
     }
     if (ghostFadeTimerRef.current) {
       window.clearTimeout(ghostFadeTimerRef.current);
@@ -422,19 +229,12 @@ export function AvatarPhotoCaptureV2({
       if (stream) {
         stream.getTracks().forEach((track) => track.stop());
       }
-      if (detectionIntervalRef.current) {
-        window.clearInterval(detectionIntervalRef.current);
-      }
       if (ghostFadeTimerRef.current) {
         window.clearTimeout(ghostFadeTimerRef.current);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const statusConfig = faceStatusConfig[faceStatus];
-  // In manual mode, always allow capture. In detection mode, only when perfect
-  const canCapture = faceStatus === "manual" || faceStatus === "perfect";
 
   return (
     <Card className="w-full max-w-md">
