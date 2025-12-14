@@ -475,12 +475,12 @@ export function AvatarPhotoCaptureV2({
         <CardTitle className="text-lg flex items-center gap-2">
           <Camera className="w-5 h-5 text-purple-600" />
           Add Video Avatar
-          <WhatsThis>
-            Add a new look for your video avatar. Upload a photo and we&apos;ll
-            create a preview video so you can see how it looks.
-          </WhatsThis>
         </CardTitle>
-        <p className="text-sm text-gray-500">
+        <WhatsThis>
+          Add a new look for your video avatar. Upload a photo and we&apos;ll
+          create a preview video so you can see how it looks.
+        </WhatsThis>
+        <p className="text-sm text-gray-500 mt-1">
           New look for {presenterName}
         </p>
       </CardHeader>
@@ -513,12 +513,6 @@ export function AvatarPhotoCaptureV2({
                 muted
                 className="w-full h-full object-cover"
               />
-            </div>
-
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-sm text-blue-800">
-                <strong>Note:</strong> Background will be cleaned up after you save. Final videos will use green screen.
-              </p>
             </div>
 
             <div className="flex gap-2">
@@ -645,13 +639,13 @@ export function AvatarPhotoCaptureV2({
                   <p className="text-xs text-gray-400 mt-1">20 characters max</p>
                 </div>
 
-                {/* Example photo showing correct framing */}
-                <div className="relative aspect-[3/4] bg-gray-100 rounded-xl overflow-hidden">
+                {/* Example photo showing correct framing - full height visible */}
+                <div className="relative bg-gray-100 rounded-xl overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={REFERENCE_PHOTO_URL}
                     alt="Example framing"
-                    className="w-full h-full object-cover opacity-80"
+                    className="w-full h-auto opacity-80"
                   />
                   {/* Overlay text */}
                   <div className="absolute inset-0 flex flex-col items-center justify-end pb-6 bg-gradient-to-t from-black/60 via-transparent to-transparent">
