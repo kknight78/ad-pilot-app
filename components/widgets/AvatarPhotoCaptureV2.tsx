@@ -709,56 +709,33 @@ export function AvatarPhotoCaptureV2({
                     className="w-full h-full object-cover scale-x-[-1]"
                   />
 
-                  {/* Silhouette overlay - traced from reference photo */}
+                  {/* Ghost photo overlay - Shad's reference as positioning guide */}
                   <div className="absolute inset-0 pointer-events-none">
-                    {/* Simple dashed outline matching reference photo framing */}
+                    {/* Ghost image of Shad at 30% opacity */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={REFERENCE_PHOTO_URL}
+                      alt=""
+                      className="absolute inset-0 w-full h-full object-cover opacity-30"
+                      style={{ mixBlendMode: "screen" }}
+                    />
+
+                    {/* White dashed outline around the ghost image */}
                     <svg
                       className="absolute inset-0 w-full h-full"
                       viewBox="0 0 300 400"
                       preserveAspectRatio="xMidYMid slice"
                     >
-                      {/* Outer edge silhouette traced from reference photo */}
-                      {/* Head at ~15% from top, shoulders wide, arms at sides, bottom at belt */}
-                      <path
-                        d="M 150,55
-                           C 120,55 110,75 110,100
-                           C 110,125 125,145 135,155
-                           L 135,165
-                           C 135,170 130,175 120,180
-                           L 55,195
-                           C 45,198 40,210 40,225
-                           L 40,340
-                           L 70,345
-                           L 75,265
-                           L 85,260
-                           L 85,345
-                           L 215,345
-                           L 215,260
-                           L 225,265
-                           L 230,345
-                           L 260,340
-                           L 260,225
-                           C 260,210 255,198 245,195
-                           L 180,180
-                           C 170,175 165,170 165,165
-                           L 165,155
-                           C 175,145 190,125 190,100
-                           C 190,75 180,55 150,55 Z"
-                        fill="none"
-                        stroke="rgba(255,255,255,0.8)"
-                        strokeWidth="2"
-                        strokeDasharray="8,4"
-                      />
                       {/* Corner indicators showing frame boundaries */}
-                      <g stroke="rgba(255,255,255,0.5)" strokeWidth="1.5" fill="none">
+                      <g stroke="rgba(255,255,255,0.6)" strokeWidth="2" fill="none">
                         {/* Top left */}
-                        <path d="M 25,25 L 25,50 M 25,25 L 50,25" />
+                        <path d="M 20,20 L 20,50 M 20,20 L 50,20" />
                         {/* Top right */}
-                        <path d="M 275,25 L 275,50 M 275,25 L 250,25" />
+                        <path d="M 280,20 L 280,50 M 280,20 L 250,20" />
                         {/* Bottom left */}
-                        <path d="M 25,375 L 25,350 M 25,375 L 50,375" />
+                        <path d="M 20,380 L 20,350 M 20,380 L 50,380" />
                         {/* Bottom right */}
-                        <path d="M 275,375 L 275,350 M 275,375 L 250,375" />
+                        <path d="M 280,380 L 280,350 M 280,380 L 250,380" />
                       </g>
                     </svg>
 
