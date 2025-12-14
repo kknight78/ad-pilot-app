@@ -145,17 +145,18 @@ export function AvatarPhotoCaptureV2({
   // Video preview state
   const [previewVideoUrl, setPreviewVideoUrl] = useState<string | null>(null);
 
-  // Face detection state
-  const [faceStatus, setFaceStatus] = useState<FaceStatus>("initializing");
-  const [perfectHoldTime, setPerfectHoldTime] = useState(0);
+  // Face detection state (kept for future use, but auto-capture disabled)
+  const [faceStatus, setFaceStatus] = useState<FaceStatus>("manual");
   const [faceDetectionReady, setFaceDetectionReady] = useState(false);
+
+  // Ghost overlay fade state
+  const [showGhostPhoto, setShowGhostPhoto] = useState(true);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const detectionIntervalRef = useRef<number | null>(null);
-  const perfectTimerRef = useRef<number | null>(null);
-  const captureTriggeredRef = useRef(false);
+  const ghostFadeTimerRef = useRef<number | null>(null);
 
   // Load face-api.js models
   useEffect(() => {
@@ -264,9 +265,8 @@ export function AvatarPhotoCaptureV2({
   // Start camera
   const startCamera = useCallback(async () => {
     setError(null);
-    setFaceStatus(faceDetectionReady ? "loading_model" : "manual");
-    setPerfectHoldTime(0);
-    captureTriggeredRef.current = false;
+    setFaceStatus("manual");
+    setShowGhostPhoto(true);
 
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -275,59 +275,16 @@ export function AvatarPhotoCaptureV2({
       setStream(mediaStream);
       setMode("camera");
 
-      // Wait a bit for video to initialize
-      setTimeout(() => {
-        if (faceDetectionReady) {
-          setFaceStatus("initializing");
-          // Start detection loop - run every 200ms for smooth feedback
-          detectionIntervalRef.current = window.setInterval(() => {
-            detectFaces();
-          }, 200);
-        } else {
-          // Manual mode - no auto-capture
-          setFaceStatus("manual");
-        }
-      }, 500);
+      // Fade out ghost photo after 2 seconds, leaving just the outline
+      ghostFadeTimerRef.current = window.setTimeout(() => {
+        setShowGhostPhoto(false);
+      }, 2000);
 
     } catch (err) {
       console.error("Camera error:", err);
       setError("Could not access camera. Please check permissions or try uploading instead.");
     }
-  }, [faceDetectionReady, detectFaces]);
-
-  // Track time in "perfect" state for auto-capture
-  useEffect(() => {
-    if (faceStatus === "perfect" && mode === "camera" && faceDetectionReady && !captureTriggeredRef.current) {
-      perfectTimerRef.current = window.setInterval(() => {
-        setPerfectHoldTime((prev) => {
-          const next = prev + 100;
-          // Auto-capture at 2 seconds
-          if (next >= 2000 && !captureTriggeredRef.current) {
-            captureTriggeredRef.current = true;
-            // Use setTimeout to avoid state update during render
-            setTimeout(() => capturePhoto(), 0);
-          }
-          return next;
-        });
-      }, 100);
-
-      return () => {
-        if (perfectTimerRef.current) {
-          window.clearInterval(perfectTimerRef.current);
-          perfectTimerRef.current = null;
-        }
-      };
-    } else {
-      // Reset timer when not perfect
-      if (perfectTimerRef.current) {
-        window.clearInterval(perfectTimerRef.current);
-        perfectTimerRef.current = null;
-      }
-      if (faceStatus !== "perfect") {
-        setPerfectHoldTime(0);
-      }
-    }
-  }, [faceStatus, mode, faceDetectionReady]);
+  }, []);
 
   const stopCamera = useCallback(() => {
     if (stream) {
@@ -338,9 +295,9 @@ export function AvatarPhotoCaptureV2({
       window.clearInterval(detectionIntervalRef.current);
       detectionIntervalRef.current = null;
     }
-    if (perfectTimerRef.current) {
-      window.clearInterval(perfectTimerRef.current);
-      perfectTimerRef.current = null;
+    if (ghostFadeTimerRef.current) {
+      window.clearTimeout(ghostFadeTimerRef.current);
+      ghostFadeTimerRef.current = null;
     }
   }, [stream]);
 
@@ -392,8 +349,7 @@ export function AvatarPhotoCaptureV2({
     setUploadedFile(null);
     setPreviewVideoUrl(null);
     setMode("select");
-    setPerfectHoldTime(0);
-    captureTriggeredRef.current = false;
+    setShowGhostPhoto(true);
   };
 
   // Generate preview video via HeyGen API
@@ -428,7 +384,7 @@ export function AvatarPhotoCaptureV2({
     setPreviewVideoUrl(null);
     setCapturedImage(null);
     setMode("select");
-    captureTriggeredRef.current = false;
+    setShowGhostPhoto(true);
   };
 
   // Save the avatar style
@@ -469,8 +425,8 @@ export function AvatarPhotoCaptureV2({
       if (detectionIntervalRef.current) {
         window.clearInterval(detectionIntervalRef.current);
       }
-      if (perfectTimerRef.current) {
-        window.clearInterval(perfectTimerRef.current);
+      if (ghostFadeTimerRef.current) {
+        window.clearTimeout(ghostFadeTimerRef.current);
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -649,17 +605,17 @@ export function AvatarPhotoCaptureV2({
 
                 {/* Example photo showing correct framing - full height visible */}
                 <div className="relative bg-gray-100 rounded-xl overflow-hidden">
+                  {/* Overlay text at TOP */}
+                  <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/60 via-black/30 to-transparent pt-4 pb-8 text-center">
+                    <p className="text-white text-sm font-medium">Your photo should look like this</p>
+                    <p className="text-white/80 text-xs mt-1">Head to belt, arms at sides</p>
+                  </div>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={REFERENCE_PHOTO_URL}
                     alt="Example framing"
                     className="w-full h-auto opacity-80"
                   />
-                  {/* Overlay text */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-end pb-6 bg-gradient-to-t from-black/60 via-transparent to-transparent">
-                    <p className="text-white text-sm font-medium">Your photo should look like this</p>
-                    <p className="text-white/80 text-xs mt-1">Head to belt, arms at sides</p>
-                  </div>
                 </div>
 
                 {/* Action buttons */}
@@ -709,75 +665,69 @@ export function AvatarPhotoCaptureV2({
                     className="w-full h-full object-cover scale-x-[-1]"
                   />
 
-                  {/* Ghost photo overlay - Shad's reference as positioning guide */}
+                  {/* Ghost photo overlay - fades after 2 seconds, leaving outline */}
                   <div className="absolute inset-0 pointer-events-none">
-                    {/* Ghost image of Shad at 30% opacity */}
+                    {/* Ghost image of Shad - fades out after 2 seconds */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={REFERENCE_PHOTO_URL}
                       alt=""
-                      className="absolute inset-0 w-full h-full object-cover opacity-30"
+                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+                        showGhostPhoto ? "opacity-30" : "opacity-0"
+                      }`}
                       style={{ mixBlendMode: "screen" }}
                     />
 
-                    {/* White dashed outline around the ghost image */}
+                    {/* Thick outline tracing Shad's profile - always visible */}
                     <svg
                       className="absolute inset-0 w-full h-full"
                       viewBox="0 0 300 400"
                       preserveAspectRatio="xMidYMid slice"
                     >
-                      {/* Corner indicators showing frame boundaries */}
-                      <g stroke="rgba(255,255,255,0.6)" strokeWidth="2" fill="none">
-                        {/* Top left */}
-                        <path d="M 20,20 L 20,50 M 20,20 L 50,20" />
-                        {/* Top right */}
-                        <path d="M 280,20 L 280,50 M 280,20 L 250,20" />
-                        {/* Bottom left */}
-                        <path d="M 20,380 L 20,350 M 20,380 L 50,380" />
-                        {/* Bottom right */}
-                        <path d="M 280,380 L 280,350 M 280,380 L 250,380" />
+                      {/* Body outline traced from reference photo - head, shoulders, arms, torso */}
+                      <path
+                        d="M 150,45
+                           C 115,45 100,70 100,100
+                           C 100,130 118,155 130,165
+                           L 130,175
+                           C 130,182 122,188 110,195
+                           L 50,215
+                           C 38,220 32,235 32,255
+                           L 32,360
+                           L 65,365
+                           L 72,280
+                           L 85,275
+                           L 85,365
+                           L 215,365
+                           L 215,275
+                           L 228,280
+                           L 235,365
+                           L 268,360
+                           L 268,255
+                           C 268,235 262,220 250,215
+                           L 190,195
+                           C 178,188 170,182 170,175
+                           L 170,165
+                           C 182,155 200,130 200,100
+                           C 200,70 185,45 150,45 Z"
+                        fill="none"
+                        stroke="rgba(255,255,255,0.85)"
+                        strokeWidth="3.5"
+                        strokeLinejoin="round"
+                      />
+                      {/* Corner indicators */}
+                      <g stroke="rgba(255,255,255,0.5)" strokeWidth="2" fill="none">
+                        <path d="M 15,15 L 15,45 M 15,15 L 45,15" />
+                        <path d="M 285,15 L 285,45 M 285,15 L 255,15" />
+                        <path d="M 15,385 L 15,355 M 15,385 L 45,385" />
+                        <path d="M 285,385 L 285,355 M 285,385 L 255,385" />
                       </g>
                     </svg>
 
-                    {/* Status message at bottom */}
-                    <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 ${statusConfig.bgColor} text-white text-sm px-4 py-2 rounded-full flex items-center gap-2 whitespace-nowrap`}>
-                      {statusConfig.icon === "loading" && <Loader2 className="w-4 h-4 shrink-0 animate-spin" />}
-                      {statusConfig.icon === "error" && <AlertCircle className="w-4 h-4 shrink-0" />}
-                      {statusConfig.icon === "warning" && <AlertTriangle className="w-4 h-4 shrink-0" />}
-                      {statusConfig.icon === "success" && <Check className="w-4 h-4 shrink-0" />}
-                      {statusConfig.message}
+                    {/* Instruction message at bottom */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-blue-600/90 text-white text-sm px-4 py-2 rounded-full flex items-center gap-2 whitespace-nowrap">
+                      Fit yourself inside the outline
                     </div>
-
-                    {/* Progress ring for auto-capture (only when face detection works) */}
-                    {faceStatus === "perfect" && perfectHoldTime > 0 && faceDetectionReady && (
-                      <div className="absolute top-4 right-4">
-                        <div className="relative w-12 h-12">
-                          <svg className="w-12 h-12 transform -rotate-90">
-                            <circle
-                              cx="24"
-                              cy="24"
-                              r="20"
-                              fill="none"
-                              stroke="rgba(255,255,255,0.3)"
-                              strokeWidth="4"
-                            />
-                            <circle
-                              cx="24"
-                              cy="24"
-                              r="20"
-                              fill="none"
-                              stroke="#22c55e"
-                              strokeWidth="4"
-                              strokeDasharray={`${(perfectHoldTime / 2000) * 125.6} 125.6`}
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                          <span className="absolute inset-0 flex items-center justify-center text-white text-sm font-bold">
-                            {Math.ceil((2000 - perfectHoldTime) / 1000)}
-                          </span>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -792,18 +742,11 @@ export function AvatarPhotoCaptureV2({
                   <Button
                     className="flex-1"
                     onClick={capturePhoto}
-                    disabled={!canCapture && faceDetectionReady === true}
                   >
                     <Camera className="w-4 h-4 mr-2" />
-                    {canCapture || !faceDetectionReady ? "Capture Photo" : "Position Your Face"}
+                    Capture Photo
                   </Button>
                 </div>
-
-                {faceDetectionReady && faceStatus !== "manual" && (
-                  <p className="text-xs text-gray-400 text-center">
-                    Photo will auto-capture when perfectly positioned
-                  </p>
-                )}
               </div>
             )}
 
