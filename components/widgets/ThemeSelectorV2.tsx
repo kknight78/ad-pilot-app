@@ -13,6 +13,7 @@ import {
   Star,
   ArrowRight,
 } from "lucide-react";
+import { WhatsThis } from "@/components/ui/whats-this";
 
 export interface Theme {
   name: string;
@@ -143,13 +144,26 @@ export function ThemeSelectorV2({
   return (
     <Card className="w-full max-w-xl border-blue-100">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Palette className="w-4 h-4 text-blue-500" />
-          Weekly Theme
-        </CardTitle>
-        <p className="text-xs text-gray-500">
-          Sets the tone for your ads
-        </p>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-purple-500" />
+            Weekly Theme
+          </CardTitle>
+        </div>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-gray-500">Sets the tone for your ads</p>
+          <WhatsThis>
+            <p className="mb-2"><strong>How themes appear in your videos:</strong></p>
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              <li>Script hooks reference the theme naturally</li>
+              <li>Visual overlays match the seasonal mood</li>
+              <li>Call-to-actions tie into the theme messaging</li>
+            </ul>
+            <p className="mt-2 text-xs text-gray-500">
+              Consistent themes help your audience recognize campaigns and build momentum.
+            </p>
+          </WhatsThis>
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-4">

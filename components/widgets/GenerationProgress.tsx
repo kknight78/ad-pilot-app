@@ -61,7 +61,6 @@ const demoJobs: VideoJob[] = [
       { id: "script", label: "Script Generation", status: "done", duration: "8s" },
       { id: "avatar", label: "Avatar Recording", status: "done", duration: "42s" },
       { id: "video", label: "Video Assembly", status: "active" },
-      { id: "publish", label: "Publishing", status: "pending" },
     ],
   },
   {
@@ -256,7 +255,6 @@ export function GenerationProgress({
               { id: "script", label: "Script Generation", status: "active" as const },
               { id: "avatar", label: "Avatar Recording", status: "pending" as const },
               { id: "video", label: "Video Assembly", status: "pending" as const },
-              { id: "publish", label: "Publishing", status: "pending" as const },
             ],
           };
         })
@@ -269,17 +267,13 @@ export function GenerationProgress({
   return (
     <Card className="w-full max-w-lg">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle className="text-lg">Generating Videos</CardTitle>
-            <p className="text-sm text-gray-500">
-              {doneCount} of {totalCount} complete
-            </p>
-          </div>
-          <div className="p-2 bg-blue-100 rounded-lg shrink-0">
-            <Film className="w-5 h-5 text-blue-600" />
-          </div>
-        </div>
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Film className="w-5 h-5 text-blue-600" />
+          Generating Videos
+        </CardTitle>
+        <p className="text-sm text-gray-500">
+          {doneCount} of {totalCount} complete
+        </p>
       </CardHeader>
 
       <CardContent className="space-y-2">
@@ -291,7 +285,7 @@ export function GenerationProgress({
         <div className="pt-4 border-t mt-4">
           {allComplete ? (
             <Button className="w-full" onClick={onPreviewAll}>
-              Preview All & Publish
+              Preview All
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (

@@ -382,41 +382,34 @@ function PlatformIcon({ platform }: { platform: keyof typeof platformConfig }) {
 
 function VideoUsageTracker({ usage, onUpgrade }: { usage: VideoUsage; onUpgrade?: () => void }) {
   const percentage = (usage.used / usage.limit) * 100;
-  const remaining = usage.limit - usage.used;
 
   return (
-    <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <Video className="w-4 h-4 text-gray-600" />
-          <span className="text-sm font-medium text-gray-700">Video Usage</span>
+    <div className="bg-gray-50 rounded-lg p-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium">Video Generations</p>
+          <p className="text-xs text-gray-500">{usage.used} of {usage.limit} used this month</p>
         </div>
-        {onUpgrade && (
-          <button
-            onClick={onUpgrade}
-            className="text-xs text-blue-600 hover:text-blue-700 flex items-center gap-1"
-          >
-            Upgrade Plan
-            <ArrowUpRight className="w-3 h-3" />
-          </button>
-        )}
-      </div>
-
-      {/* Progress bar */}
-      <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden mb-2">
-        <div
-          className={`h-full rounded-full transition-all ${
-            percentage > 80 ? "bg-amber-500" : "bg-blue-500"
-          }`}
-          style={{ width: `${Math.min(percentage, 100)}%` }}
-        />
-      </div>
-
-      <div className="flex items-center justify-between text-xs text-gray-500">
-        <span>
-          <span className="font-medium text-gray-700">{usage.used}</span> of {usage.limit} this month
-        </span>
-        <span>{remaining} remaining • Resets {usage.resetDate}</span>
+        <div className="flex items-center gap-3">
+          {/* Progress bar */}
+          <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${
+                percentage > 80 ? "bg-amber-500" : "bg-blue-500"
+              }`}
+              style={{ width: `${Math.min(percentage, 100)}%` }}
+            />
+          </div>
+          {/* Upsell button */}
+          {onUpgrade && (
+            <button
+              onClick={onUpgrade}
+              className="text-xs bg-gradient-to-r from-blue-500 to-purple-500 text-white px-3 py-1 rounded-full hover:opacity-90 transition-opacity"
+            >
+              + Add More
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -669,29 +662,23 @@ export function AdPlanWidget({
     <>
       <Card className="w-full max-w-4xl">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <CardTitle className="text-lg">
-                This Week&apos;s Content Plan
-              </CardTitle>
-              <p className="text-sm text-gray-500">{localData.dateRange}</p>
-              {/* Strategy Badges */}
-              <div className="flex flex-wrap gap-2 mt-2">
-                {localData.strategyBadges.map((badge, index) => (
-                  <Badge
-                    key={index}
-                    variant="secondary"
-                    className="bg-green-50 text-green-700 border-green-200"
-                  >
-                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                    {badge}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-            <div className="p-2 bg-blue-100 rounded-lg shrink-0">
-              <Calendar className="w-5 h-5 text-blue-600" />
-            </div>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-blue-600" />
+            This Week&apos;s Content Plan
+          </CardTitle>
+          <p className="text-sm text-gray-500">{localData.dateRange}</p>
+          {/* Strategy Badges */}
+          <div className="flex flex-wrap gap-2 mt-2">
+            {localData.strategyBadges.map((badge, index) => (
+              <Badge
+                key={index}
+                variant="secondary"
+                className="bg-green-50 text-green-700 border-green-200"
+              >
+                <CheckCircle2 className="w-3 h-3 mr-1" />
+                {badge}
+              </Badge>
+            ))}
           </div>
         </CardHeader>
 
@@ -726,6 +713,11 @@ export function AdPlanWidget({
                 </Button>
               )}
             </div>
+
+            {/* Deadline text */}
+            <p className="text-xs text-gray-500 mt-3">
+              ✏️ You can make changes until Monday 8:00 AM
+            </p>
 
             {/* Platform Spend Disclaimer */}
             <div className="flex items-start gap-2 mt-3 pt-3 border-t border-gray-200">

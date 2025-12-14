@@ -362,6 +362,7 @@ export function ScriptApprovalCards({
   onComplete,
 }: ScriptApprovalCardsProps) {
   const [scripts, setScripts] = useState(initialScripts);
+  const [notifyWhenDone, setNotifyWhenDone] = useState(false);
   const [platformIndices, setPlatformIndices] = useState<Record<Platform, number>>({
     tiktok: 0,
     facebook: 0,
@@ -459,28 +460,24 @@ export function ScriptApprovalCards({
   return (
     <Card className="w-full max-w-lg">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <CardTitle className="text-base md:text-lg">Script Approval</CardTitle>
-            <p className="text-xs md:text-sm text-gray-500">
-              {totalCount} scripts • {pendingCount} pending
-            </p>
-            {!allApproved && (
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleApproveAll}
-                className="text-xs whitespace-nowrap mt-2"
-              >
-                <CheckCheck className="w-3 h-3 mr-1" />
-                Approve All
-              </Button>
-            )}
-          </div>
-          <div className="p-1.5 md:p-2 bg-amber-100 rounded-lg shrink-0">
-            <FileText className="w-4 h-4 md:w-5 md:h-5 text-amber-600" />
-          </div>
-        </div>
+        <CardTitle className="text-base md:text-lg flex items-center gap-2">
+          <FileText className="w-4 h-4 md:w-5 md:h-5 text-amber-600" />
+          Script Approval
+        </CardTitle>
+        <p className="text-xs md:text-sm text-gray-500">
+          {totalCount} scripts • {pendingCount} pending
+        </p>
+        {!allApproved && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleApproveAll}
+            className="text-xs whitespace-nowrap mt-2"
+          >
+            <CheckCheck className="w-3 h-3 mr-1" />
+            Approve All
+          </Button>
+        )}
       </CardHeader>
 
       <CardContent className="space-y-3">
@@ -493,9 +490,18 @@ export function ScriptApprovalCards({
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
               All Scripts Approved!
             </h3>
-            <p className="text-gray-600 mb-6">
+            <p className="text-gray-600 mb-4">
               {totalCount} scripts ready for video generation
             </p>
+            <label className="flex items-center justify-center gap-2 text-sm text-gray-600 cursor-pointer mb-4">
+              <input
+                type="checkbox"
+                checked={notifyWhenDone}
+                onChange={(e) => setNotifyWhenDone(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              📱 Text/email me when all generations are done
+            </label>
             <Button onClick={() => onComplete?.()}>
               Generate Videos
               <ChevronRight className="w-4 h-4 ml-1" />
